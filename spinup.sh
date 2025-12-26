@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="${SCRIPT_DIR}/config.yaml"
+CONFIG_FILE="${SCRIPT_DIR}/config.local.yaml"
 
 # 設定ファイルからYAML値を取得する関数
 get_config() {
