@@ -1,8 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_NAME="${PROJECT_NAME:-kiddleton-dataplatform}"
-WARP_SCHEME="${WARP_SCHEME:-warp}" # Warp Previewなら warppreview
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${SCRIPT_DIR}/config.local.yaml"
+
+# 設定ファイルからYAML値を取得する関数
+get_config() {
+  local key="$1"
+  local default="${2:-}"
+  if [ -f "$CONFIG_FILE" ]; then
+    local value
+    value=$(grep "^${key}:" "$CONFIG_FILE" | sed 's/^[^:]*:[[:space:]]*//' | sed 's/^"//' | sed 's/"$//' | tr -d '\r')
+    if [ -n "$value" ]; then
+      echo "$value"
+      return
+    fi
+  fi
+  echo "$default"
+}
+
+# 環境変数 > 設定ファイル > デフォルト値 の優先順位
+PROJECT_NAME="${PROJECT_NAME:-$(get_config "project_name" "my-project")}"
+WARP_SCHEME="${WARP_SCHEME:-$(get_config "warp_scheme" "warp")}"
 
 if [ $# -lt 1 ]; then
   echo "Usage: $0 <worktree1> [worktree2] ..."
@@ -19,7 +38,7 @@ ts="$(date +%Y%m%d_%H%M%S)"
 LC_NAME="${PROJECT_NAME}_spinup_${ts}"
 yaml_path="${LAUNCH_DIR}/${LC_NAME}.yaml"
 
-# docs準拠：layout直下に cwd / commands を置く :contentReference[oaicite:1]{index=1}
+# docs準拠：layout直下に cwd / commands を置く
 {
   echo "---"
   echo "name: ${LC_NAME}"
@@ -45,7 +64,7 @@ yaml_path="${LAUNCH_DIR}/${LC_NAME}.yaml"
   done
 } > "$yaml_path"
 
-# Launch configを起動（URI scheme） :contentReference[oaicite:2]{index=2}
+# Launch configを起動（URI scheme）
 open "${WARP_SCHEME}://launch/${LC_NAME}"
 
 echo "Launch config written:"
