@@ -1,85 +1,85 @@
 # Parallel Task Execution Guide
 
-このドキュメントは、複数のClaudeエージェントを並列実行してタスクを効率的に処理するためのガイドです。
+This document provides guidance for running multiple Claude agents in parallel to efficiently process tasks.
 
-## ツールキットの場所
+## Toolkit Location
 
-並列実行用スクリプトは `.paralell/` ディレクトリにあります：
+Parallel execution scripts are located in `.paralell/` directory:
 
-- `spinup.sh` - 並列環境の起動
-- `teardown.sh` - 並列環境の終了
-- `config.local.yaml` - 設定ファイル
+- `spinup.sh` - Start parallel environment
+- `teardown.sh` - Terminate parallel environment
+- `config.local.yaml` - Configuration file
 
 ## Quick Start
 
-**重要**: スクリプトは対象Gitリポジトリ内から相対パスで実行してください。
+**IMPORTANT**: Scripts must be executed from within the target Git repository using relative paths.
 
 ```bash
-# 対象リポジトリに移動
+# Navigate to target repository
 cd <target-repository>
 
-# 並列環境を起動（例: 3ワーカー）
+# Start parallel environment (e.g., 3 workers)
 ../.paralell/spinup.sh feature/task1 feature/task2 feature/task3
 
-# 環境を終了
+# Teardown environment
 ../.paralell/teardown.sh feature/task1 feature/task2 feature/task3
 ```
 
 ---
 
-## オーケストレーターとしての責務
+## Orchestrator Responsibilities
 
-大規模タスクを受け取った場合、以下のフローで並列処理を検討してください。
+When receiving large-scale tasks, follow this workflow for parallel processing.
 
-### 1. タスク分析
+### 1. Task Analysis
 
-並列化の判断基準：
+Criteria for parallelization:
 
-- [ ] タスクが独立したサブタスクに分割可能か
-- [ ] 各サブタスクが異なるファイル/ディレクトリを対象とするか
-- [ ] 並列化による時間短縮効果があるか
+- [ ] Can the task be split into independent subtasks?
+- [ ] Do subtasks target different files/directories?
+- [ ] Will parallelization provide meaningful time savings?
 
-**並列化すべきケース**:
-- 複数の独立した機能実装
-- 異なるモジュールへの変更
-- テスト追加とリファクタリングの同時進行
+**Good candidates for parallelization**:
+- Multiple independent feature implementations
+- Changes to different modules
+- Simultaneous test additions and refactoring
 
-**並列化すべきでないケース**:
-- 共有ファイルへの同時変更が必要
-- 順序依存のある変更
-- 小規模で単一ファイルの修正
+**Poor candidates for parallelization**:
+- Concurrent changes to shared files required
+- Sequential dependencies between changes
+- Small-scale single-file modifications
 
-### 2. ワーカー起動
+### 2. Start Workers
 
 ```bash
 cd <target-repository>
 ../.paralell/spinup.sh <branch1> <branch2> <branch3>
 ```
 
-### 3. タスク投入
+### 3. Assign Tasks
 
-`tmux send-keys` で `claude -p` コマンドを送信：
+Send `claude -p` commands via `tmux send-keys`:
 
 ```bash
 tmux send-keys -t '<project>__<branch>' \
-  'claude -p "<タスク指示>"' Enter
+  'claude -p "<task instructions>"' Enter
 ```
 
-### 4. 進捗監視
+### 4. Monitor Progress
 
 ```bash
-# セッション一覧
+# List sessions
 tmux list-sessions
 
-# 特定セッションの出力確認
+# Check specific session output
 tmux capture-pane -t '<session>' -p | tail -50
 ```
 
-### 5. 統合・マージ
+### 5. Integration & Merge
 
-各ブランチの作業完了後、mainブランチにマージ。
+After all branches complete, merge into main branch.
 
-### 6. クリーンアップ
+### 6. Cleanup
 
 ```bash
 ../.paralell/teardown.sh <branch1> <branch2> <branch3>
@@ -87,108 +87,108 @@ tmux capture-pane -t '<session>' -p | tail -50
 
 ---
 
-## ガードレール
+## Guardrails
 
-### MUST（必須）
+### MUST (Required)
 
-1. **スコープの明確化**: 各ワーカーに担当ファイル/ディレクトリを明示する
-2. **境界の設定**: 他ワーカーが触れてはいけないファイルを指定する
-3. **完了条件の明示**: 何をもって完了とするか具体的に伝える
-4. **base branchの指定**: PR作成時のbase branchを明示する
+1. **Define Scope Clearly**: Specify target files/directories for each worker
+2. **Set Boundaries**: Indicate files that other workers must not touch
+3. **Specify Completion Criteria**: Define exactly what "done" means
+4. **Specify Base Branch**: Always indicate the base branch for PR creation
 
-### MUST NOT（禁止）
+### MUST NOT (Prohibited)
 
-1. **共有ファイルの同時編集禁止**: 複数ワーカーが同じファイルを編集しない
-2. **依存関係の無視禁止**: 順序依存がある場合は並列化しない
-3. **監視なしの放置禁止**: 定期的に進捗を確認する
-4. **コンフリクト放置禁止**: 発生したら即座に対処する
+1. **No Concurrent Shared File Edits**: Multiple workers must not edit the same file
+2. **No Ignoring Dependencies**: Do not parallelize if sequential dependencies exist
+3. **No Unsupervised Execution**: Monitor progress regularly
+4. **No Ignoring Conflicts**: Address conflicts immediately when detected
 
-### SHOULD（推奨）
+### SHOULD (Recommended)
 
-1. タスクサイズを均等に分割する
-2. 各ワーカーにコミットメッセージのプレフィックスを指定する
-3. 問題発生時は早めに介入する
-4. マージ前に各ブランチの変更内容を確認する
-
----
-
-## タスク分割パターン
-
-### パターンA: 機能別分割
-
-```
-Worker 1: 認証機能 (src/auth/)
-Worker 2: ダッシュボード (src/dashboard/)
-Worker 3: API層 (src/api/)
-```
-
-### パターンB: レイヤー別分割
-
-```
-Worker 1: フロントエンド (components/, pages/)
-Worker 2: バックエンド (server/, api/)
-Worker 3: テスト (tests/)
-```
-
-### パターンC: タスク種別分割
-
-```
-Worker 1: 新規実装
-Worker 2: リファクタリング
-Worker 3: テスト追加
-```
+1. Distribute task sizes evenly across workers
+2. Assign commit message prefixes to each worker
+3. Intervene early when problems arise
+4. Review changes in each branch before merging
 
 ---
 
-## ワーカーへの指示テンプレート
+## Task Splitting Patterns
+
+### Pattern A: Feature-Based Split
 
 ```
-あなたは「<タスク名>」を担当します。
+Worker 1: Authentication (src/auth/)
+Worker 2: Dashboard (src/dashboard/)
+Worker 3: API layer (src/api/)
+```
 
-## 担当範囲
-- 対象: `<directory>/`
-- 変更禁止: `<shared-directory>/`
+### Pattern B: Layer-Based Split
 
-## 実装内容
-1. <具体的なタスク1>
-2. <具体的なタスク2>
+```
+Worker 1: Frontend (components/, pages/)
+Worker 2: Backend (server/, api/)
+Worker 3: Tests (tests/)
+```
 
-## 完了条件
-- 実装完了
-- テストパス
-- lint/type checkパス
+### Pattern C: Task-Type Split
 
-## 完了時のアクション
-git commitしてPRを作成してください。base branchは `<base-branch>` にしてください。
+```
+Worker 1: New implementation
+Worker 2: Refactoring
+Worker 3: Test additions
 ```
 
 ---
 
-## コンフリクト発生時の対処
+## Worker Instruction Template
+
+```
+You are responsible for "<task-name>".
+
+## Scope
+- Target: `<directory>/`
+- Do not modify: `<shared-directory>/`
+
+## Implementation
+1. <specific task 1>
+2. <specific task 2>
+
+## Completion Criteria
+- Implementation complete
+- Tests pass
+- Lint/type check pass
+
+## On Completion
+Create a git commit and open a PR. Base branch is `<base-branch>`.
+```
+
+---
+
+## Conflict Resolution
 
 ```bash
-# コンフリクト解消指示を送信
+# Send conflict resolution instructions
 tmux send-keys -t '<session>' \
-  'claude -p "mainブランチをマージしてコンフリクトを解消し、再度pushしてください。"' Enter
+  'claude -p "Merge main branch and resolve conflicts, then push again."' Enter
 ```
 
 ---
 
-## トラブルシューティング
+## Troubleshooting
 
-### セッションが見つからない
+### Session Not Found
 
 ```bash
 tmux list-sessions
 ```
 
-### worktreeの状態確認
+### Check Worktree Status
 
 ```bash
 git worktree list
 ```
 
-### 強制クリーンアップ
+### Force Cleanup
 
 ```bash
 git worktree remove --force /path/to/worktree
@@ -197,13 +197,13 @@ tmux kill-session -t <session>
 
 ---
 
-## 設定ファイル
+## Configuration
 
-`.paralell/config.local.yaml` で以下を設定：
+Configure in `.paralell/config.local.yaml`:
 
-| 項目 | 説明 |
-|------|------|
-| `project_name` | tmuxセッション名のプレフィックス |
-| `base_branch` | 新規ブランチの派生元 |
-| `ui_mode` | `warp`（タブ表示）または `tmux`（バックグラウンド） |
-| `warp_scheme` | Warp URI スキーム |
+| Option | Description |
+|--------|-------------|
+| `project_name` | Prefix for tmux session names |
+| `base_branch` | Branch to derive new branches from |
+| `ui_mode` | `warp` (open tabs) or `tmux` (background only) |
+| `warp_scheme` | Warp URI scheme |
