@@ -4,25 +4,32 @@ This document provides guidance for running multiple Claude agents in parallel t
 
 ## Toolkit Location
 
-Parallel execution scripts are located in `.paralell/` directory:
+Parallel execution scripts are located in `.paralell-workflow-plugin/scripts/` directory:
 
-- `spinup.sh` - Start parallel environment
-- `teardown.sh` - Terminate parallel environment
+- `scripts/spinup.sh` - Start parallel environment
+- `scripts/teardown.sh` - Terminate parallel environment
 - `config.local.yaml` - Configuration file
 
 ## Quick Start
 
-**IMPORTANT**: Scripts must be executed from within the target Git repository using relative paths.
+**IMPORTANT**: Scripts must be executed from within the target Git repository.
 
 ```bash
 # Navigate to target repository
 cd <target-repository>
 
+# Find plugin directory
+if [ -d ".paralell-workflow-plugin/scripts" ]; then
+  PLUGIN_DIR=".paralell-workflow-plugin"
+elif [ -d "../.paralell-workflow-plugin/scripts" ]; then
+  PLUGIN_DIR="../.paralell-workflow-plugin"
+fi
+
 # Start parallel environment (e.g., 3 workers)
-../.paralell/spinup.sh feature/task1 feature/task2 feature/task3
+"${PLUGIN_DIR}/scripts/spinup.sh" feature/task1 feature/task2 feature/task3
 
 # Teardown environment
-../.paralell/teardown.sh feature/task1 feature/task2 feature/task3
+"${PLUGIN_DIR}/scripts/teardown.sh" feature/task1 feature/task2 feature/task3
 ```
 
 ---
@@ -53,7 +60,7 @@ Criteria for parallelization:
 
 ```bash
 cd <target-repository>
-../.paralell/spinup.sh <branch1> <branch2> <branch3>
+"${PLUGIN_DIR}/scripts/spinup.sh" <branch1> <branch2> <branch3>
 ```
 
 ### 3. Assign Tasks
@@ -82,7 +89,7 @@ After all branches complete, merge into main branch.
 ### 6. Cleanup
 
 ```bash
-../.paralell/teardown.sh <branch1> <branch2> <branch3>
+"${PLUGIN_DIR}/scripts/teardown.sh" <branch1> <branch2> <branch3>
 ```
 
 ---
@@ -199,7 +206,7 @@ tmux kill-session -t <session>
 
 ## Configuration
 
-Configure in `.paralell/config.local.yaml`:
+Configure in `.paralell-workflow-plugin/config.local.yaml`:
 
 | Option | Description |
 |--------|-------------|

@@ -17,6 +17,24 @@ $ARGUMENTS
 - Open PRs: !`gh pr list --state open --limit 10 2>/dev/null || echo "Cannot fetch PRs"`
 - Active tmux sessions: !`tmux list-sessions 2>/dev/null || echo "No active sessions"`
 
+## Plugin Location
+
+Locate the parallel-workflow plugin scripts:
+```bash
+# Find plugin directory (check common locations)
+if [ -d ".paralell-workflow-plugin/scripts" ]; then
+  PLUGIN_DIR=".paralell-workflow-plugin"
+elif [ -d "../.paralell-workflow-plugin/scripts" ]; then
+  PLUGIN_DIR="../.paralell-workflow-plugin"
+elif [ -n "$PW_PLUGIN_DIR" ]; then
+  PLUGIN_DIR="$PW_PLUGIN_DIR"
+else
+  echo "Error: parallel-workflow plugin not found"
+  echo "Set PW_PLUGIN_DIR environment variable or place plugin in .paralell-workflow-plugin/"
+  exit 1
+fi
+```
+
 ## Prerequisites Check
 
 Before starting workers:
@@ -41,18 +59,28 @@ If input is decomposition output:
 
 ### Step 2: Create Worker Environments
 
+Use the plugin's spinup script:
 ```bash
-cd $(git rev-parse --show-toplevel)
-../.paralell/spinup.sh [branch1] [branch2] [branch3]
+# Using plugin scripts
+"${PLUGIN_DIR}/scripts/spinup.sh" [branch1] [branch2] [branch3]
 ```
+
+The spinup script will:
+1. Create git worktrees for each branch
+2. Start tmux sessions for each worker
+3. Configure based on `config.local.yaml`
 
 ### Step 3: Assign Tasks to Workers
 
 For each worker, construct and send the task command:
 
 ```bash
-# Get project name from config
-PROJECT_NAME=$(grep "project_name:" ../.paralell/config.local.yaml | sed 's/.*: *//' | tr -d '"')
+# Get project name from plugin config
+PROJECT_NAME=$(grep "project_name:" "${PLUGIN_DIR}/config.local.yaml" 2>/dev/null | sed 's/.*: *//' | tr -d '"' || echo "my-project")
+
+# Convert branch name to session name (replace / with -)
+# Example: feature/auth -> feature-auth
+# Session name format: ${PROJECT_NAME}__${branch_with_dash}
 
 # Worker 1
 tmux send-keys -t "${PROJECT_NAME}__[branch1-safe]" \
@@ -83,12 +111,16 @@ gh pr list --state open
 ```markdown
 # Orchestration Started
 
+## Plugin Location
+- Plugin directory: [PLUGIN_DIR path]
+- Config file: [config.local.yaml path]
+
 ## Workers Created
-| Session | Branch | Status |
-|---------|--------|--------|
-| [session1] | feature/xxx | Started |
-| [session2] | feature/yyy | Started |
-| [session3] | feature/zzz | Started |
+| Session | Branch | Worktree | Status |
+|---------|--------|----------|--------|
+| [session1] | feature/xxx | /path/to/wt-feature-xxx | Started |
+| [session2] | feature/yyy | /path/to/wt-feature-yyy | Started |
+| [session3] | feature/zzz | /path/to/wt-feature-zzz | Started |
 
 ## Task Assignments
 - **Worker 1** (feature/xxx): [Task description]

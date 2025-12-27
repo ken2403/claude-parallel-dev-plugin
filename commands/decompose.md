@@ -105,7 +105,15 @@ Copy-paste ready commands for orchestration:
 ### Start Workers
 ```bash
 cd [repository]
-../.paralell/spinup.sh feature/xxx feature/yyy feature/zzz
+
+# Find plugin directory
+if [ -d ".paralell-workflow-plugin/scripts" ]; then
+  PLUGIN_DIR=".paralell-workflow-plugin"
+elif [ -d "../.paralell-workflow-plugin/scripts" ]; then
+  PLUGIN_DIR="../.paralell-workflow-plugin"
+fi
+
+"${PLUGIN_DIR}/scripts/spinup.sh" feature/xxx feature/yyy feature/zzz
 ```
 
 ### Assign Tasks

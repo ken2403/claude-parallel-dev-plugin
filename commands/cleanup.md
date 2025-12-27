@@ -41,19 +41,34 @@ echo "=== Git Worktrees ==="
 git worktree list 2>/dev/null || echo "Not in git repo"
 ```
 
+## Plugin Location
+
+Locate the parallel-workflow plugin scripts:
+```bash
+# Find plugin directory (check common locations)
+if [ -d ".paralell-workflow-plugin/scripts" ]; then
+  PLUGIN_DIR=".paralell-workflow-plugin"
+elif [ -d "../.paralell-workflow-plugin/scripts" ]; then
+  PLUGIN_DIR="../.paralell-workflow-plugin"
+elif [ -n "$PW_PLUGIN_DIR" ]; then
+  PLUGIN_DIR="$PW_PLUGIN_DIR"
+else
+  echo "Error: parallel-workflow plugin not found"
+  echo "Set PW_PLUGIN_DIR environment variable or place plugin in .paralell-workflow-plugin/"
+  exit 1
+fi
+```
+
 ## Cleanup Process
 
-### Using existing teardown.sh
+### Using teardown.sh
 
-The cleanup uses the existing `teardown.sh` script:
+The cleanup uses the plugin's `teardown.sh` script:
 
 ```bash
-# Get script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
 # Run teardown with provided arguments
 # $ARGUMENTS contains: branch1 branch2 ... [--keep-branches] [--dry-run]
-"${SCRIPT_DIR}/teardown.sh" $ARGUMENTS
+"${PLUGIN_DIR}/scripts/teardown.sh" $ARGUMENTS
 ```
 
 ### Options
