@@ -1,0 +1,10 @@
+{
+  "name": "pw",
+  "description": "Parallel Workflow - Generic parallel development workflow for large-scale tasks. Provides orchestration, worker management, review, and integration commands. Supports Issue-based specifications and interactive task decomposition.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Karaoke BanBan AI Team"
+  },
+  "keywords": ["parallel", "workflow", "orchestration", "git-worktree", "tmux"],
+  "license": "MIT"
+}

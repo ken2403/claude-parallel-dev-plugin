@@ -1,0 +1,38 @@
+{
+  "_comment": "Generic hooks for parallel-workflow plugin. Language-agnostic and cross-platform.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE_PATH=$(echo '$TOOL_INPUT' | grep -o '\"file_path\"[[:space:]]*:[[:space:]]*\"[^\"]*\"' | sed 's/.*\"\\([^\"]*\\)\"$/\\1/' 2>/dev/null); PROTECTED='.env .secret credentials private_key id_rsa'; for p in $PROTECTED; do case \"$FILE_PATH\" in *$p*) echo \"BLOCKED: Cannot edit protected file: $FILE_PATH\" >&2; exit 2;; esac; done; exit 0"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MSG=\"${CLAUDE_NOTIFICATION_MESSAGE:-Claude notification}\"; if command -v notify-send >/dev/null 2>&1; then notify-send 'Claude Code' \"$MSG\" 2>/dev/null; elif command -v osascript >/dev/null 2>&1; then osascript -e \"display notification \\\"$MSG\\\" with title \\\"Claude Code\\\"\" 2>/dev/null; fi; exit 0"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mkdir -p \"${HOME}/.claude\" 2>/dev/null; echo \"$(date -Iseconds 2>/dev/null || date): Session completed in $(pwd)\" >> \"${HOME}/.claude/session-log.txt\" 2>/dev/null; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}
