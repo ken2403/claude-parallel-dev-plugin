@@ -1,7 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_NAME="${PROJECT_NAME:-kiddleton-dataplatform}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${SCRIPT_DIR}/config.local.yaml"
+
+# 設定ファイルからYAML値を取得する関数
+get_config() {
+  local key="$1"
+  local default="${2:-}"
+  if [ -f "$CONFIG_FILE" ]; then
+    local value
+    value=$(grep "^${key}:" "$CONFIG_FILE" | sed 's/^[^:]*:[[:space:]]*//' | sed 's/^"//' | sed 's/"$//' | tr -d '\r')
+    if [ -n "$value" ]; then
+      echo "$value"
+      return
+    fi
+  fi
+  echo "$default"
+}
+
+# 設定を読み込み
+PROJECT_NAME="$(get_config "project_name" "my-project")"
+
 KEEP_BRANCHES=false
 DRY_RUN=false
 
