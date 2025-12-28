@@ -118,7 +118,145 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 /pw:worker Fix the null pointer exception in src/auth/login.ts
 ```
 
-## サブエージェント
+## 依存関係
+
+### コンポーネント依存図
+
+```
+                                    ┌─────────────────┐
+                                    │   /pw:design    │
+                                    │  (設計フェーズ)  │
+                                    └────────┬────────┘
+                                             │ uses
+                                             ▼
+                              ┌──────────────────────────────┐
+                              │         explorer             │
+                              │      (コード探索)             │
+                              └──────────────────────────────┘
+                                             │
+                                             ▼
+                                    ┌─────────────────┐
+                                    │  /pw:decompose  │
+                                    │ (タスク分解)    │
+                                    └────────┬────────┘
+                                             │
+                                             ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          /pw:orchestrate                                 │
+│                         (ワーカー起動・管理)                               │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  calls spinup.sh → creates worktrees + tmux sessions            │    │
+│  │  spawns status-monitor subagent (background)                    │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+└──────────────────────────────┬──────────────────────────────────────────┘
+                               │ spawns
+          ┌────────────────────┼────────────────────┐
+          ▼                    ▼                    ▼
+   ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+   │ /pw:worker  │      │ /pw:worker  │      │ /pw:worker  │
+   │ (Worker 1)  │      │ (Worker 2)  │      │ (Worker N)  │
+   └──────┬──────┘      └──────┬──────┘      └──────┬──────┘
+          │ uses               │ uses               │ uses
+          ▼                    ▼                    ▼
+   ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+   │  explorer   │      │  explorer   │      │  explorer   │
+   │  analyzer   │      │  analyzer   │      │  analyzer   │
+   └──────┬──────┘      └──────┬──────┘      └──────┬──────┘
+          │ applies            │ applies            │ applies
+          ▼                    ▼                    ▼
+   ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+   │code-quality │      │code-quality │      │code-quality │
+   │security-rev │      │security-rev │      │security-rev │
+   └──────┬──────┘      └──────┬──────┘      └──────┬──────┘
+          │ creates PR         │ creates PR         │ creates PR
+          └────────────────────┼────────────────────┘
+                               ▼
+                      ┌─────────────────┐
+                      │   /pw:status    │◄──── status-monitor (bg)
+                      │  (進捗確認)      │
+                      └────────┬────────┘
+                               │
+                               ▼
+                      ┌─────────────────┐
+                      │   /pw:review    │
+                      │  (PRレビュー)    │
+                      └────────┬────────┘
+                               │ uses
+                               ▼
+                      ┌─────────────────┐
+                      │   code-quality  │
+                      │  security-review│
+                      └────────┬────────┘
+                               │
+          ┌────────────────────┼────────────────────┐
+          ▼                    │                    ▼
+   ┌─────────────┐             │             ┌─────────────┐
+   │  /pw:fix    │◄────────────┘             │ /pw:resolve │
+   │(指摘修正)   │                           │ -conflicts  │
+   └─────────────┘                           └─────────────┘
+                               │
+                               ▼
+                      ┌─────────────────┐
+                      │   /pw:merge     │
+                      │  (PRマージ)     │
+                      │ ⚠️ CI+承認必須  │
+                      └────────┬────────┘
+                               │
+                               ▼
+                      ┌─────────────────┐
+                      │  /pw:cleanup    │
+                      │(環境クリーンアップ)│
+                      │ calls teardown.sh│
+                      │ ⚠️ 人間確認必須  │
+                      └─────────────────┘
+```
+
+### コマンド → サブエージェント依存
+
+| コマンド | 必須サブエージェント | オプション |
+|----------|---------------------|------------|
+| `/pw:design` | `explorer` | `analyzer` |
+| `/pw:decompose` | `explorer` | - |
+| `/pw:orchestrate` | - | `status-monitor` (バックグラウンド) |
+| `/pw:worker` | `explorer` | `analyzer` |
+| `/pw:status` | - | - |
+| `/pw:review` | - | `explorer`, `analyzer` |
+| `/pw:fix` | `explorer` | - |
+| `/pw:merge` | - | - |
+| `/pw:cleanup` | - | - |
+| `/pw:resolve-conflicts` | - | - |
+
+### コマンド → スキル依存
+
+| コマンド | 適用スキル |
+|----------|------------|
+| `/pw:worker` | `code-quality`, `security-review` |
+| `/pw:review` | `code-quality`, `security-review` |
+| `/pw:fix` | `code-quality` |
+
+### コマンド → スクリプト依存
+
+| コマンド | 使用スクリプト | 機能 |
+|----------|----------------|------|
+| `/pw:orchestrate` | `spinup.sh` | worktree作成、tmuxセッション起動 |
+| `/pw:cleanup` | `teardown.sh` | worktree削除、tmuxセッション終了 |
+
+### サブエージェント一覧
+
+| サブエージェント | モデル | 用途 | ツール |
+|------------------|--------|------|--------|
+| `explorer` | Haiku | 高速なファイル/パターン検索 | Read, Grep, Glob |
+| `analyzer` | Sonnet | 詳細なアーキテクチャ分析 | Read, Grep, Glob, Bash |
+| `status-monitor` | Haiku | バックグラウンド進捗監視 (30秒間隔) | Bash |
+
+### スキル一覧
+
+| スキル | 自動適用タイミング | 内容 |
+|--------|-------------------|------|
+| `code-quality` | コードレビュー時、実装時 | 可読性、保守性、型安全性、コーディングスタイル一貫性 |
+| `security-review` | セキュリティ関連変更時 | OWASP Top 10、認証/認可、入力検証 |
+
+## サブエージェント詳細
 
 ### explorer (Haiku)
 
@@ -135,6 +273,14 @@ Use explorer subagent to find authentication-related files
 ```
 Use analyzer subagent to understand the payment system architecture
 ```
+
+### status-monitor (Haiku)
+
+バックグラウンド監視用。オーケストレーターが起動後、自動で進捗を監視。
+
+- **監視間隔**: 30秒
+- **最大監視時間**: 30分
+- **検出**: PR作成、エラー、完了
 
 ## スキル
 
@@ -200,7 +346,8 @@ cp ../.claude-paralell-dev-plugin/examples/hooks-python.json .claude/settings.js
 │
 ├── agents/                  # サブエージェント
 │   ├── explorer.md          # 高速探索 (Haiku)
-│   └── analyzer.md          # 詳細分析 (Sonnet)
+│   ├── analyzer.md          # 詳細分析 (Sonnet)
+│   └── status-monitor.md    # バックグラウンド監視 (Haiku)
 │
 ├── skills/                  # 自動適用スキル
 │   ├── code-quality/
