@@ -27,30 +27,7 @@ parent-directory/
 └── other-project/              # 他のプロジェクト
 ```
 
-### 2. 設定ファイルの作成
-
-```bash
-cd .paralell-workflow-plugin
-cp config.example.yaml config.local.yaml
-```
-
-`config.local.yaml` を編集：
-
-```yaml
-# プロジェクト名 (tmuxセッション名のプレフィックス)
-project_name: "your-project"
-
-# 新規ブランチ作成時の派生元
-base_branch: "main"
-
-# UIモード: warp または tmux
-ui_mode: "tmux"
-
-# Warp URIスキーム (ui_mode: warp の場合)
-warp_scheme: "warp"
-```
-
-### 3. Claude Codeでプラグインを有効化
+### 2. Claude Codeでプラグインを有効化
 
 ```bash
 cd your-project
@@ -68,7 +45,7 @@ claude --plugin-dir ../.paralell-workflow-plugin
 }
 ```
 
-### 4. プロジェクトにCLAUDE.mdを配置（推奨）
+### 3. プロジェクトにCLAUDE.mdを配置（推奨）
 
 ```bash
 cp ../.paralell-workflow-plugin/examples/CLAUDE.project-template.md ./CLAUDE.md
@@ -192,13 +169,22 @@ mkdir -p .claude
 cp ../.paralell-workflow-plugin/examples/hooks-python.json .claude/settings.json
 ```
 
+## 自動検出
+
+スクリプトは以下を自動的に検出します（設定ファイル不要）：
+
+| 項目 | 検出方法 |
+|------|----------|
+| **プロジェクト名** | Gitリポジトリのディレクトリ名 |
+| **ベースブランチ** | `main` → `master` → 現在のブランチ（優先順） |
+
+セッション名は `{プロジェクト名}__{ブランチ名}` 形式で自動生成されます。
+
 ## ディレクトリ構造
 
 ```
 .paralell-workflow-plugin/
 ├── plugin.json              # プラグインマニフェスト
-├── config.example.yaml      # 設定テンプレート
-├── config.local.yaml        # ローカル設定（.gitignore）
 │
 ├── commands/                # スラッシュコマンド
 │   ├── design.md
@@ -232,11 +218,9 @@ cp ../.paralell-workflow-plugin/examples/hooks-python.json .claude/settings.json
 │   └── hooks-go.json
 │
 ├── scripts/                 # 実行スクリプト
-│   ├── spinup.sh            # 並列環境起動スクリプト
-│   ├── teardown.sh          # 並列環境削除スクリプト
-│   └── open-warp-windows.sh # Warp連携スクリプト
+│   ├── spinup.sh            # 並列環境起動
+│   └── teardown.sh          # 並列環境削除
 │
-├── CLAUDE.example.md       # オーケストレーター向けガイド
 └── README.md               # このファイル
 ```
 

@@ -1,38 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="${SCRIPT_DIR}/config.local.yaml"
-
-# 設定ファイルからYAML値を取得する関数
-get_config() {
-  local key="$1"
-  local default="${2:-}"
-  if [ -f "$CONFIG_FILE" ]; then
-    local value
-    value=$(grep "^${key}:" "$CONFIG_FILE" | sed 's/^[^:]*:[[:space:]]*//' | sed 's/^"//' | sed 's/"$//' | tr -d '\r')
-    if [ -n "$value" ]; then
-      echo "$value"
-      return
-    fi
+# Auto-detect project name from git repository
+get_project_name() {
+  local repo_root
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+  if [ -n "$repo_root" ]; then
+    basename "$repo_root"
+  else
+    echo "unknown-project"
   fi
-  echo "$default"
 }
 
-# 設定を読み込み
-PROJECT_NAME="$(get_config "project_name" "my-project")"
-BASE_BRANCH="$(get_config "base_branch" "main")"
-UI_MODE="$(get_config "ui_mode" "warp")"
-WARP_SCHEME="$(get_config "warp_scheme" "warp")"
+# Get base branch (default: main, fallback: master)
+get_base_branch() {
+  if git show-ref --verify --quiet refs/heads/main; then
+    echo "main"
+  elif git show-ref --verify --quiet refs/heads/master; then
+    echo "master"
+  else
+    git branch --show-current
+  fi
+}
+
+PROJECT_NAME="$(get_project_name)"
+BASE_BRANCH="$(get_base_branch)"
 
 if [ $# -lt 1 ]; then
-  echo "Usage: $0 <worktree1> [worktree2] ..."
+  echo "Usage: $0 <branch1> [branch2] ..."
   echo ""
-  echo "Config: $CONFIG_FILE"
+  echo "Detected settings:"
   echo "  project_name: $PROJECT_NAME"
   echo "  base_branch:  $BASE_BRANCH"
-  echo "  ui_mode:      $UI_MODE"
-  echo "  warp_scheme:  $WARP_SCHEME"
   exit 1
 fi
 
@@ -45,10 +44,16 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 PARENT_DIR="$(dirname "$REPO_ROOT")"
 
+echo "Project: $PROJECT_NAME"
+echo "Base branch: $BASE_BRANCH"
+echo "Repo: $REPO_ROOT"
+echo "Worktree parent: $PARENT_DIR"
+echo ""
+
 for wt in "$@"; do
-  safe_wt="${wt//\//-}"                 # feature/foo 対策
+  safe_wt="${wt//\//-}"                 # feature/foo -> feature-foo
   dir="${PARENT_DIR}/wt-${safe_wt}"     # 1段上に作る（絶対パス）
-  session="${PROJECT_NAME}__${safe_wt}" # : を使わない
+  session="${PROJECT_NAME}__${safe_wt}"
 
   if [ ! -d "$dir" ]; then
     if git show-ref --verify --quiet "refs/heads/$wt"; then
@@ -65,11 +70,6 @@ for wt in "$@"; do
   echo "Session: $session (dir: $dir)"
 done
 
-# UI_MODEに応じてWarpを起動するか決定
-if [ "$UI_MODE" = "warp" ]; then
-  PROJECT_NAME="$PROJECT_NAME" WARP_SCHEME="$WARP_SCHEME" "${SCRIPT_DIR}/open-warp-windows.sh" "$@"
-else
-  echo ""
-  echo "tmux mode: sessions created in background"
-  echo "Attach with: tmux attach -t <session_name>"
-fi
+echo ""
+echo "All sessions created. Attach with: tmux attach -t <session_name>"
+echo "List sessions: tmux list-sessions"

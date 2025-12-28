@@ -68,15 +68,15 @@ Use the plugin's spinup script:
 The spinup script will:
 1. Create git worktrees for each branch
 2. Start tmux sessions for each worker
-3. Configure based on `config.local.yaml`
+3. Auto-detect project name from git repository
 
 ### Step 3: Assign Tasks to Workers
 
 For each worker, construct and send the task command:
 
 ```bash
-# Get project name from plugin config
-PROJECT_NAME=$(grep "project_name:" "${PLUGIN_DIR}/config.local.yaml" 2>/dev/null | sed 's/.*: *//' | tr -d '"' || echo "my-project")
+# Project name is auto-detected from git repository name
+PROJECT_NAME=$(basename $(git rev-parse --show-toplevel))
 
 # Convert branch name to session name (replace / with -)
 # Example: feature/auth -> feature-auth
@@ -113,7 +113,7 @@ gh pr list --state open
 
 ## Plugin Location
 - Plugin directory: [PLUGIN_DIR path]
-- Config file: [config.local.yaml path]
+- Project name: [auto-detected from git repository]
 
 ## Workers Created
 | Session | Branch | Worktree | Status |

@@ -32,6 +32,29 @@ Each subtask MUST satisfy ALL of these:
 - Having subtasks touch same files
 - Over-granular decomposition (>5 subtasks)
 
+### Task Splitting Patterns
+
+**Pattern A: Feature-Based Split**
+```
+Worker 1: Authentication (src/auth/)
+Worker 2: Dashboard (src/dashboard/)
+Worker 3: API layer (src/api/)
+```
+
+**Pattern B: Layer-Based Split**
+```
+Worker 1: Frontend (components/, pages/)
+Worker 2: Backend (server/, api/)
+Worker 3: Tests (tests/)
+```
+
+**Pattern C: Task-Type Split**
+```
+Worker 1: New implementation
+Worker 2: Refactoring
+Worker 3: Test additions
+```
+
 ## Decomposition Process
 
 ### Step 1: Identify Natural Boundaries
@@ -130,6 +153,30 @@ tmux send-keys -t '[project]__feature-yyy' \
 tmux send-keys -t '[project]__feature-zzz' \
   'claude -p "/pw:worker [Subtask 3 description]"' Enter
 ```
+```
+
+## Worker Instruction Template
+
+When assigning tasks, use this template format:
+
+```
+You are responsible for "<task-name>".
+
+## Scope
+- Target: `<directory>/`
+- Do not modify: `<shared-directory>/`
+
+## Implementation
+1. <specific task 1>
+2. <specific task 2>
+
+## Completion Criteria
+- Implementation complete
+- Tests pass
+- Lint/type check pass
+
+## On Completion
+Create a git commit and open a PR. Base branch is `main`.
 ```
 
 ## Next Step
