@@ -93,53 +93,170 @@ tmux send-keys -t "${PROJECT_NAME}__[branch2-safe]" \
 
 **CRITICAL**: Always write task prompts in English for consistent parsing.
 
-### Step 4: Provide Monitoring Commands
+### Step 4: Automatic Monitoring Loop
 
-```bash
-# Check all sessions
-tmux list-sessions
+After assigning tasks, enter monitoring loop:
 
-# Check specific worker
-tmux capture-pane -t '[session]' -p | tail -50
+```
+MONITORING LOOP (repeat every 60 seconds until all workers complete):
 
-# Check PR status
-gh pr list --state open
+1. Check worker status
+2. Detect completion/errors
+3. Take appropriate action
 ```
 
+#### Monitoring Check
+
+```bash
+PROJECT_NAME=$(basename $(git rev-parse --show-toplevel))
+
+echo "=== Monitoring Check $(date) ==="
+
+# Check each worker session
+for session in $(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "^${PROJECT_NAME}__"); do
+  echo "--- $session ---"
+
+  # Get last 20 lines of output
+  OUTPUT=$(tmux capture-pane -t "$session" -p 2>/dev/null | tail -20)
+  echo "$OUTPUT" | tail -5
+
+  # Detect status
+  if echo "$OUTPUT" | grep -qi "error\|failed\|exception\|traceback"; then
+    echo "⚠️  STATUS: ERROR DETECTED"
+  elif echo "$OUTPUT" | grep -qi "pull request\|pr created\|https://github.com.*pull"; then
+    echo "✅ STATUS: PR CREATED"
+  elif echo "$OUTPUT" | grep -qi "committed\|git commit"; then
+    echo "🔄 STATUS: COMMITTED (PR pending)"
+  elif echo "$OUTPUT" | grep -qi "working\|processing\|running"; then
+    echo "🔄 STATUS: WORKING"
+  else
+    echo "⏳ STATUS: IN PROGRESS"
+  fi
+  echo ""
+done
+
+# Check PRs created for tracked branches
+echo "=== Open PRs ==="
+gh pr list --state open 2>/dev/null || echo "Cannot fetch PRs"
+```
+
+#### Completion Detection
+
+Track expected branches and check for PR creation:
+
+```bash
+# Expected branches (from orchestration input)
+EXPECTED_BRANCHES="[branch1] [branch2] [branch3]"
+EXPECTED_COUNT=$(echo "$EXPECTED_BRANCHES" | wc -w | tr -d ' ')
+
+# Count PRs from these branches
+CREATED_PRS=$(gh pr list --state open --json headRefName --jq '.[].headRefName' 2>/dev/null)
+CREATED_COUNT=0
+
+for branch in $EXPECTED_BRANCHES; do
+  if echo "$CREATED_PRS" | grep -q "^${branch}$"; then
+    CREATED_COUNT=$((CREATED_COUNT + 1))
+  fi
+done
+
+echo "Progress: $CREATED_COUNT / $EXPECTED_COUNT PRs created"
+
+if [ "$CREATED_COUNT" -eq "$EXPECTED_COUNT" ]; then
+  echo "🎉 ALL WORKERS COMPLETED - Ready for review"
+fi
+```
+
+#### Error Response
+
+If error detected in a worker:
+
+1. **Capture full error log**:
+   ```bash
+   tmux capture-pane -t "$session" -p -S -1000 > /tmp/worker_error_${session}.log
+   ```
+
+2. **Alert and suggest action**:
+   - Display error summary
+   - Suggest: retry, manual fix, or skip
+
+3. **Options**:
+   - Restart worker: `tmux send-keys -t "$session" 'claude -p "/pw:fix [error description]"' Enter`
+   - Kill and recreate: teardown + spinup for that branch only
+
+### Step 5: Transition to Review
+
+When all PRs are created:
+
+1. List all PRs for review:
+   ```bash
+   gh pr list --state open --json number,title,headRefName
+   ```
+
+2. Start review process:
+   ```
+   For each PR, run: /pw:review [pr-number]
+   ```
+
+3. After all reviews approved and merged:
+   ```
+   Run: /pw:cleanup [branches]
+   ```
+
 ## Output Format
+
+### Initial Output (after worker startup)
 
 ```markdown
 # Orchestration Started
 
-## Plugin Location
-- Plugin directory: [PLUGIN_DIR path]
-- Project name: [auto-detected from git repository]
-
 ## Workers Created
 | Session | Branch | Worktree | Status |
 |---------|--------|----------|--------|
-| [session1] | feature/xxx | /path/to/wt-feature-xxx | Started |
-| [session2] | feature/yyy | /path/to/wt-feature-yyy | Started |
-| [session3] | feature/zzz | /path/to/wt-feature-zzz | Started |
+| [project]__feature-xxx | feature/xxx | /path/to/wt-feature-xxx | Started |
+| [project]__feature-yyy | feature/yyy | /path/to/wt-feature-yyy | Started |
+| [project]__feature-zzz | feature/zzz | /path/to/wt-feature-zzz | Started |
 
 ## Task Assignments
 - **Worker 1** (feature/xxx): [Task description]
 - **Worker 2** (feature/yyy): [Task description]
 - **Worker 3** (feature/zzz): [Task description]
 
-## Monitoring Commands
-```bash
-# Check all workers
-/pw:status
-
-# Check specific worker
-tmux capture-pane -t '[session]' -p | tail -50
+## Monitoring Started
+Checking status every 60 seconds...
 ```
 
+### Monitoring Output (periodic updates)
+
+```markdown
+# Status Update [HH:MM:SS]
+
+| Worker | Branch | Status | Last Activity |
+|--------|--------|--------|---------------|
+| Worker 1 | feature/xxx | 🔄 WORKING | Editing src/auth.py |
+| Worker 2 | feature/yyy | ✅ PR CREATED | PR #45 |
+| Worker 3 | feature/zzz | ⚠️ ERROR | Test failed |
+
+## Progress: 1/3 PRs created
+
+## Actions Needed
+- Worker 3: Error detected. Review error and run `/pw:fix` or restart.
+```
+
+### Completion Output
+
+```markdown
+# 🎉 All Workers Completed
+
+## PRs Ready for Review
+| PR # | Branch | Title |
+|------|--------|-------|
+| #45 | feature/xxx | feat: Add authentication |
+| #46 | feature/yyy | feat: Add API endpoints |
+| #47 | feature/zzz | test: Add integration tests |
+
 ## Next Steps
-1. Monitor progress with `/pw:status`
-2. When PRs are ready, review with `/pw:review [pr-number]`
-3. After all PRs merged, cleanup with `/pw:cleanup [branches]`
+1. Review each PR: `/pw:review 45`, `/pw:review 46`, `/pw:review 47`
+2. After all approved and merged: `/pw:cleanup feature/xxx feature/yyy feature/zzz`
 ```
 
 ## Critical Rules
