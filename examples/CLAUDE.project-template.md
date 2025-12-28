@@ -65,7 +65,7 @@ gh pr create --title "feat: description" --body "explanation"
 
 This project uses the parallel-workflow plugin for large-scale tasks.
 
-**Plugin location**: `../.paralell-workflow-plugin/` (relative to this repository)
+**Plugin location**: `../.claude-parallel-dev-plugin/` (relative to this repository)
 
 ### Available Commands
 
