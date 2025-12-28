@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE_PATH=\"$CLAUDE_FILE_PATH\"; if [ -n \"$FILE_PATH\" ] && echo \"$FILE_PATH\" | grep -q '\\.py$'; then cd \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; if [ -f \"pyproject.toml\" ] && command -v uv >/dev/null 2>&1; then uv run ruff format \"$FILE_PATH\" 2>/dev/null; uv run ruff check --fix \"$FILE_PATH\" 2>/dev/null; elif command -v black >/dev/null 2>&1; then black \"$FILE_PATH\" 2>/dev/null; elif command -v autopep8 >/dev/null 2>&1; then autopep8 --in-place \"$FILE_PATH\" 2>/dev/null; fi; fi; exit 0"
+            "command": "FILE_PATH=\"$CLAUDE_FILE_PATH\"; if [ -n \"$FILE_PATH\" ] && echo \"$FILE_PATH\" | grep -q '\\.py$'; then cd \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; if [ -f \"pyproject.toml\" ] && command -v uv >/dev/null 2>&1; then uv run ruff check --fix \"$FILE_PATH\" 2>/dev/null; uv run ruff format \"$FILE_PATH\" 2>/dev/null; uv run mypy \"$FILE_PATH\" 2>/dev/null; elif command -v ruff >/dev/null 2>&1; then ruff check --fix \"$FILE_PATH\" 2>/dev/null; ruff format \"$FILE_PATH\" 2>/dev/null; if command -v mypy >/dev/null 2>&1; then mypy \"$FILE_PATH\" 2>/dev/null; fi; fi; fi; exit 0"
           }
         ]
       }

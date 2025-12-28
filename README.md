@@ -158,7 +158,7 @@ Use analyzer subagent to understand the payment system architecture
 
 `examples/` ディレクトリに言語別のHooks設定例があります：
 
-- `hooks-python.json` - Python用（ruff/black自動フォーマット）
+- `hooks-python.json` - Python用（ruff lint/format + mypy型チェック）
 - `hooks-javascript.json` - JavaScript/TypeScript用（prettier/eslint）
 - `hooks-go.json` - Go用（gofmt/goimports）
 
