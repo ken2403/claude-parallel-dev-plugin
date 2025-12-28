@@ -130,10 +130,10 @@ Copy-paste ready commands for orchestration:
 cd [repository]
 
 # Find plugin directory
-if [ -d ".claude-parallel-dev-plugin/scripts" ]; then
-  PLUGIN_DIR=".claude-parallel-dev-plugin"
-elif [ -d "../.claude-parallel-dev-plugin/scripts" ]; then
-  PLUGIN_DIR="../.claude-parallel-dev-plugin"
+if [ -d ".claude-paralell-dev-plugin/scripts" ]; then
+  PLUGIN_DIR=".claude-paralell-dev-plugin"
+elif [ -d "../.claude-paralell-dev-plugin/scripts" ]; then
+  PLUGIN_DIR="../.claude-paralell-dev-plugin"
 fi
 
 "${PLUGIN_DIR}/scripts/spinup.sh" feature/xxx feature/yyy feature/zzz

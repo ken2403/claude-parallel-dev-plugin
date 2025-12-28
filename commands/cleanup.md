@@ -46,15 +46,15 @@ git worktree list 2>/dev/null || echo "Not in git repo"
 Locate the parallel-workflow plugin scripts:
 ```bash
 # Find plugin directory (check common locations)
-if [ -d ".claude-parallel-dev-plugin/scripts" ]; then
-  PLUGIN_DIR=".claude-parallel-dev-plugin"
-elif [ -d "../.claude-parallel-dev-plugin/scripts" ]; then
-  PLUGIN_DIR="../.claude-parallel-dev-plugin"
+if [ -d ".claude-paralell-dev-plugin/scripts" ]; then
+  PLUGIN_DIR=".claude-paralell-dev-plugin"
+elif [ -d "../.claude-paralell-dev-plugin/scripts" ]; then
+  PLUGIN_DIR="../.claude-paralell-dev-plugin"
 elif [ -n "$PW_PLUGIN_DIR" ]; then
   PLUGIN_DIR="$PW_PLUGIN_DIR"
 else
   echo "Error: parallel-workflow plugin not found"
-  echo "Set PW_PLUGIN_DIR environment variable or place plugin in .claude-parallel-dev-plugin/"
+  echo "Set PW_PLUGIN_DIR environment variable or place plugin in .claude-paralell-dev-plugin/"
   exit 1
 fi
 ```
