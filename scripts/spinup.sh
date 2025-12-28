@@ -12,15 +12,33 @@ get_project_name() {
   fi
 }
 
-# Get base branch (default: main, fallback: master)
+# Get base branch from workspace configuration
+# Priority: CLAUDE.md settings > git remote HEAD > common branch names
 get_base_branch() {
-  if git show-ref --verify --quiet refs/heads/main; then
-    echo "main"
-  elif git show-ref --verify --quiet refs/heads/master; then
-    echo "master"
-  else
-    git branch --show-current
+  local base_branch=""
+
+  # 1. Check CLAUDE.md for base branch specification
+  if [ -f "CLAUDE.md" ]; then
+    base_branch=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md 2>/dev/null | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
   fi
+
+  # 2. Fallback: check git remote HEAD
+  if [ -z "$base_branch" ]; then
+    base_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
+  fi
+
+  # 3. Final fallback: check which common branch exists
+  if [ -z "$base_branch" ]; then
+    for branch in main master develop dev; do
+      if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+        base_branch="$branch"
+        break
+      fi
+    done
+  fi
+
+  # Default to main if nothing found
+  echo "${base_branch:-main}"
 }
 
 PROJECT_NAME="$(get_project_name)"

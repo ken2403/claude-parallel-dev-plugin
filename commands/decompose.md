@@ -176,7 +176,7 @@ You are responsible for "<task-name>".
 - Lint/type check pass
 
 ## On Completion
-Create a git commit and open a PR. Base branch is `main`.
+Create a git commit and open a PR. Detect base branch from workspace settings.
 ```
 
 ## Next Step

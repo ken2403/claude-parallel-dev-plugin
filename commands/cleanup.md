@@ -120,25 +120,67 @@ git branch              # Should not show cleaned branches
 ```
 ```
 
+## Base Branch Detection
+
+Detect the base branch from workspace configuration:
+```bash
+# Check CLAUDE.md for base branch specification
+BASE_BRANCH=""
+if [ -f "CLAUDE.md" ]; then
+  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
+fi
+
+# Fallback: check git remote HEAD or common branches
+if [ -z "$BASE_BRANCH" ]; then
+  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
+fi
+
+# Final fallback: check which exists
+if [ -z "$BASE_BRANCH" ]; then
+  for branch in main master develop dev; do
+    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      BASE_BRANCH="$branch"
+      break
+    fi
+  done
+fi
+
+echo "Base branch: ${BASE_BRANCH:-main}"
+```
+
 ## Post-cleanup
 
 After cleanup:
-1. Update main branch: `git checkout main && git pull`
+1. Update base branch: `git checkout ${BASE_BRANCH} && git pull`
 2. Ready for next task: `/pw:design [new-task]`
 
 ## Troubleshooting
 
+### ⚠️ CRITICAL: Human Confirmation Required
+
+**NEVER execute force commands without explicit human approval!**
+
+These commands are destructive and irreversible. Always ask the user to confirm before running:
+
 ### Cleanup Failed
 
-```bash
-# Force remove stuck worktree
-git worktree remove --force /path/to/worktree
+If cleanup fails, present these options to the user and **wait for explicit confirmation**:
 
-# Force kill tmux session
-tmux kill-session -t session-name
+```markdown
+⚠️ **Manual intervention required**
 
-# Force delete branch
-git branch -D branch-name
+The following commands may be needed. Please confirm which to execute:
+
+1. Force remove stuck worktree:
+   `git worktree remove --force /path/to/worktree`
+
+2. Force kill tmux session:
+   `tmux kill-session -t session-name`
+
+3. Force delete branch:
+   `git branch -D branch-name`
+
+Reply with the number(s) to execute, or "skip" to abort.
 ```
 
 ### Orphaned Worktree Entry

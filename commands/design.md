@@ -30,6 +30,42 @@ Parse the specification as provided.
 - Branch: !`git branch --show-current`
 - Project structure: !`ls -la | head -15`
 
+## Base Branch Detection
+
+Detect the base branch from workspace configuration (NOT always main/master):
+```bash
+# Check CLAUDE.md for base branch specification
+BASE_BRANCH=""
+if [ -f "CLAUDE.md" ]; then
+  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
+fi
+
+# Fallback: check git remote HEAD or common branches
+if [ -z "$BASE_BRANCH" ]; then
+  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
+fi
+
+# Final fallback: check which exists
+if [ -z "$BASE_BRANCH" ]; then
+  for branch in main master develop dev; do
+    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      BASE_BRANCH="$branch"
+      break
+    fi
+  done
+fi
+
+echo "Base branch: ${BASE_BRANCH:-main}"
+```
+
+## Automatic Subagent Usage
+
+**MANDATORY**: Before creating any design, you MUST use subagents:
+
+1. **ALWAYS** use `explorer` subagent first to understand the codebase structure
+2. For complex architectural decisions, use `analyzer` subagent to assess impact
+3. Never skip exploration - it ensures accurate design decisions
+
 ## Design Process
 
 ### Step 1: Understand Requirements
