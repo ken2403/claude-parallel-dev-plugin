@@ -4,6 +4,16 @@
 
 Brief description of this project.
 
+## Git Configuration
+
+| Setting | Value |
+|---------|-------|
+| **Base Branch** | `main` |
+| **Branch Prefix** | `feature/`, `fix/`, `docs/` |
+| **PR Target** | Always merge to base branch |
+
+> **Note**: The `Base Branch` setting is used by the parallel-workflow plugin to detect the default branch for creating feature branches and PRs. Change this if your project uses `develop`, `master`, or another branch as the primary branch.
+
 ## Technology Stack
 
 | Component | Technology |

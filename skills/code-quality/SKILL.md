@@ -76,6 +76,38 @@ Apply these quality criteria when reviewing or writing code.
 - Configuration options described
 - Examples provided for non-obvious usage
 
+## Coding Style Consistency
+
+**IMPORTANT**: New code must be consistent with existing codebase patterns.
+
+### Before Making Changes
+
+Use subagents to understand existing patterns:
+
+```
+Use explorer subagent to find similar implementations in the codebase
+Use analyzer subagent to understand the coding patterns used in this project
+```
+
+### Consistency Checks
+
+| Aspect | Check |
+|--------|-------|
+| Naming | Match existing variable/function naming conventions |
+| Structure | Follow established file/directory organization |
+| Patterns | Use same design patterns as existing code |
+| Formatting | Match indentation, spacing, line breaks |
+| Comments | Follow existing comment style and density |
+| Imports | Match import ordering and grouping |
+| Error handling | Use same error handling patterns |
+
+### Workflow
+
+1. **Explore first**: Always use `explorer` subagent to find similar code
+2. **Analyze patterns**: Use `analyzer` subagent for complex architectural decisions
+3. **Match style**: Implement using the same patterns found in existing code
+4. **Verify consistency**: Compare your changes with surrounding code
+
 ## Review Checklist
 
 When reviewing code, verify:
@@ -88,3 +120,5 @@ When reviewing code, verify:
 - [ ] Tests adequate
 - [ ] Code is readable
 - [ ] No unnecessary complexity
+- [ ] **Consistent with existing codebase style**
+- [ ] **Follows established patterns (verified with subagent exploration)**

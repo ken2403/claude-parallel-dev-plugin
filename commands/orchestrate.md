@@ -121,30 +121,34 @@ tmux send-keys -t "${PROJECT_NAME}__[branch2-safe]" \
 
 **CRITICAL**: Always write task prompts in English for consistent parsing.
 
-### Step 4: Automatic Monitoring Loop
+### Step 4: Start Background Monitoring
 
-After assigning tasks, enter monitoring loop:
+After assigning tasks, start the status-monitor subagent in background:
 
 ```
-MONITORING LOOP (repeat every 60 seconds until all workers complete):
-
-1. Check worker status
-2. Detect completion/errors
-3. Take appropriate action
+Use status-monitor subagent in background to monitor worker progress
 ```
 
-#### Monitoring Check
+The `status-monitor` subagent will:
+- Check worker status every **30 seconds**
+- Detect PR creation, errors, and completion
+- Run for up to 30 minutes automatically
+- Report when all workers complete or encounter errors
+
+This allows the orchestrator to continue with other tasks while monitoring runs in the background.
+
+#### Manual Status Check (Alternative)
+
+If you prefer manual monitoring, run `/pw:status` periodically:
 
 ```bash
 PROJECT_NAME=$(basename $(git rev-parse --show-toplevel))
 
-echo "=== Monitoring Check $(date) ==="
+echo "=== Status Check $(date) ==="
 
 # Check each worker session
 for session in $(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "^${PROJECT_NAME}__"); do
   echo "--- $session ---"
-
-  # Get last 20 lines of output
   OUTPUT=$(tmux capture-pane -t "$session" -p 2>/dev/null | tail -20)
   echo "$OUTPUT" | tail -5
 
@@ -155,15 +159,13 @@ for session in $(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "^${
     echo "✅ STATUS: PR CREATED"
   elif echo "$OUTPUT" | grep -qi "committed\|git commit"; then
     echo "🔄 STATUS: COMMITTED (PR pending)"
-  elif echo "$OUTPUT" | grep -qi "working\|processing\|running"; then
-    echo "🔄 STATUS: WORKING"
   else
     echo "⏳ STATUS: IN PROGRESS"
   fi
   echo ""
 done
 
-# Check PRs created for tracked branches
+# Check PRs
 echo "=== Open PRs ==="
 gh pr list --state open 2>/dev/null || echo "Cannot fetch PRs"
 ```
