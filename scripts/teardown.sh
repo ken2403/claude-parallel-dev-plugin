@@ -1,26 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="${SCRIPT_DIR}/config.local.yaml"
-
-# 設定ファイルからYAML値を取得する関数
-get_config() {
-  local key="$1"
-  local default="${2:-}"
-  if [ -f "$CONFIG_FILE" ]; then
-    local value
-    value=$(grep "^${key}:" "$CONFIG_FILE" | sed 's/^[^:]*:[[:space:]]*//' | sed 's/^"//' | sed 's/"$//' | tr -d '\r')
-    if [ -n "$value" ]; then
-      echo "$value"
-      return
-    fi
+# Auto-detect project name from git repository
+get_project_name() {
+  local repo_root
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+  if [ -n "$repo_root" ]; then
+    basename "$repo_root"
+  else
+    echo "unknown-project"
   fi
-  echo "$default"
 }
 
-# 設定を読み込み
-PROJECT_NAME="$(get_config "project_name" "my-project")"
+PROJECT_NAME="$(get_project_name)"
 
 KEEP_BRANCHES=false
 DRY_RUN=false
@@ -28,12 +20,16 @@ DRY_RUN=false
 usage() {
   cat <<'EOF'
 Usage:
-  teardown.sh [--keep-branches] [--dry-run] <worktree1> [worktree2] ...
+  teardown.sh [--keep-branches] [--dry-run] <branch1> [branch2] ...
+
+Options:
+  --keep-branches  Keep local branches, only remove worktrees and sessions
+  --dry-run        Show what would be done without executing
 
 Examples:
-  ./scripts/teardown.sh test1 test2
-  ./scripts/teardown.sh --keep-branches test1 test2
-  ./scripts/teardown.sh --dry-run test1 test2
+  ./scripts/teardown.sh feature/task1 feature/task2
+  ./scripts/teardown.sh --keep-branches feature/task1 feature/task2
+  ./scripts/teardown.sh --dry-run feature/task1 feature/task2
 EOF
 }
 
@@ -68,13 +64,13 @@ run() {
   fi
 }
 
-echo "PROJECT_NAME: $PROJECT_NAME"
+echo "Project: $PROJECT_NAME"
 echo "Repo: $REPO_ROOT"
 echo "Worktree parent: $PARENT_DIR"
-echo "WORKTREES: ${ARGS[*]}"
-echo "KEEP_BRANCHES: $KEEP_BRANCHES"
-echo "DRY_RUN: $DRY_RUN"
-echo
+echo "Branches: ${ARGS[*]}"
+echo "Keep branches: $KEEP_BRANCHES"
+echo "Dry run: $DRY_RUN"
+echo ""
 
 for wt in "${ARGS[@]}"; do
   safe_wt="${wt//\//-}"
@@ -124,7 +120,7 @@ for wt in "${ARGS[@]}"; do
     echo "keep branches: $branch"
   fi
 
-  echo
+  echo ""
 done
 
 echo "Done. (teardown)"

@@ -1,171 +1,427 @@
-# Parallel Workspace
+# Parallel Workflow Plugin
 
-Git worktreeとtmuxを使用した並列開発環境のためのツールキット。
+Git worktreeとtmuxを使用した並列開発環境のためのClaude Codeプラグイン。
 
 ## 概要
 
-複数のブランチで同時に作業するためのworktreeを自動作成し、tmuxセッションで管理します。
-オプションでWarp terminalと連携してタブ形式で開くこともできます。
+大規模な開発タスクを複数の独立したサブタスクに分解し、並列で実行することで開発効率を最大化します。
 
-## セットアップ
+### 主な機能
 
-### 1. 設定ファイルの作成
+- **Issue駆動の設計**: GitHub Issueから実装設計を自動生成
+- **タスク分解**: 大規模タスクを並列実行可能なサブタスクに分割
+- **並列ワーカー管理**: Git worktreeとtmuxで独立した作業環境を提供
+- **統合レビュー**: PRレビュー、マージ、クリーンアップまでをサポート
+- **高速探索**: Haikuモデルのサブエージェントによる高速コード探索
 
-`config.example.yaml` をコピーして `config.local.yaml` を作成し、プロジェクトに合わせて編集します：
+## インストール
 
-```bash
-cp config.example.yaml config.local.yaml
+### 1. プラグインの配置
+
+このリポジトリを対象プロジェクトの親ディレクトリに配置します：
+
+```
+parent-directory/
+├── .claude-paralell-dev-plugin/  # このプラグイン
+├── your-project/               # 対象プロジェクト
+└── other-project/              # 他のプロジェクト
 ```
 
-`config.local.yaml` の設定例：
-
-```yaml
-# プロジェクト名 (tmuxセッション名のプレフィックス)
-project_name: "my-project"
-
-# 新規ブランチ作成時の派生元
-base_branch: "main"
-
-# UIモード: warp または tmux
-ui_mode: "warp"
-
-# Warp URIスキーム
-warp_scheme: "warp"
-```
-
-### 2. 対象リポジトリでの実行
-
-スクリプトは対象リポジトリ内から相対パスで実行します：
+### 2. Claude Codeでプラグインを有効化
 
 ```bash
 cd your-project
-../.paralell/spinup.sh feature/task1 feature/task2
+claude --plugin-dir ../.claude-paralell-dev-plugin
 ```
 
-## スクリプト
+または、設定ファイルに追加：
 
-### spinup.sh - 並列環境の起動
+```json
+// ~/.claude/settings.json
+{
+  "plugins": [
+    "/path/to/.claude-paralell-dev-plugin"
+  ]
+}
+```
+
+### 3. プロジェクトにCLAUDE.mdを配置（推奨）
 
 ```bash
-../.paralell/spinup.sh <branch1> [branch2] ...
+cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.md
+# プロジェクトに合わせて編集
 ```
 
-**動作**:
-1. リポジトリの親ディレクトリに `wt-<branch名>` としてworktreeを作成
-2. 各worktreeに対応するtmuxセッションを起動
-3. `ui_mode: warp` の場合、Warp terminalでタブとして開く
-4. `ui_mode: tmux` の場合、バックグラウンドでセッションのみ作成
+## 使い方
 
-### teardown.sh - 並列環境の終了
+### 基本ワークフロー
+
+```
+仕様受領 → 設計 → タスク分解 → 並列実行 → レビュー → マージ → クリーンアップ
+```
+
+### コマンド一覧
+
+| コマンド | 説明 | 引数 |
+|----------|------|------|
+| `/pw:design` | 仕様から設計を作成 | `#issue番号` / `@ファイル参照` / `"テキスト"` |
+| `/pw:decompose` | タスクを分解 | 設計出力またはタスク説明 |
+| `/pw:orchestrate` | 並列ワーカーを起動 | ブランチ名のリスト |
+| `/pw:worker` | ワーカータスクを実行 | タスク説明 |
+| `/pw:status` | 進捗を確認 | (オプション) セッション名 |
+| `/pw:review` | PRをレビュー | PR番号またはブランチ名 |
+| `/pw:fix` | レビュー指摘を修正 | フィードバック内容 |
+| `/pw:merge` | PRをマージ | PR番号 `[--auto]` |
+| `/pw:cleanup` | 環境をクリーンアップ | ブランチ名のリスト |
+| `/pw:resolve-conflicts` | コンフリクトを解消 | ブランチ名 |
+
+### 使用例
+
+#### 1. GitHub Issueから実装
 
 ```bash
-../.paralell/teardown.sh [options] <branch1> [branch2] ...
+# 設計
+/pw:design #123
 
-# オプション:
-#   --keep-branches  ブランチを削除せずに保持
-#   --dry-run        実際には実行せず、何が行われるか表示
+# タスク分解
+/pw:decompose
+
+# 並列ワーカー起動
+/pw:orchestrate feature/auth feature/api feature/tests
+
+# 進捗確認
+/pw:status
+
+# PRレビュー
+/pw:review 45
+
+# マージ
+/pw:merge 45
+
+# クリーンアップ（全PRマージ後）
+/pw:cleanup feature/auth feature/api feature/tests
 ```
 
-### open-warp-windows.sh - Warp terminal連携
-
-spinup.shから自動的に呼び出されます。単独で使用する場合：
+#### 2. 対話的なタスク実行
 
 ```bash
-../.paralell/open-warp-windows.sh <branch1> [branch2] ...
+# 仕様を直接指定
+/pw:design "Add OAuth2 authentication with Google and GitHub providers"
+
+# Claudeが詳細を質問してくる場合もあります
 ```
 
-## 設定オプション
-
-| 設定項目 | デフォルト値 | 説明 |
-|---------|-------------|------|
-| `project_name` | my-project | tmuxセッション名のプレフィックス |
-| `base_branch` | main | 新規ブランチ作成時の派生元 |
-| `ui_mode` | warp | `warp`: Warpでタブを開く / `tmux`: バックグラウンドのみ |
-| `warp_scheme` | warp | Warp URI スキーム (warp / warppreview) |
-
-## 使用例
-
-### Warpでタブを開く場合
-
-```yaml
-# config.yaml
-project_name: "my-app"
-base_branch: "develop"
-ui_mode: "warp"
-```
+#### 3. 単発タスク（並列化なし）
 
 ```bash
-cd my-app
-../.paralell/spinup.sh feature/auth feature/api feature/ui
-# → Warpで3つのタブが開く
+# 小規模なタスクはworkerコマンドを直接使用
+/pw:worker Fix the null pointer exception in src/auth/login.ts
 ```
 
-### バックグラウンドで実行する場合
+## 依存関係
 
-```yaml
-# config.yaml
-project_name: "my-app"
-base_branch: "develop"
-ui_mode: "tmux"
+### コンポーネント依存図
+
 ```
+                                    ┌─────────────────┐
+                                    │   /pw:design    │
+                                    │  (設計フェーズ)  │
+                                    └────────┬────────┘
+                                             │ uses
+                                             ▼
+                              ┌──────────────────────────────┐
+                              │         explorer             │
+                              │      (コード探索)             │
+                              └──────────────────────────────┘
+                                             │
+                                             ▼
+                                    ┌─────────────────┐
+                                    │  /pw:decompose  │
+                                    │ (タスク分解)    │
+                                    └────────┬────────┘
+                                             │
+                                             ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          /pw:orchestrate                                 │
+│                         (ワーカー起動・管理)                               │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  calls spinup.sh → creates worktrees + tmux sessions            │    │
+│  │  spawns status-monitor subagent (background)                    │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+└──────────────────────────────┬──────────────────────────────────────────┘
+                               │ spawns
+          ┌────────────────────┼────────────────────┐
+          ▼                    ▼                    ▼
+   ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+   │ /pw:worker  │      │ /pw:worker  │      │ /pw:worker  │
+   │ (Worker 1)  │      │ (Worker 2)  │      │ (Worker N)  │
+   └──────┬──────┘      └──────┬──────┘      └──────┬──────┘
+          │ uses               │ uses               │ uses
+          ▼                    ▼                    ▼
+   ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+   │  explorer   │      │  explorer   │      │  explorer   │
+   │  analyzer   │      │  analyzer   │      │  analyzer   │
+   └──────┬──────┘      └──────┬──────┘      └──────┬──────┘
+          │ applies            │ applies            │ applies
+          ▼                    ▼                    ▼
+   ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+   │code-quality │      │code-quality │      │code-quality │
+   │security-rev │      │security-rev │      │security-rev │
+   └──────┬──────┘      └──────┬──────┘      └──────┬──────┘
+          │ creates PR         │ creates PR         │ creates PR
+          └────────────────────┼────────────────────┘
+                               ▼
+                      ┌─────────────────┐
+                      │   /pw:status    │◄──── status-monitor (bg)
+                      │  (進捗確認)      │
+                      └────────┬────────┘
+                               │
+                               ▼
+                      ┌─────────────────┐
+                      │   /pw:review    │
+                      │  (PRレビュー)    │
+                      └────────┬────────┘
+                               │ uses
+                               ▼
+                      ┌─────────────────┐
+                      │   code-quality  │
+                      │  security-review│
+                      └────────┬────────┘
+                               │
+          ┌────────────────────┼────────────────────┐
+          ▼                    │                    ▼
+   ┌─────────────┐             │             ┌─────────────┐
+   │  /pw:fix    │◄────────────┘             │ /pw:resolve │
+   │(指摘修正)   │                           │ -conflicts  │
+   └─────────────┘                           └─────────────┘
+                               │
+                               ▼
+                      ┌─────────────────┐
+                      │   /pw:merge     │
+                      │  (PRマージ)     │
+                      │ ⚠️ CI+承認必須  │
+                      └────────┬────────┘
+                               │
+                               ▼
+                      ┌─────────────────┐
+                      │  /pw:cleanup    │
+                      │(環境クリーンアップ)│
+                      │ calls teardown.sh│
+                      │ ⚠️ 人間確認必須  │
+                      └─────────────────┘
+```
+
+### コマンド → サブエージェント依存
+
+| コマンド | 必須サブエージェント | オプション |
+|----------|---------------------|------------|
+| `/pw:design` | `explorer` | `analyzer` |
+| `/pw:decompose` | `explorer` | - |
+| `/pw:orchestrate` | - | `status-monitor` (バックグラウンド) |
+| `/pw:worker` | `explorer` | `analyzer` |
+| `/pw:status` | - | - |
+| `/pw:review` | - | `explorer`, `analyzer` |
+| `/pw:fix` | `explorer` | - |
+| `/pw:merge` | - | - |
+| `/pw:cleanup` | - | - |
+| `/pw:resolve-conflicts` | - | - |
+
+### コマンド → スキル依存
+
+| コマンド | 適用スキル |
+|----------|------------|
+| `/pw:worker` | `code-quality`, `security-review` |
+| `/pw:review` | `code-quality`, `security-review` |
+| `/pw:fix` | `code-quality` |
+
+### コマンド → スクリプト依存
+
+| コマンド | 使用スクリプト | 機能 |
+|----------|----------------|------|
+| `/pw:orchestrate` | `spinup.sh` | worktree作成、tmuxセッション起動 |
+| `/pw:cleanup` | `teardown.sh` | worktree削除、tmuxセッション終了 |
+
+### サブエージェント一覧
+
+| サブエージェント | モデル | 用途 | ツール |
+|------------------|--------|------|--------|
+| `explorer` | Haiku | 高速なファイル/パターン検索 | Read, Grep, Glob |
+| `analyzer` | Sonnet | 詳細なアーキテクチャ分析 | Read, Grep, Glob, Bash |
+| `status-monitor` | Haiku | バックグラウンド進捗監視 (30秒間隔) | Bash |
+
+### スキル一覧
+
+| スキル | 自動適用タイミング | 内容 |
+|--------|-------------------|------|
+| `code-quality` | コードレビュー時、実装時 | 可読性、保守性、型安全性、コーディングスタイル一貫性 |
+| `security-review` | セキュリティ関連変更時 | OWASP Top 10、認証/認可、入力検証 |
+
+## サブエージェント詳細
+
+### explorer (Haiku)
+
+高速なコード探索用。ファイル検索やパターン探索に使用。
+
+```
+Use explorer subagent to find authentication-related files
+```
+
+### analyzer (Sonnet)
+
+詳細なコード分析用。アーキテクチャ理解や複雑な依存関係の分析に使用。
+
+```
+Use analyzer subagent to understand the payment system architecture
+```
+
+### status-monitor (Haiku)
+
+バックグラウンド監視用。オーケストレーターが起動後、自動で進捗を監視。
+
+- **監視間隔**: 30秒
+- **最大監視時間**: 30分
+- **検出**: PR作成、エラー、完了
+
+## スキル
+
+### code-quality
+
+コードレビュー時に自動適用される品質基準。
+
+### security-review
+
+セキュリティ関連のコード変更時に自動適用されるチェックリスト。
+
+## Hooks
+
+### 汎用Hooks（プラグイン内蔵）
+
+- **ファイル保護**: `.env`, `credentials`等の編集をブロック
+- **通知**: 作業完了時にデスクトップ通知
+- **ログ**: セッション完了をログ記録
+
+### 言語別Hooks（プロジェクトに設定）
+
+`examples/` ディレクトリに言語別のHooks設定例があります：
+
+- `hooks-python.json` - Python用（ruff lint/format + mypy型チェック）
+- `hooks-javascript.json` - JavaScript/TypeScript用（prettier/eslint）
+- `hooks-go.json` - Go用（gofmt/goimports）
+
+プロジェクトに適用するには：
 
 ```bash
-cd my-app
-../.paralell/spinup.sh feature/auth feature/api
-
-# セッション一覧
-tmux list-sessions
-
-# セッションにアタッチ
-tmux attach -t my-app__feature-auth
+mkdir -p .claude
+cp ../.claude-paralell-dev-plugin/examples/hooks-python.json .claude/settings.json
 ```
 
-## tmuxセッションの操作
+## 自動検出
 
-```bash
-# セッション一覧
-tmux list-sessions
+スクリプトは以下を自動的に検出します（設定ファイル不要）：
 
-# セッションにアタッチ
-tmux attach -t <session_name>
+| 項目 | 検出方法 |
+|------|----------|
+| **プロジェクト名** | Gitリポジトリのディレクトリ名 |
+| **ベースブランチ** | `main` → `master` → 現在のブランチ（優先順） |
 
-# セッションの出力を確認
-tmux capture-pane -t <session_name> -p | tail -50
+セッション名は `{プロジェクト名}__{ブランチ名}` 形式で自動生成されます。
 
-# セッションを終了
-tmux kill-session -t <session_name>
+## ディレクトリ構造
+
+```
+.claude-paralell-dev-plugin/
+├── plugin.json              # プラグインマニフェスト
+│
+├── commands/                # スラッシュコマンド
+│   ├── design.md
+│   ├── decompose.md
+│   ├── orchestrate.md
+│   ├── worker.md
+│   ├── status.md
+│   ├── review.md
+│   ├── fix.md
+│   ├── merge.md
+│   ├── cleanup.md
+│   └── resolve-conflicts.md
+│
+├── agents/                  # サブエージェント
+│   ├── explorer.md          # 高速探索 (Haiku)
+│   ├── analyzer.md          # 詳細分析 (Sonnet)
+│   └── status-monitor.md    # バックグラウンド監視 (Haiku)
+│
+├── skills/                  # 自動適用スキル
+│   ├── code-quality/
+│   │   └── SKILL.md
+│   └── security-review/
+│       └── SKILL.md
+│
+├── hooks/                   # 汎用Hooks
+│   └── hooks.json
+│
+├── examples/                # 設定例
+│   ├── CLAUDE.project-template.md
+│   ├── hooks-python.json
+│   ├── hooks-javascript.json
+│   └── hooks-go.json
+│
+├── scripts/                 # 実行スクリプト
+│   ├── spinup.sh            # 並列環境起動
+│   └── teardown.sh          # 並列環境削除
+│
+└── README.md               # このファイル
 ```
 
-## worktreeの操作
+## ベストプラクティス
 
-```bash
-# worktree一覧
-git worktree list
+### タスク分解
 
-# worktreeを削除
-git worktree remove /path/to/worktree
+- **独立性**: 各サブタスクは同じファイルを編集しない
+- **完結性**: 各サブタスクは単独でマージ可能なPRを生成
+- **適切な粒度**: 2-5個のサブタスクが最適
 
-# 強制削除
-git worktree remove --force /path/to/worktree
-```
+### 並列実行
+
+- プロンプトは**常に英語**で記述（日本語出力でも）
+- 定期的に`/pw:status`で進捗を確認
+- ブロッカーがあれば早期に介入
+
+### クリーンアップ
+
+- **全PRがマージされるまでクリーンアップしない**
+- `gh pr list --state open`で確認してから実行
 
 ## トラブルシューティング
 
-### worktreeが見つからない
-```bash
-git worktree list
-```
+### セッションが見つからない
 
-### tmuxセッションが見つからない
 ```bash
 tmux list-sessions
 ```
 
-### 強制クリーンアップ
+### Worktreeが見つからない
+
 ```bash
-# worktreeを強制削除
+git worktree list
+```
+
+### 強制クリーンアップ
+
+```bash
+# Worktreeを強制削除
 git worktree remove --force /path/to/worktree
 
 # tmuxセッションを強制終了
-tmux kill-session -t session_name
+tmux kill-session -t session-name
+
+# 孤立したworktreeエントリを削除
+git worktree prune
 ```
+
+## 関連ドキュメント
+
+- [Claude Code公式ドキュメント](https://docs.anthropic.com/claude-code)
+- [Plugins](https://code.claude.com/docs/en/plugins)
+- [Commands](https://code.claude.com/docs/en/slash-commands)
+- [Subagents](https://code.claude.com/docs/en/sub-agents)
+- [Skills](https://code.claude.com/docs/en/skills)
+- [Hooks](https://code.claude.com/docs/en/hooks-guide)
