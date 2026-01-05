@@ -35,7 +35,21 @@ git clone https://github.com/ken2403/.claude-paralell-dev-plugin.git
 
 ### 2. Claude Codeでプラグインを有効化
 
-プロジェクトディレクトリで、`--plugin-dir`オプションを指定してClaude Codeを起動：
+#### 方法A: Marketplaceとして登録（推奨）
+
+プラグインをMarketplaceとして登録すると、どのプロジェクトでも利用可能になります：
+
+```bash
+# プラグインをMarketplaceとして追加
+claude plugin marketplace add /path/to/any-directory/.claude-paralell-dev-plugin
+
+# プラグインをインストール
+claude plugin install pw@claude-parallel-dev-plugin
+```
+
+#### 方法B: 起動時にオプション指定
+
+特定のセッションでのみ使用する場合は、`--plugin-dir`オプションを指定してClaude Codeを起動：
 
 ```bash
 cd your-project
