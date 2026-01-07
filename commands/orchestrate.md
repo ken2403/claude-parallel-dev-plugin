@@ -110,14 +110,18 @@ PROJECT_NAME=$(basename $(git rev-parse --show-toplevel))
 # Example: feature/auth -> feature-auth
 # Session name format: ${PROJECT_NAME}__${branch_with_dash}
 
-# Worker 1
-tmux send-keys -t "${PROJECT_NAME}__[branch1-safe]" \
-  'claude -p "/pw:worker [Task 1 detailed description in English]"' Enter
+# Worker 1 - Use -l flag to send literal characters (avoids quote escaping issues)
+TASK1="[Task 1 detailed description in English]"
+tmux send-keys -t "${PROJECT_NAME}__[branch1-safe]" -l "claude -p \"/pw:worker ${TASK1}\""
+tmux send-keys -t "${PROJECT_NAME}__[branch1-safe]" Enter
 
 # Worker 2
-tmux send-keys -t "${PROJECT_NAME}__[branch2-safe]" \
-  'claude -p "/pw:worker [Task 2 detailed description in English]"' Enter
+TASK2="[Task 2 detailed description in English]"
+tmux send-keys -t "${PROJECT_NAME}__[branch2-safe]" -l "claude -p \"/pw:worker ${TASK2}\""
+tmux send-keys -t "${PROJECT_NAME}__[branch2-safe]" Enter
 ```
+
+**NOTE**: The `-l` flag sends characters literally, avoiding issues with special characters like quotes, `$`, and backticks in task descriptions.
 
 **CRITICAL**: Always write task prompts in English for consistent parsing.
 
