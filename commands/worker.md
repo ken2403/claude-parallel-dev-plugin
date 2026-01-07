@@ -96,6 +96,10 @@ Follow workspace conventions:
 - Keep changes focused on the assigned task
 - Do NOT modify files outside your scope
 
+**Apply Quality Skills**:
+- Follow `/pw:code-quality` standards (readability, maintainability, error handling)
+- Follow `/pw:security-review` standards if handling auth, user input, or sensitive data
+
 ### Phase 4: Verification
 
 Run project-specific checks:

@@ -38,38 +38,43 @@ echo "=== CI Checks ==="
 gh pr checks $1 2>/dev/null || echo "Cannot fetch CI status"
 ```
 
-## Review Checklist
+## Apply Review Skills
 
-### 1. Code Quality
+**MANDATORY**: Apply the following skills for comprehensive review:
+
+1. **Code Quality Skill** (`/pw:code-quality`):
+   - Readability, maintainability, simplicity
+   - Type safety, error handling
+   - Naming conventions, code smells
+   - Consistency with existing codebase patterns
+
+2. **Security Review Skill** (`/pw:security-review`):
+   - Authentication & authorization
+   - Input validation & injection prevention
+   - Data protection & secrets management
+   - OWASP Top 10 vulnerabilities
+
+Refer to the skill definitions for detailed checklists.
+
+## Review Checklist Summary
+
+### Code Quality
 - [ ] Logic is correct and handles edge cases
-- [ ] No obvious bugs or errors
 - [ ] Code is readable and maintainable
 - [ ] Follows existing patterns in the codebase
 - [ ] No unnecessary complexity
-
-### 2. Type Safety & Style
-- [ ] Type annotations present (where required by project)
-- [ ] Consistent naming conventions
-- [ ] No linting errors
 - [ ] Proper error handling
 
-### 3. Security
+### Security
 - [ ] No hardcoded secrets or credentials
 - [ ] Input validation on external data
-- [ ] No SQL injection vulnerabilities
-- [ ] No XSS vulnerabilities
+- [ ] No injection vulnerabilities (SQL, XSS, command)
 - [ ] Sensitive data handled appropriately
 
-### 4. Testing
+### Testing & Documentation
 - [ ] Tests added for new functionality
-- [ ] Existing tests still pass
 - [ ] Edge cases covered
-- [ ] Test coverage adequate
-
-### 5. Documentation
 - [ ] Code comments where needed
-- [ ] API changes documented
-- [ ] README updated (if applicable)
 
 ## Review Process
 
