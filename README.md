@@ -332,10 +332,35 @@ cp ../.claude-paralell-dev-plugin/examples/hooks-python.json .claude/settings.js
 
 | 項目 | 検出方法 |
 |------|----------|
+| **Gitリポジトリ** | 現在のディレクトリ → サブディレクトリから自動検出 |
 | **プロジェクト名** | Gitリポジトリのディレクトリ名 |
 | **ベースブランチ** | `main` → `master` → 現在のブランチ（優先順） |
 
 セッション名は `{プロジェクト名}__{ブランチ名}` 形式で自動生成されます。
+
+### 親ディレクトリからの実行
+
+Gitリポジトリの**親ディレクトリ**からClaudeセッションを起動して、`/pw:orchestrate` と `/pw:cleanup` を実行できます：
+
+```
+/workspace/              ← Claudeセッションを起動
+├── my-project/          ← Gitリポジトリ（自動検出）
+├── wt-feature-auth/     ← worktree 1（自動作成）
+├── wt-feature-api/      ← worktree 2（自動作成）
+└── wt-feature-tests/    ← worktree 3（自動作成）
+```
+
+この構成により：
+- worktreeがリポジトリと同じ階層に作成される
+- Claudeセッションから全worktreeを簡単に参照可能
+- 複数リポジトリがある場合は `GIT_REPO` 環境変数で指定可能
+
+```bash
+# 複数リポジトリがある場合の指定方法
+GIT_REPO=/workspace/my-project ./scripts/spinup.sh feature/auth
+```
+
+**注意**: `review`, `merge`, `fix`, `resolve-conflicts` などのコマンドはworktree内またはgitリポジトリ内から実行する必要があります。
 
 ## ディレクトリ構造
 

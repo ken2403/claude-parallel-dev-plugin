@@ -35,6 +35,21 @@ else
 fi
 ```
 
+## Git Repository Detection
+
+The scripts automatically detect the git repository:
+1. If running inside a git repository, use it
+2. If running from a parent directory, detect git repo in subdirectories
+3. If multiple repos found, specify with `GIT_REPO` environment variable
+
+This allows running from a parent directory:
+```
+/workspace/              ← Claude session here
+├── my-project/          ← Git repo (auto-detected)
+├── wt-feature-auth/     ← worktree (auto-created)
+└── wt-feature-api/      ← worktree (auto-created)
+```
+
 ## Base Branch Detection
 
 Detect the base branch from workspace configuration (NOT always main/master):

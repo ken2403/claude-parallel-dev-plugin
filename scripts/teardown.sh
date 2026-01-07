@@ -1,18 +1,59 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Auto-detect project name from git repository
-get_project_name() {
-  local repo_root
-  repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
-  if [ -n "$repo_root" ]; then
-    basename "$repo_root"
+# Check required dependencies
+if ! command -v tmux >/dev/null 2>&1; then
+  echo "Error: tmux is not installed." >&2
+  echo "Please install tmux first:" >&2
+  echo "  macOS:  brew install tmux" >&2
+  echo "  Ubuntu: sudo apt install tmux" >&2
+  exit 1
+fi
+
+# Find git repository
+# 1. If current directory is inside a git repo, use it
+# 2. Otherwise, look for a git repo in immediate subdirectories
+find_git_repo() {
+  # First, check if we're inside a git repo
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git rev-parse --show-toplevel
+    return 0
+  fi
+
+  # Not in a git repo - look for git repos in immediate subdirectories
+  # Note: We check for .git as a DIRECTORY to exclude worktrees (which have .git as a file)
+  local found_repos=()
+  for dir in */; do
+    # Skip if glob didn't match anything (no subdirectories)
+    [ "$dir" = "*/" ] && continue
+    # Only detect actual repos (not worktrees) - .git must be a directory
+    if [ -d "${dir}.git" ]; then
+      found_repos+=("$(cd "$dir" && pwd)")
+    fi
+  done
+
+  if [ ${#found_repos[@]} -eq 0 ]; then
+    echo "Error: No git repository found in current directory or subdirectories." >&2
+    return 1
+  elif [ ${#found_repos[@]} -eq 1 ]; then
+    echo "${found_repos[0]}"
+    return 0
   else
-    echo "unknown-project"
+    # Multiple repos found - let user know
+    echo "Error: Multiple git repositories found:" >&2
+    for repo in "${found_repos[@]}"; do
+      echo "  - $repo" >&2
+    done
+    echo "Please run from inside the target repository or specify GIT_REPO environment variable." >&2
+    return 1
   fi
 }
 
-PROJECT_NAME="$(get_project_name)"
+# Auto-detect project name from git repository
+get_project_name() {
+  local repo_root="$1"
+  basename "$repo_root"
+}
 
 KEEP_BRANCHES=false
 DRY_RUN=false
@@ -48,12 +89,23 @@ if [ ${#ARGS[@]} -lt 1 ]; then
   exit 1
 fi
 
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
-  echo "Error: run this inside a git repository."
-  exit 1
-}
+# Allow override via environment variable
+if [ -n "${GIT_REPO:-}" ]; then
+  # Validate GIT_REPO is an actual git repository
+  if [ ! -d "$GIT_REPO" ]; then
+    echo "Error: GIT_REPO path does not exist: $GIT_REPO" >&2
+    exit 1
+  fi
+  if [ ! -d "$GIT_REPO/.git" ] && ! git -C "$GIT_REPO" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "Error: GIT_REPO is not a git repository: $GIT_REPO" >&2
+    exit 1
+  fi
+  REPO_ROOT="$GIT_REPO"
+else
+  REPO_ROOT="$(find_git_repo)" || exit 1
+fi
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+PROJECT_NAME="$(get_project_name "$REPO_ROOT")"
 PARENT_DIR="$(dirname "$REPO_ROOT")"
 
 run() {
@@ -74,8 +126,10 @@ echo ""
 
 for wt in "${ARGS[@]}"; do
   safe_wt="${wt//\//-}"
+  # Sanitize session name for tmux (must match spinup.sh logic)
+  safe_session="${safe_wt//[.:]/_}"
   dir="${PARENT_DIR}/wt-${safe_wt}"
-  session="${PROJECT_NAME}__${safe_wt}"
+  session="${PROJECT_NAME}__${safe_session}"
   branch="$wt"
 
   echo "=== teardown: $wt ==="
@@ -90,27 +144,27 @@ for wt in "${ARGS[@]}"; do
 
   # 2) remove worktree
   if [ -d "$dir" ]; then
-    run "git worktree remove --force '$dir' 2>/dev/null || true"
+    run "git -C '$REPO_ROOT' worktree remove --force '$dir' 2>/dev/null || true"
     run "rm -rf '$dir' 2>/dev/null || true"
     echo "removed worktree dir: $dir"
   else
     # ディレクトリが無くても登録だけ残っている場合があるので一応試す
-    run "git worktree remove --force '$dir' 2>/dev/null || true"
+    run "git -C '$REPO_ROOT' worktree remove --force '$dir' 2>/dev/null || true"
     echo "worktree dir not found (attempted detach anyway): $dir"
   fi
 
   # 3) delete branch (optional)
   if ! $KEEP_BRANCHES; then
-    if git show-ref --verify --quiet "refs/heads/$branch"; then
+    if git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$branch"; then
       # 他worktreeで使用中なら削除しない
-      if git worktree list --porcelain | awk -v b="refs/heads/$branch" '
+      if git -C "$REPO_ROOT" worktree list --porcelain | awk -v b="refs/heads/$branch" '
         /^branch /{br=$2}
         br==b {found=1}
         END{exit found?0:1}
       '; then
         echo "branch is still used by a worktree, skip delete: $branch"
       else
-        run "git branch -D '$branch'"
+        run "git -C '$REPO_ROOT' branch -D '$branch'"
         echo "deleted branch: $branch"
       fi
     else
