@@ -12,8 +12,12 @@ find_git_repo() {
   fi
 
   # Not in a git repo - look for git repos in immediate subdirectories
+  # Note: We check for .git as a DIRECTORY to exclude worktrees (which have .git as a file)
   local found_repos=()
   for dir in */; do
+    # Skip if glob didn't match anything (no subdirectories)
+    [ "$dir" = "*/" ] && continue
+    # Only detect actual repos (not worktrees) - .git must be a directory
     if [ -d "${dir}.git" ]; then
       found_repos+=("$(cd "$dir" && pwd)")
     fi
@@ -74,6 +78,15 @@ get_base_branch() {
 
 # Allow override via environment variable
 if [ -n "${GIT_REPO:-}" ]; then
+  # Validate GIT_REPO is an actual git repository
+  if [ ! -d "$GIT_REPO" ]; then
+    echo "Error: GIT_REPO path does not exist: $GIT_REPO" >&2
+    exit 1
+  fi
+  if [ ! -d "$GIT_REPO/.git" ] && ! git -C "$GIT_REPO" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "Error: GIT_REPO is not a git repository: $GIT_REPO" >&2
+    exit 1
+  fi
   REPO_ROOT="$GIT_REPO"
 else
   REPO_ROOT="$(find_git_repo)" || exit 1
@@ -103,8 +116,10 @@ echo ""
 
 for wt in "$@"; do
   safe_wt="${wt//\//-}"                 # feature/foo -> feature-foo
+  # Sanitize session name for tmux (remove problematic characters)
+  safe_session="${safe_wt//[.:]/_}"     # Replace . and : with _
   dir="${PARENT_DIR}/wt-${safe_wt}"     # sibling of repo (絶対パス)
-  session="${PROJECT_NAME}__${safe_wt}"
+  session="${PROJECT_NAME}__${safe_session}"
 
   if [ ! -d "$dir" ]; then
     if git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$wt"; then
