@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Check required dependencies
+if ! command -v tmux >/dev/null 2>&1; then
+  echo "Error: tmux is not installed." >&2
+  echo "Please install tmux first:" >&2
+  echo "  macOS:  brew install tmux" >&2
+  echo "  Ubuntu: sudo apt install tmux" >&2
+  exit 1
+fi
+
 # Find git repository
 # 1. If current directory is inside a git repo, use it
 # 2. Otherwise, look for a git repo in immediate subdirectories
