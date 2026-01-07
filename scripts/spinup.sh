@@ -1,36 +1,67 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Find git repository
+# 1. If current directory is inside a git repo, use it
+# 2. Otherwise, look for a git repo in immediate subdirectories
+find_git_repo() {
+  # First, check if we're inside a git repo
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git rev-parse --show-toplevel
+    return 0
+  fi
+
+  # Not in a git repo - look for git repos in immediate subdirectories
+  local found_repos=()
+  for dir in */; do
+    if [ -d "${dir}.git" ]; then
+      found_repos+=("$(cd "$dir" && pwd)")
+    fi
+  done
+
+  if [ ${#found_repos[@]} -eq 0 ]; then
+    echo "Error: No git repository found in current directory or subdirectories." >&2
+    return 1
+  elif [ ${#found_repos[@]} -eq 1 ]; then
+    echo "${found_repos[0]}"
+    return 0
+  else
+    # Multiple repos found - let user know
+    echo "Error: Multiple git repositories found:" >&2
+    for repo in "${found_repos[@]}"; do
+      echo "  - $repo" >&2
+    done
+    echo "Please run from inside the target repository or specify GIT_REPO environment variable." >&2
+    return 1
+  fi
+}
+
 # Auto-detect project name from git repository
 get_project_name() {
-  local repo_root
-  repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
-  if [ -n "$repo_root" ]; then
-    basename "$repo_root"
-  else
-    echo "unknown-project"
-  fi
+  local repo_root="$1"
+  basename "$repo_root"
 }
 
 # Get base branch from workspace configuration
 # Priority: CLAUDE.md settings > git remote HEAD > common branch names
 get_base_branch() {
+  local repo_root="$1"
   local base_branch=""
 
-  # 1. Check CLAUDE.md for base branch specification
-  if [ -f "CLAUDE.md" ]; then
-    base_branch=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md 2>/dev/null | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
+  # 1. Check CLAUDE.md for base branch specification (in repo root)
+  if [ -f "${repo_root}/CLAUDE.md" ]; then
+    base_branch=$(grep -i "base.branch\|default.branch\|primary.branch" "${repo_root}/CLAUDE.md" 2>/dev/null | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
   fi
 
   # 2. Fallback: check git remote HEAD
   if [ -z "$base_branch" ]; then
-    base_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
+    base_branch=$(git -C "$repo_root" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
   fi
 
   # 3. Final fallback: check which common branch exists
   if [ -z "$base_branch" ]; then
     for branch in main master develop dev; do
-      if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
         base_branch="$branch"
         break
       fi
@@ -41,25 +72,27 @@ get_base_branch() {
   echo "${base_branch:-main}"
 }
 
-PROJECT_NAME="$(get_project_name)"
-BASE_BRANCH="$(get_base_branch)"
+# Allow override via environment variable
+if [ -n "${GIT_REPO:-}" ]; then
+  REPO_ROOT="$GIT_REPO"
+else
+  REPO_ROOT="$(find_git_repo)" || exit 1
+fi
+
+PROJECT_NAME="$(get_project_name "$REPO_ROOT")"
+BASE_BRANCH="$(get_base_branch "$REPO_ROOT")"
 
 if [ $# -lt 1 ]; then
   echo "Usage: $0 <branch1> [branch2] ..."
   echo ""
   echo "Detected settings:"
+  echo "  git_repo:     $REPO_ROOT"
   echo "  project_name: $PROJECT_NAME"
   echo "  base_branch:  $BASE_BRANCH"
   exit 1
 fi
 
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
-  echo "Error: run this inside a git repository."
-  exit 1
-}
-
-# worktreeの作成先を「リポジトリの親」に固定
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# Worktree directory: parent of repo (so worktrees are siblings of the repo)
 PARENT_DIR="$(dirname "$REPO_ROOT")"
 
 echo "Project: $PROJECT_NAME"
@@ -70,14 +103,14 @@ echo ""
 
 for wt in "$@"; do
   safe_wt="${wt//\//-}"                 # feature/foo -> feature-foo
-  dir="${PARENT_DIR}/wt-${safe_wt}"     # 1段上に作る（絶対パス）
+  dir="${PARENT_DIR}/wt-${safe_wt}"     # sibling of repo (絶対パス)
   session="${PROJECT_NAME}__${safe_wt}"
 
   if [ ! -d "$dir" ]; then
-    if git show-ref --verify --quiet "refs/heads/$wt"; then
-      git worktree add "$dir" "$wt"
+    if git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$wt"; then
+      git -C "$REPO_ROOT" worktree add "$dir" "$wt"
     else
-      git worktree add "$dir" -b "$wt" "$BASE_BRANCH"
+      git -C "$REPO_ROOT" worktree add "$dir" -b "$wt" "$BASE_BRANCH"
     fi
   fi
 

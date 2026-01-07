@@ -59,6 +59,21 @@ else
 fi
 ```
 
+## Git Repository Detection
+
+The scripts automatically detect the git repository:
+1. If running inside a git repository, use it
+2. If running from a parent directory, detect git repo in subdirectories
+3. If multiple repos found, specify with `GIT_REPO` environment variable
+
+This allows running from a parent directory where worktrees are located alongside the repo:
+```
+/workspace/              ← Claude session here
+├── my-project/          ← Git repo (auto-detected)
+├── wt-feature-auth/     ← worktree (to be cleaned)
+└── wt-feature-api/      ← worktree (to be cleaned)
+```
+
 ## Cleanup Process
 
 ### Using teardown.sh
