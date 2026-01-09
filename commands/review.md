@@ -65,6 +65,12 @@ Refer to the skill definitions for detailed checklists.
 - [ ] No unnecessary complexity
 - [ ] Proper error handling
 
+### Codebase Consistency
+- [ ] No contradictions with existing implementation (API contracts, data structures, business logic)
+- [ ] Coding style matches existing codebase (naming conventions, formatting, idioms)
+- [ ] Consistent use of libraries and utilities already in the project
+- [ ] File/folder structure follows existing conventions
+
 ### Security
 - [ ] No hardcoded secrets or credentials
 - [ ] Input validation on external data
