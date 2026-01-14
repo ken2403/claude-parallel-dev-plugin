@@ -141,17 +141,32 @@ for job_dir in "$WORKTREES_DIR"/*/; do
   echo ""
   echo "--- Job: $job_name ---"
 
-  # Get branch name from worktree
+  # Get branch name - try multiple methods
   branch_name=""
-  if [ -d "$job_dir/.git" ] || [ -f "$job_dir/.git" ]; then
-    branch_name=$(git -C "$job_dir" branch --show-current 2>/dev/null || echo "")
+
+  # Method 1: Read from metadata file (most reliable)
+  if [ -f "$job_dir/.worktree-job-meta" ]; then
+    branch_name=$(grep "^BRANCH_NAME=" "$job_dir/.worktree-job-meta" | cut -d'"' -f2)
   fi
 
+  # Method 2: Get from git worktree directly
   if [ -z "$branch_name" ]; then
-    # Try to infer from job name
-    if [[ "$job_name" == issue-* ]]; then
-      branch_name="feature/$job_name"
-    else
+    if [ -d "$job_dir/.git" ] || [ -f "$job_dir/.git" ]; then
+      branch_name=$(git -C "$job_dir" branch --show-current 2>/dev/null || echo "")
+    fi
+  fi
+
+  # Method 3: Infer from job name - check both feature/ and fix/ prefixes
+  if [ -z "$branch_name" ]; then
+    for prefix in feature fix; do
+      test_branch="${prefix}/${job_name}"
+      if git show-ref --verify --quiet "refs/heads/$test_branch" 2>/dev/null; then
+        branch_name="$test_branch"
+        break
+      fi
+    done
+    # Default fallback if no branch found locally
+    if [ -z "$branch_name" ]; then
       branch_name="feature/$job_name"
     fi
   fi

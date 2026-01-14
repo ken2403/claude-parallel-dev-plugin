@@ -155,15 +155,26 @@ echo "Job name: $JOB_NAME"
 echo "Branch: $BRANCH_NAME"
 echo "Task: $TASK_DESCRIPTION"
 
-# Check if branch already exists - ERROR if it does
+# Check if branch already exists locally - ERROR if it does
 if git show-ref --verify --quiet "refs/heads/$BRANCH_NAME" 2>/dev/null; then
   echo ""
-  echo "ERROR: Branch '$BRANCH_NAME' already exists!"
+  echo "ERROR: Local branch '$BRANCH_NAME' already exists!"
   echo ""
   echo "Options:"
   echo "  1. Use a different task description"
   echo "  2. Delete the existing branch: git branch -D $BRANCH_NAME"
   echo "  3. Clean up existing worktree: /pw:cleanup-job $JOB_NAME"
+  exit 1
+fi
+
+# Check if branch already exists on remote - ERROR if it does
+if git ls-remote --heads origin "$BRANCH_NAME" 2>/dev/null | grep -q "$BRANCH_NAME"; then
+  echo ""
+  echo "ERROR: Remote branch 'origin/$BRANCH_NAME' already exists!"
+  echo ""
+  echo "Options:"
+  echo "  1. Use a different task description"
+  echo "  2. Delete the remote branch: git push origin --delete $BRANCH_NAME"
   exit 1
 fi
 
@@ -228,6 +239,20 @@ if [[ ! "$(pwd)" == *"/worktrees/"* ]]; then
   exit 1
 fi
 
+# ============================================
+# 6. Save Metadata for Other Phases
+# ============================================
+# Each bash block runs in a separate process, so we save variables to a file
+cat > "$WORKTREE_PATH/.worktree-job-meta" << EOF
+WORKTREE_PATH="$WORKTREE_PATH"
+BRANCH_NAME="$BRANCH_NAME"
+BRANCH_PREFIX="$BRANCH_PREFIX"
+BASE_BRANCH="$BASE_BRANCH"
+JOB_NAME="$JOB_NAME"
+TASK_DESCRIPTION="$TASK_DESCRIPTION"
+ISSUE_NUM="$ISSUE_NUM"
+EOF
+
 echo ""
 echo "=== Setup Complete ==="
 echo ""
@@ -237,9 +262,10 @@ echo "  - Never modify files outside this directory"
 echo "  - Never switch to $BASE_BRANCH"
 echo "  - Cleanup after merge: /pw:cleanup-job $JOB_NAME"
 echo ""
-echo "Environment variables for this session:"
+echo "Environment variables saved to .worktree-job-meta:"
 echo "  WORKTREE_PATH=$WORKTREE_PATH"
 echo "  BRANCH_NAME=$BRANCH_NAME"
+echo "  BRANCH_PREFIX=$BRANCH_PREFIX"
 echo "  BASE_BRANCH=$BASE_BRANCH"
 echo "  JOB_NAME=$JOB_NAME"
 echo "  TASK_DESCRIPTION=$TASK_DESCRIPTION"
@@ -252,14 +278,26 @@ echo "  TASK_DESCRIPTION=$TASK_DESCRIPTION"
 ### Fetch Issue Details (if applicable)
 
 ```bash
+# Load metadata from Phase 1
+if [ -z "$WORKTREE_PATH" ]; then
+  # Try to find worktree-job-meta in any worktree
+  for meta in worktrees/*/.worktree-job-meta; do
+    if [ -f "$meta" ]; then
+      source "$meta"
+      break
+    fi
+  done
+fi
+
 if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
   echo "ERROR: WORKTREE_PATH not set or directory does not exist"
   echo "This script must be run after Phase 1 setup"
   exit 1
 fi
-cd "$WORKTREE_PATH"
 
-ISSUE_NUM=$(echo "$ARGUMENTS" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+# Source metadata file for all variables
+source "$WORKTREE_PATH/.worktree-job-meta"
+cd "$WORKTREE_PATH"
 
 if [ -n "$ISSUE_NUM" ]; then
   echo "=== Issue #${ISSUE_NUM} Details ==="
@@ -270,11 +308,14 @@ fi
 ### Read Project Configuration
 
 ```bash
-if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
-  echo "ERROR: WORKTREE_PATH not set or directory does not exist"
-  echo "This script must be run after Phase 1 setup"
-  exit 1
+# Load metadata from Phase 1
+if [ -z "$WORKTREE_PATH" ]; then
+  for meta in worktrees/*/.worktree-job-meta; do
+    [ -f "$meta" ] && source "$meta" && break
+  done
 fi
+[ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
+source "$WORKTREE_PATH/.worktree-job-meta"
 cd "$WORKTREE_PATH"
 
 echo "=== Project Configuration ==="
@@ -346,11 +387,14 @@ Before EVERY file write or edit, verify:
 ### Run Project Checks
 
 ```bash
-if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
-  echo "ERROR: WORKTREE_PATH not set or directory does not exist"
-  echo "This script must be run after Phase 1 setup"
-  exit 1
+# Load metadata from Phase 1
+if [ -z "$WORKTREE_PATH" ]; then
+  for meta in worktrees/*/.worktree-job-meta; do
+    [ -f "$meta" ] && source "$meta" && break
+  done
 fi
+[ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
+source "$WORKTREE_PATH/.worktree-job-meta"
 cd "$WORKTREE_PATH"
 
 echo "=== Running Verification ==="
@@ -401,11 +445,14 @@ fi
 ### Run Tests
 
 ```bash
-if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
-  echo "ERROR: WORKTREE_PATH not set or directory does not exist"
-  echo "This script must be run after Phase 1 setup"
-  exit 1
+# Load metadata from Phase 1
+if [ -z "$WORKTREE_PATH" ]; then
+  for meta in worktrees/*/.worktree-job-meta; do
+    [ -f "$meta" ] && source "$meta" && break
+  done
 fi
+[ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
+source "$WORKTREE_PATH/.worktree-job-meta"
 cd "$WORKTREE_PATH"
 
 echo "=== Running Tests ==="
@@ -440,11 +487,14 @@ If checks or tests fail:
 ### Final Safety Verification and Commit
 
 ```bash
-if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
-  echo "ERROR: WORKTREE_PATH not set or directory does not exist"
-  echo "This script must be run after Phase 1 setup"
-  exit 1
+# Load metadata from Phase 1
+if [ -z "$WORKTREE_PATH" ]; then
+  for meta in worktrees/*/.worktree-job-meta; do
+    [ -f "$meta" ] && source "$meta" && break
+  done
 fi
+[ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
+source "$WORKTREE_PATH/.worktree-job-meta"
 cd "$WORKTREE_PATH"
 
 echo "=== Final Safety Check ==="
@@ -506,21 +556,25 @@ echo "Branch pushed successfully"
 ## Phase 6: Create Pull Request
 
 ```bash
-if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
-  echo "ERROR: WORKTREE_PATH not set or directory does not exist"
-  echo "This script must be run after Phase 1 setup"
-  exit 1
+# Load metadata from Phase 1
+if [ -z "$WORKTREE_PATH" ]; then
+  for meta in worktrees/*/.worktree-job-meta; do
+    [ -f "$meta" ] && source "$meta" && break
+  done
 fi
+[ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
+source "$WORKTREE_PATH/.worktree-job-meta"
 cd "$WORKTREE_PATH"
 
-ISSUE_NUM=$(echo "$ARGUMENTS" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+# Variables are now loaded from metadata file:
+# - BRANCH_PREFIX, TASK_DESCRIPTION, ISSUE_NUM, etc.
 
 CLOSES_LINE=""
 if [ -n "$ISSUE_NUM" ]; then
   CLOSES_LINE="Closes #${ISSUE_NUM}"
 fi
 
-# Generate PR title from task description
+# Generate PR title from task description (variables from metadata)
 PR_TITLE="${BRANCH_PREFIX}: ${TASK_DESCRIPTION}"
 
 echo "=== Creating Pull Request ==="
