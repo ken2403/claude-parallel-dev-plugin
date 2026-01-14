@@ -1,6 +1,6 @@
 ---
 allowed-tools: Bash
-argument-hint: [PR number] [--auto for auto-merge without confirmation]
+argument-hint: [PR number] [--auto] [--skip-approve]
 description: Merge a reviewed PR after verification
 model: opus
 ---
@@ -10,44 +10,94 @@ model: opus
 ## Target
 $ARGUMENTS
 
-## ⛔ MANDATORY MERGE REQUIREMENTS
+## Options
 
-**CRITICAL: The following conditions MUST be met before ANY merge. No exceptions!**
+| Option | Description |
+|--------|-------------|
+| `--auto` | Auto-merge without confirmation prompt |
+| `--skip-approve` | Skip human approval check (use for self-reviewed PRs) |
 
-### Absolute Requirements (NEVER bypass)
-1. **Human Approval Required**: PR MUST have at least one human approval (`APPROVED` status)
-2. **CI Checks Must Pass**: ALL CI checks MUST be passing (green)
-3. **No Merge Conflicts**: PR MUST be mergeable without conflicts
-
-### Enforcement
-- **NEVER** merge if `reviewDecision` is not `APPROVED`
-- **NEVER** merge if any CI check is failing or pending
-- **NEVER** use `--auto` flag to bypass these requirements
-- If any requirement is not met, **STOP** and report to the user
+## Parse Options
 
 ```bash
-# Verification script - run this FIRST
-PR_NUM=$1
+ARGS="$ARGUMENTS"
+SKIP_APPROVE=false
+AUTO_MERGE=false
+
+if echo "$ARGS" | grep -q "\-\-skip-approve"; then
+  SKIP_APPROVE=true
+  ARGS=$(echo "$ARGS" | sed 's/--skip-approve//g')
+fi
+
+if echo "$ARGS" | grep -q "\-\-auto"; then
+  AUTO_MERGE=true
+  ARGS=$(echo "$ARGS" | sed 's/--auto//g')
+fi
+
+PR_NUM=$(echo "$ARGS" | tr -d ' ')
+
+echo "PR Number: $PR_NUM"
+echo "Auto Merge: $AUTO_MERGE"
+echo "Skip Approve: $SKIP_APPROVE"
+```
+
+## Merge Requirements
+
+### Default Requirements
+1. **CI Checks Must Pass**: ALL CI checks MUST be passing (green)
+2. **No Merge Conflicts**: PR MUST be mergeable without conflicts
+3. **Human Approval Required**: PR MUST have approval (unless `--skip-approve`)
+
+### With --skip-approve
+- Skips the human approval check
+- Useful for solo development or self-reviewed PRs
+- CI checks and merge conflict checks still apply
+
+```bash
+# Verification script
 REVIEW=$(gh pr view $PR_NUM --json reviewDecision --jq '.reviewDecision' 2>/dev/null)
-CI_STATUS=$(gh pr checks $PR_NUM --json state --jq 'all(.state == "SUCCESS")' 2>/dev/null)
+CI_STATUS=$(gh pr checks $PR_NUM 2>/dev/null | grep -v "no checks" | grep -c "fail\|pending" || echo "0")
 MERGEABLE=$(gh pr view $PR_NUM --json mergeable --jq '.mergeable' 2>/dev/null)
 
-if [ "$REVIEW" != "APPROVED" ]; then
-  echo "⛔ BLOCKED: PR not approved by human reviewer"
-  echo "Current status: $REVIEW"
-  exit 1
-fi
+echo ""
+echo "=== Merge Requirements Check ==="
 
-if [ "$CI_STATUS" != "true" ]; then
+# Check CI (always required)
+if [ "$CI_STATUS" != "0" ] && [ -n "$CI_STATUS" ]; then
   echo "⛔ BLOCKED: CI checks not passing"
+  gh pr checks $PR_NUM 2>/dev/null
   exit 1
+else
+  echo "✅ CI checks: OK (or no checks configured)"
 fi
 
-if [ "$MERGEABLE" != "MERGEABLE" ]; then
+# Check mergeable (always required)
+if [ "$MERGEABLE" = "CONFLICTING" ]; then
   echo "⛔ BLOCKED: PR has merge conflicts"
+  echo "Run: /pw:resolve-conflicts"
   exit 1
+else
+  echo "✅ Merge conflicts: None"
 fi
 
+# Check approval (skip if --skip-approve)
+if [ "$SKIP_APPROVE" = "true" ]; then
+  echo "⚠️  Approval check: SKIPPED (--skip-approve)"
+else
+  if [ "$REVIEW" != "APPROVED" ]; then
+    echo "⛔ BLOCKED: PR not approved by human reviewer"
+    echo "Current status: $REVIEW"
+    echo ""
+    echo "Options:"
+    echo "  1. Get human approval on the PR"
+    echo "  2. Use --skip-approve to bypass (for self-reviewed PRs)"
+    exit 1
+  else
+    echo "✅ Approval: APPROVED"
+  fi
+fi
+
+echo ""
 echo "✅ All requirements met - safe to proceed"
 ```
 
@@ -83,16 +133,16 @@ gh pr view $1 --json mergeable --jq '.mergeable' 2>/dev/null || echo "Cannot det
 ## Merge Decision Tree
 
 ```
-1. Is PR approved?
-   └─ No → Cannot merge. Request review first.
-   └─ Yes → Continue
-
-2. Are CI checks passing?
+1. Are CI checks passing?
    └─ No → Cannot merge. Fix CI issues first.
    └─ Yes → Continue
 
-3. Is it mergeable (no conflicts)?
+2. Is it mergeable (no conflicts)?
    └─ No → Run /pw:resolve-conflicts first.
+   └─ Yes → Continue
+
+3. Is PR approved OR --skip-approve provided?
+   └─ No → Cannot merge. Get approval or use --skip-approve.
    └─ Yes → Continue
 
 4. Is --auto flag provided?

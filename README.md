@@ -65,11 +65,25 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 
 ## 使い方
 
-### 基本ワークフロー
+### ワークフロー
+
+このプラグインは2つのワークフローをサポートします：
+
+#### A. 並列実行ワークフロー（大規模タスク向け）
 
 ```
 仕様受領 → 設計 → タスク分解 → 並列実行 → レビュー → マージ → クリーンアップ
 ```
+
+複数のサブタスクに分解し、tmuxで並列実行する場合に使用します。
+
+#### B. Worktree Jobワークフロー（独立タスク向け）
+
+```
+Issue/タスク → worktree-job → (自律実装) → レビュー → マージ → クリーンアップ
+```
+
+独立したタスクを隔離された環境で自律的に実装する場合に使用します。
 
 ### コマンド一覧
 
@@ -79,13 +93,13 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 | `/pw:decompose` | タスクを分解 | 設計出力またはタスク説明 |
 | `/pw:orchestrate` | 並列ワーカーを起動 | ブランチ名のリスト |
 | `/pw:worker` | ワーカータスクを実行 | タスク説明 |
-| `/pw:worktree-job` | 独立worktreeで自律実装 | `#issue番号` / `"タスク説明"` |
+| `/pw:worktree-job` | 独立worktreeで自律実装 | `#issue番号` / `"タスク説明"` `[--feature\|--fix]` |
 | `/pw:cleanup-job` | worktree-job環境をクリーンアップ | `job名` / `--all` |
 | `/pw:status` | 進捗を確認 | (オプション) セッション名 |
 | `/pw:precheck` | PR作成前の事前チェック | ブランチ名または`HEAD` |
-| `/pw:review` | PRをレビュー | PR番号またはブランチ名 |
+| `/pw:review` | PRをレビュー（批判的） | PR番号 |
 | `/pw:fix` | レビュー指摘を修正 | フィードバック内容 |
-| `/pw:merge` | PRをマージ | PR番号 `[--auto]` |
+| `/pw:merge` | PRをマージ | PR番号 `[--auto]` `[--skip-approve]` |
 | `/pw:cleanup` | 環境をクリーンアップ | ブランチ名のリスト |
 | `/pw:resolve-conflicts` | コンフリクトを解消 | ブランチ名 |
 
@@ -132,34 +146,73 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 /pw:worker Fix the null pointer exception in src/auth/login.ts
 ```
 
-#### 4. 独立した自律タスク（worktree-job）
+#### 4. Worktree Jobワークフロー（推奨）
+
+独立したタスクを隔離環境で自律実装するワークフローです。
+
+##### パターンA: Issueから設計→実装
 
 ```bash
-# GitHub Issueを指定して自律実装
+# 1. Issueから設計を作成（要件を理解）
+/pw:design #123
+
+# 2. worktree-jobで自律実装開始
+#    - worktrees/issue-123/ にworktreeが作成される
+#    - feature/issue-123 ブランチで作業
+#    - PR作成まで自動で実行される
 /pw:worktree-job #123
 
-# フリーテキストでタスクを指定
+# 3. PRをレビュー（批判的レビューがデフォルト）
+/pw:review <PR番号>
+
+# 4. レビューOKならマージ
+#    --skip-approve: 人間のApprovalをスキップ（セルフレビュー用）
+#    --auto: 確認プロンプトをスキップ
+/pw:merge <PR番号> --skip-approve --auto
+
+# 5. クリーンアップ（worktree削除＆デフォルトブランチ最新化）
+/pw:cleanup-job issue-123
+```
+
+##### パターンB: 直接タスク指定で実装
+
+```bash
+# 1. フリーテキストで直接実装開始
+#    - worktrees/add-dark-mode-toggle/ にworktreeが作成される
+#    - feature/add-dark-mode-toggle ブランチで作業
 /pw:worktree-job "Add dark mode toggle to settings page"
 
-# 複数の独立タスクを同時に実行（別ターミナルで）
-/pw:worktree-job #456  # ターミナル1
-/pw:worktree-job #789  # ターミナル2
+# バグ修正の場合は --fix を指定
+/pw:worktree-job "Fix null pointer in auth module" --fix
+# -> fix/fix-null-pointer-in-auth-module ブランチが作成される
+
+# 2. レビュー → マージ → クリーンアップ
+/pw:review <PR番号>
+/pw:merge <PR番号> --skip-approve --auto
+/pw:cleanup-job add-dark-mode-toggle
 ```
 
-**特徴:**
-- `worktrees/` 以下に独立したworktreeを自動作成
-- 親ディレクトリ・mainブランチを絶対に変更しない
-- PR作成まで承認なしで自律的に作業
-- 複数の独立タスクを同時並行で実行可能
+##### 複数タスクの同時実行
 
-**クリーンアップ（PRマージ後）:**
 ```bash
-# 特定のjobをクリーンアップ
-/pw:cleanup-job issue-123
+# 別々のターミナルで同時実行可能
+Terminal 1: /pw:worktree-job #100
+Terminal 2: /pw:worktree-job #200
+Terminal 3: /pw:worktree-job "Refactor utils"
 
-# マージ済みの全jobをクリーンアップ
+# 全てマージ後にまとめてクリーンアップ
 /pw:cleanup-job --all
 ```
+
+##### Worktree Jobの特徴
+
+| 特徴 | 説明 |
+|------|------|
+| **隔離環境** | `worktrees/` 以下に独立したworktreeを作成 |
+| **安全性** | 親ディレクトリ・mainブランチを絶対に変更しない |
+| **自律実行** | PR作成まで承認なしで自動実行 |
+| **並行実行** | 複数タスクを同時に実行可能 |
+| **ブランチ命名** | `--feature`(デフォルト) または `--fix` で接頭辞を指定 |
 
 **注意**: PRがマージされる前にworktreeを削除することは禁止されています。`cleanup-job`はマージ済みのブランチのみ削除します。
 
