@@ -145,8 +145,15 @@ else
   BRANCH_NAME="${BRANCH_PREFIX}/${JOB_NAME}"
 fi
 
+# Store task description for commit/PR (clean version without flags)
+TASK_DESCRIPTION="$INPUT_ARGS"
+if [ -n "$ISSUE_NUM" ]; then
+  TASK_DESCRIPTION="Issue #${ISSUE_NUM}"
+fi
+
 echo "Job name: $JOB_NAME"
 echo "Branch: $BRANCH_NAME"
+echo "Task: $TASK_DESCRIPTION"
 
 # Check if branch already exists - ERROR if it does
 if git show-ref --verify --quiet "refs/heads/$BRANCH_NAME" 2>/dev/null; then
@@ -235,6 +242,7 @@ echo "  WORKTREE_PATH=$WORKTREE_PATH"
 echo "  BRANCH_NAME=$BRANCH_NAME"
 echo "  BASE_BRANCH=$BASE_BRANCH"
 echo "  JOB_NAME=$JOB_NAME"
+echo "  TASK_DESCRIPTION=$TASK_DESCRIPTION"
 ```
 
 ---
@@ -244,7 +252,12 @@ echo "  JOB_NAME=$JOB_NAME"
 ### Fetch Issue Details (if applicable)
 
 ```bash
-cd "$WORKTREE_PATH" 2>/dev/null || cd worktrees/*/
+if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
+  echo "ERROR: WORKTREE_PATH not set or directory does not exist"
+  echo "This script must be run after Phase 1 setup"
+  exit 1
+fi
+cd "$WORKTREE_PATH"
 
 ISSUE_NUM=$(echo "$ARGUMENTS" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
 
@@ -257,7 +270,12 @@ fi
 ### Read Project Configuration
 
 ```bash
-cd "$WORKTREE_PATH" 2>/dev/null || cd worktrees/*/
+if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
+  echo "ERROR: WORKTREE_PATH not set or directory does not exist"
+  echo "This script must be run after Phase 1 setup"
+  exit 1
+fi
+cd "$WORKTREE_PATH"
 
 echo "=== Project Configuration ==="
 if [ -f "CLAUDE.md" ]; then
@@ -328,7 +346,12 @@ Before EVERY file write or edit, verify:
 ### Run Project Checks
 
 ```bash
-cd "$WORKTREE_PATH" 2>/dev/null || cd worktrees/*/
+if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
+  echo "ERROR: WORKTREE_PATH not set or directory does not exist"
+  echo "This script must be run after Phase 1 setup"
+  exit 1
+fi
+cd "$WORKTREE_PATH"
 
 echo "=== Running Verification ==="
 
@@ -378,7 +401,12 @@ fi
 ### Run Tests
 
 ```bash
-cd "$WORKTREE_PATH" 2>/dev/null || cd worktrees/*/
+if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
+  echo "ERROR: WORKTREE_PATH not set or directory does not exist"
+  echo "This script must be run after Phase 1 setup"
+  exit 1
+fi
+cd "$WORKTREE_PATH"
 
 echo "=== Running Tests ==="
 
@@ -412,7 +440,12 @@ If checks or tests fail:
 ### Final Safety Verification and Commit
 
 ```bash
-cd "$WORKTREE_PATH" 2>/dev/null || cd worktrees/*/
+if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
+  echo "ERROR: WORKTREE_PATH not set or directory does not exist"
+  echo "This script must be run after Phase 1 setup"
+  exit 1
+fi
+cd "$WORKTREE_PATH"
 
 echo "=== Final Safety Check ==="
 
@@ -446,7 +479,10 @@ git add .
 if git diff --cached --quiet; then
   echo "No changes to commit"
 else
-  git commit -m "feat: implement task
+  # Generate commit message from task description
+  COMMIT_TITLE="${BRANCH_PREFIX}: ${TASK_DESCRIPTION}"
+
+  git commit -m "${COMMIT_TITLE}
 
 Automated implementation by worktree-job
 
@@ -454,7 +490,7 @@ Automated implementation by worktree-job
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 
-  echo "Commit created"
+  echo "Commit created: ${COMMIT_TITLE}"
 fi
 
 echo ""
@@ -470,7 +506,12 @@ echo "Branch pushed successfully"
 ## Phase 6: Create Pull Request
 
 ```bash
-cd "$WORKTREE_PATH" 2>/dev/null || cd worktrees/*/
+if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
+  echo "ERROR: WORKTREE_PATH not set or directory does not exist"
+  echo "This script must be run after Phase 1 setup"
+  exit 1
+fi
+cd "$WORKTREE_PATH"
 
 ISSUE_NUM=$(echo "$ARGUMENTS" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
 
@@ -479,9 +520,15 @@ if [ -n "$ISSUE_NUM" ]; then
   CLOSES_LINE="Closes #${ISSUE_NUM}"
 fi
 
-echo "=== Creating Pull Request ==="
+# Generate PR title from task description
+PR_TITLE="${BRANCH_PREFIX}: ${TASK_DESCRIPTION}"
 
-gh pr create --title "feat: implement task" --body "## Summary
+echo "=== Creating Pull Request ==="
+echo "Title: ${PR_TITLE}"
+
+gh pr create --title "${PR_TITLE}" --body "## Summary
+
+${TASK_DESCRIPTION}
 
 Automated implementation by worktree-job.
 

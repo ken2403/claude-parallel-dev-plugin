@@ -142,7 +142,7 @@ gh pr view $1 --json mergeable --jq '.mergeable' 2>/dev/null || echo "Cannot det
 
 ```bash
 echo "=== Executing Merge ==="
-gh pr merge $PR_NUM --squash --delete-branch
+gh pr merge $PR_NUM --merge --delete-branch
 
 if [ $? -eq 0 ]; then
   echo "✅ PR merged successfully"

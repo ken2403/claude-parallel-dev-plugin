@@ -83,8 +83,8 @@ if [ ! -d "$WORKTREES_DIR" ]; then
   exit 0
 fi
 
-# Parse arguments
-INPUT_ARG="$1"
+# Parse arguments from $ARGUMENTS
+INPUT_ARG=$(echo "$ARGUMENTS" | awk '{print $1}')
 CLEANUP_ALL=false
 
 if [ "$INPUT_ARG" = "--all" ]; then
@@ -351,7 +351,7 @@ git branch -D <branch-name>
 
 ### Branch shows as unmerged but PR is merged
 
-This can happen if the PR was squash-merged. In this case:
+Verify the PR state and force delete if needed:
 
 ```bash
 # Verify PR is merged on GitHub
