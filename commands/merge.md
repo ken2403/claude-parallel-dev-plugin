@@ -1,6 +1,6 @@
 ---
 allowed-tools: Bash
-argument-hint: [PR number] [--auto] [--skip-approve]
+argument-hint: [PR number] [--skip]
 description: Merge a reviewed PR after verification
 model: opus
 ---
@@ -14,30 +14,22 @@ $ARGUMENTS
 
 | Option | Description |
 |--------|-------------|
-| `--auto` | Auto-merge without confirmation prompt |
-| `--skip-approve` | Skip human approval check (use for self-reviewed PRs) |
+| `--skip` | Skip human approval check (use for self-reviewed PRs) |
 
 ## Parse Options
 
 ```bash
 ARGS="$ARGUMENTS"
 SKIP_APPROVE=false
-AUTO_MERGE=false
 
-if echo "$ARGS" | grep -q "\-\-skip-approve"; then
+if echo "$ARGS" | grep -q "\-\-skip"; then
   SKIP_APPROVE=true
-  ARGS=$(echo "$ARGS" | sed 's/--skip-approve//g')
-fi
-
-if echo "$ARGS" | grep -q "\-\-auto"; then
-  AUTO_MERGE=true
-  ARGS=$(echo "$ARGS" | sed 's/--auto//g')
+  ARGS=$(echo "$ARGS" | sed 's/--skip//g')
 fi
 
 PR_NUM=$(echo "$ARGS" | tr -d ' ')
 
 echo "PR Number: $PR_NUM"
-echo "Auto Merge: $AUTO_MERGE"
 echo "Skip Approve: $SKIP_APPROVE"
 ```
 
@@ -46,9 +38,9 @@ echo "Skip Approve: $SKIP_APPROVE"
 ### Default Requirements
 1. **CI Checks Must Pass**: ALL CI checks MUST be passing (green)
 2. **No Merge Conflicts**: PR MUST be mergeable without conflicts
-3. **Human Approval Required**: PR MUST have approval (unless `--skip-approve`)
+3. **Human Approval Required**: PR MUST have approval (unless `--skip`)
 
-### With --skip-approve
+### With --skip
 - Skips the human approval check
 - Useful for solo development or self-reviewed PRs
 - CI checks and merge conflict checks still apply
@@ -80,9 +72,9 @@ else
   echo "✅ Merge conflicts: None"
 fi
 
-# Check approval (skip if --skip-approve)
+# Check approval (skip if --skip)
 if [ "$SKIP_APPROVE" = "true" ]; then
-  echo "⚠️  Approval check: SKIPPED (--skip-approve)"
+  echo "⚠️  Approval check: SKIPPED (--skip)"
 else
   if [ "$REVIEW" != "APPROVED" ]; then
     echo "⛔ BLOCKED: PR not approved by human reviewer"
@@ -90,7 +82,7 @@ else
     echo ""
     echo "Options:"
     echo "  1. Get human approval on the PR"
-    echo "  2. Use --skip-approve to bypass (for self-reviewed PRs)"
+    echo "  2. Use --skip to bypass (for self-reviewed PRs)"
     exit 1
   else
     echo "✅ Approval: APPROVED"
@@ -141,35 +133,23 @@ gh pr view $1 --json mergeable --jq '.mergeable' 2>/dev/null || echo "Cannot det
    └─ No → Run /pw:resolve-conflicts first.
    └─ Yes → Continue
 
-3. Is PR approved OR --skip-approve provided?
-   └─ No → Cannot merge. Get approval or use --skip-approve.
-   └─ Yes → Continue
-
-4. Is --auto flag provided?
-   └─ No → Show confirmation message
+3. Is PR approved OR --skip provided?
+   └─ No → Cannot merge. Get approval or use --skip.
    └─ Yes → Proceed with merge
 ```
 
 ## Merge Execution
 
-### Without --auto (default)
-```markdown
-⚠️ **Merge Confirmation Required**
-
-PR #[number]: [title]
-Branch: [branch] → [base branch]
-
-Please confirm by running one of:
-- `gh pr merge [number] --squash` (squash and merge)
-- `gh pr merge [number] --merge` (merge commit)
-- `gh pr merge [number] --rebase` (rebase and merge)
-
-Or use `/pw:merge [number] --auto` to auto-merge.
-```
-
-### With --auto flag
 ```bash
-gh pr merge $1 --squash --delete-branch
+echo "=== Executing Merge ==="
+gh pr merge $PR_NUM --squash --delete-branch
+
+if [ $? -eq 0 ]; then
+  echo "✅ PR merged successfully"
+else
+  echo "❌ Merge failed"
+  exit 1
+fi
 ```
 
 ## Post-merge
