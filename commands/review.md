@@ -1,14 +1,46 @@
 ---
 allowed-tools: Read, Bash, Grep, Glob
-argument-hint: [PR number or branch name]
-description: Review a pull request for quality, security, and correctness
+argument-hint: [PR number] [--lenient]
+description: Review a pull request critically for quality, security, and correctness
 model: opus
 ---
 
-# PR Review
+# PR Review (Critical by Default)
 
 ## Target
 $ARGUMENTS
+
+## Review Mode
+
+**DEFAULT: CRITICAL REVIEW MODE**
+
+All reviews are conducted with adversarial thinking by default.
+Use `--lenient` flag for a lighter review (not recommended).
+
+```bash
+ARGS="$ARGUMENTS"
+LENIENT_MODE=false
+
+if echo "$ARGS" | grep -q "\-\-lenient"; then
+  LENIENT_MODE=true
+  echo "*** LENIENT REVIEW MODE ***"
+  echo "(Not recommended - use critical review for better code quality)"
+else
+  echo "*** CRITICAL REVIEW MODE (DEFAULT) ***"
+  echo ""
+  echo "This review will be thorough and critical:"
+  echo "  - Assume nothing is correct until verified"
+  echo "  - Look for hidden bugs, edge cases, and design flaws"
+  echo "  - Question every design decision"
+  echo "  - Check for security vulnerabilities aggressively"
+  echo "  - Verify consistency with existing codebase"
+  echo ""
+fi
+
+# Extract PR number (remove flags)
+PR_NUM=$(echo "$ARGS" | sed 's/--lenient//g; s/--critical//g' | tr -d ' ')
+echo "PR Number: $PR_NUM"
+```
 
 ## PR Information
 ```bash
@@ -90,6 +122,57 @@ Refer to the skill definitions for detailed checklists.
 4. **Check CI status** - All checks passing?
 5. **Provide feedback** - Be specific and constructive
 
+---
+
+## Critical Review Guidelines (Applied by Default)
+
+Apply **adversarial thinking** to every review:
+
+### Mindset
+- **Assume bugs exist** - Your job is to find them
+- **Question everything** - Why was this approach chosen? Are there better alternatives?
+- **Think like an attacker** - How could this code be exploited?
+- **Consider edge cases** - What happens with null, empty, negative, huge, or malformed inputs?
+- **Check for regressions** - Does this break existing functionality?
+
+### Additional Critical Checks
+
+#### Design & Architecture
+- [ ] Is this the right abstraction level?
+- [ ] Does this introduce unnecessary coupling?
+- [ ] Will this scale? What happens with 10x, 100x load?
+- [ ] Is there a simpler solution?
+- [ ] Does this follow SOLID principles?
+
+#### Hidden Bugs
+- [ ] Race conditions in concurrent code?
+- [ ] Memory leaks or resource leaks?
+- [ ] Off-by-one errors?
+- [ ] Integer overflow/underflow?
+- [ ] Null pointer dereferences?
+- [ ] Unhandled exceptions that could crash the system?
+
+#### Edge Cases
+- [ ] Empty collections/strings
+- [ ] Single element collections
+- [ ] Maximum/minimum values
+- [ ] Unicode and special characters
+- [ ] Timezone issues
+- [ ] Daylight saving time transitions
+
+#### Security (Aggressive)
+- [ ] Can user input reach this code path?
+- [ ] Is there any way to bypass validation?
+- [ ] Could timing attacks leak information?
+- [ ] Are error messages leaking sensitive data?
+- [ ] Is logging capturing sensitive information?
+
+#### Consistency Issues
+- [ ] Does this contradict existing patterns?
+- [ ] Are there similar implementations elsewhere that differ?
+- [ ] Will this confuse future developers?
+- [ ] Is the naming consistent with the rest of the codebase?
+
 ## Output Format
 
 ```markdown
@@ -100,25 +183,48 @@ Refer to the skill definitions for detailed checklists.
 
 ## Status: ✅ Approved | ⚠️ Changes Requested | ❌ Rejected
 
-## Findings
+## Critical Findings
 
-### Critical Issues (Must Fix)
-- [ ] [Issue description with file:line reference]
+### Design Issues
+| Issue | Severity | Location | Recommendation |
+|-------|----------|----------|----------------|
+| [Issue] | High/Medium/Low | file:line | [Fix] |
 
-### Suggestions (Nice to Have)
-- [ ] [Suggestion with reasoning]
+### Potential Bugs
+| Bug | Impact | Location | Evidence |
+|-----|--------|----------|----------|
+| [Bug] | [Impact] | file:line | [Why this is a bug] |
 
-### Questions
-- [Question about implementation choice]
+### Security Concerns
+| Concern | Risk Level | Attack Vector | Mitigation |
+|---------|------------|---------------|------------|
+| [Concern] | Critical/High/Medium | [How to exploit] | [Fix] |
+
+### Consistency Problems
+- [ ] [Problem with file:line reference]
+
+### Questions for Author
+1. Why did you choose [X] instead of [Y]?
+2. What happens when [edge case]?
+3. Have you considered [alternative approach]?
 
 ### Positive Notes
-- [What was done well]
+- [What was done well - be specific]
 
-## Recommendation
-[Approve / Request changes / Need discussion]
+## Verdict
+[Detailed explanation of decision]
+
+## Required Changes (Must Fix)
+1. [ ] [Change 1 - file:line]
+2. [ ] [Change 2 - file:line]
+
+## Recommended Changes (Should Fix)
+1. [ ] [Change 1]
+2. [ ] [Change 2]
 
 ## Next Steps
 - [What should happen after this review]
+- If changes requested: Fix issues and run `/pw:review [pr]` again
 ```
 
 ## Actions
