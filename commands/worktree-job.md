@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob
-argument-hint: [#issue-number or "task description"]
+argument-hint: [#issue-number or "task description"] [--feature|--fix]
 description: Create isolated worktree and autonomously implement task until PR creation
 model: opus
 ---
@@ -114,24 +114,51 @@ git fetch origin "$BASE_BRANCH" --quiet 2>/dev/null || true
 echo ""
 echo "--- Job Configuration ---"
 
-TIMESTAMP=$(date +%Y%m%d-%H%M%S-%N | cut -c1-20)
 INPUT_ARGS="$ARGUMENTS"
+
+# Detect branch prefix (--feature or --fix)
+BRANCH_PREFIX="feature"
+if echo "$INPUT_ARGS" | grep -q "\-\-fix"; then
+  BRANCH_PREFIX="fix"
+  INPUT_ARGS=$(echo "$INPUT_ARGS" | sed 's/--fix//g')
+fi
+if echo "$INPUT_ARGS" | grep -q "\-\-feature"; then
+  BRANCH_PREFIX="feature"
+  INPUT_ARGS=$(echo "$INPUT_ARGS" | sed 's/--feature//g')
+fi
+
+# Trim whitespace
+INPUT_ARGS=$(echo "$INPUT_ARGS" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+echo "Branch prefix: $BRANCH_PREFIX"
 
 # Extract issue number if present
 ISSUE_NUM=$(echo "$INPUT_ARGS" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
 
 if [ -n "$ISSUE_NUM" ]; then
   JOB_NAME="issue-${ISSUE_NUM}"
-  BRANCH_NAME="feature/issue-${ISSUE_NUM}"
+  BRANCH_NAME="${BRANCH_PREFIX}/issue-${ISSUE_NUM}"
 else
-  # Generate from description (kebab-case, max 30 chars)
-  JOB_NAME=$(echo "$INPUT_ARGS" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | cut -c1-30 | sed 's/^-//;s/-$//')
-  JOB_NAME="${JOB_NAME:-job}-${TIMESTAMP}"
-  BRANCH_NAME="feature/${JOB_NAME}"
+  # Generate from description (kebab-case, max 40 chars)
+  JOB_NAME=$(echo "$INPUT_ARGS" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | cut -c1-40 | sed 's/^-//;s/-$//')
+  JOB_NAME="${JOB_NAME:-job}"
+  BRANCH_NAME="${BRANCH_PREFIX}/${JOB_NAME}"
 fi
 
 echo "Job name: $JOB_NAME"
 echo "Branch: $BRANCH_NAME"
+
+# Check if branch already exists - ERROR if it does
+if git show-ref --verify --quiet "refs/heads/$BRANCH_NAME" 2>/dev/null; then
+  echo ""
+  echo "ERROR: Branch '$BRANCH_NAME' already exists!"
+  echo ""
+  echo "Options:"
+  echo "  1. Use a different task description"
+  echo "  2. Delete the existing branch: git branch -D $BRANCH_NAME"
+  echo "  3. Clean up existing worktree: /pw:cleanup-job $JOB_NAME"
+  exit 1
+fi
 
 # ============================================
 # 4. Create Worktree
@@ -146,23 +173,24 @@ WORKTREE_PATH="${WORKTREES_DIR}/${JOB_NAME}"
 
 echo "Worktree path: $WORKTREE_PATH"
 
-# Handle existing worktree or branch
+# Check if worktree already exists
 if [ -d "$WORKTREE_PATH" ]; then
-  echo "Worktree already exists at $WORKTREE_PATH"
-  echo "Using existing worktree"
-elif git show-ref --verify --quiet "refs/heads/$BRANCH_NAME" 2>/dev/null; then
-  # Branch exists but worktree doesn't - reuse branch
-  echo "Branch $BRANCH_NAME exists, creating worktree for it"
-  git worktree add "$WORKTREE_PATH" "$BRANCH_NAME"
+  echo ""
+  echo "ERROR: Worktree already exists at $WORKTREE_PATH"
+  echo ""
+  echo "Options:"
+  echo "  1. Use a different task description"
+  echo "  2. Clean up existing worktree: /pw:cleanup-job $JOB_NAME"
+  exit 1
+fi
+
+# Create new branch and worktree
+echo "Creating new branch and worktree..."
+if git worktree add -b "$BRANCH_NAME" "$WORKTREE_PATH" "origin/${BASE_BRANCH}" 2>/dev/null; then
+  echo "Created from origin/${BASE_BRANCH}"
 else
-  # Fresh start - create new branch and worktree
-  echo "Creating new branch and worktree"
-  if git worktree add -b "$BRANCH_NAME" "$WORKTREE_PATH" "origin/${BASE_BRANCH}" 2>/dev/null; then
-    echo "Created from origin/${BASE_BRANCH}"
-  else
-    git worktree add -b "$BRANCH_NAME" "$WORKTREE_PATH" "${BASE_BRANCH}"
-    echo "Created from ${BASE_BRANCH}"
-  fi
+  git worktree add -b "$BRANCH_NAME" "$WORKTREE_PATH" "${BASE_BRANCH}"
+  echo "Created from ${BASE_BRANCH}"
 fi
 
 # ============================================
