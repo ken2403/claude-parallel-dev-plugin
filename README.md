@@ -79,6 +79,7 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 | `/pw:decompose` | タスクを分解 | 設計出力またはタスク説明 |
 | `/pw:orchestrate` | 並列ワーカーを起動 | ブランチ名のリスト |
 | `/pw:worker` | ワーカータスクを実行 | タスク説明 |
+| `/pw:worktree-job` | 独立worktreeで自律実装 | `#issue番号` / `"タスク説明"` |
 | `/pw:status` | 進捗を確認 | (オプション) セッション名 |
 | `/pw:precheck` | PR作成前の事前チェック | ブランチ名または`HEAD` |
 | `/pw:review` | PRをレビュー | PR番号またはブランチ名 |
@@ -129,6 +130,26 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 # 小規模なタスクはworkerコマンドを直接使用
 /pw:worker Fix the null pointer exception in src/auth/login.ts
 ```
+
+#### 4. 独立した自律タスク（worktree-job）
+
+```bash
+# GitHub Issueを指定して自律実装
+/pw:worktree-job #123
+
+# フリーテキストでタスクを指定
+/pw:worktree-job "Add dark mode toggle to settings page"
+
+# 複数の独立タスクを同時に実行（別ターミナルで）
+/pw:worktree-job #456  # ターミナル1
+/pw:worktree-job #789  # ターミナル2
+```
+
+**特徴:**
+- `worktrees/` 以下に独立したworktreeを自動作成
+- 親ディレクトリ・mainブランチを絶対に変更しない
+- PR作成まで承認なしで自律的に作業
+- 複数の独立タスクを同時並行で実行可能
 
 ## 依存関係
 
@@ -231,6 +252,7 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 | `/pw:decompose` | `explorer` | - |
 | `/pw:orchestrate` | - | `status-monitor` (バックグラウンド) |
 | `/pw:worker` | `explorer` | `analyzer` |
+| `/pw:worktree-job` | `explorer` | `analyzer` |
 | `/pw:status` | - | - |
 | `/pw:precheck` | `explorer` | `analyzer` |
 | `/pw:review` | - | `explorer`, `analyzer` |
@@ -244,6 +266,7 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 | コマンド | 適用スキル |
 |----------|------------|
 | `/pw:worker` | `code-quality`, `security-review` |
+| `/pw:worktree-job` | `code-quality`, `security-review` |
 | `/pw:precheck` | `code-quality`, `security-review` |
 | `/pw:review` | `code-quality`, `security-review` |
 | `/pw:fix` | `code-quality` |
@@ -376,6 +399,7 @@ GIT_REPO=/workspace/my-project ./scripts/spinup.sh feature/auth
 │   ├── decompose.md
 │   ├── orchestrate.md
 │   ├── worker.md
+│   ├── worktree-job.md      # 独立worktreeで自律実装
 │   ├── status.md
 │   ├── precheck.md
 │   ├── review.md
