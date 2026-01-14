@@ -80,6 +80,7 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 | `/pw:orchestrate` | 並列ワーカーを起動 | ブランチ名のリスト |
 | `/pw:worker` | ワーカータスクを実行 | タスク説明 |
 | `/pw:status` | 進捗を確認 | (オプション) セッション名 |
+| `/pw:precheck` | PR作成前の事前チェック | ブランチ名または`HEAD` |
 | `/pw:review` | PRをレビュー | PR番号またはブランチ名 |
 | `/pw:fix` | レビュー指摘を修正 | フィードバック内容 |
 | `/pw:merge` | PRをマージ | PR番号 `[--auto]` |
@@ -231,6 +232,7 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 | `/pw:orchestrate` | - | `status-monitor` (バックグラウンド) |
 | `/pw:worker` | `explorer` | `analyzer` |
 | `/pw:status` | - | - |
+| `/pw:precheck` | `explorer` | `analyzer` |
 | `/pw:review` | - | `explorer`, `analyzer` |
 | `/pw:fix` | `explorer` | - |
 | `/pw:merge` | - | - |
@@ -242,6 +244,7 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 | コマンド | 適用スキル |
 |----------|------------|
 | `/pw:worker` | `code-quality`, `security-review` |
+| `/pw:precheck` | `code-quality`, `security-review` |
 | `/pw:review` | `code-quality`, `security-review` |
 | `/pw:fix` | `code-quality` |
 
@@ -374,6 +377,7 @@ GIT_REPO=/workspace/my-project ./scripts/spinup.sh feature/auth
 │   ├── orchestrate.md
 │   ├── worker.md
 │   ├── status.md
+│   ├── precheck.md
 │   ├── review.md
 │   ├── fix.md
 │   ├── merge.md
