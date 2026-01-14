@@ -1,44 +1,33 @@
 ---
 allowed-tools: Read, Bash, Grep, Glob
-argument-hint: [PR number] [--lenient]
+argument-hint: [PR number]
 description: Review a pull request critically for quality, security, and correctness
 model: opus
 ---
 
-# PR Review (Critical by Default)
+# PR Review (Critical)
 
 ## Target
 $ARGUMENTS
 
 ## Review Mode
 
-**DEFAULT: CRITICAL REVIEW MODE**
+**CRITICAL REVIEW MODE**
 
-All reviews are conducted with adversarial thinking by default.
-Use `--lenient` flag for a lighter review (not recommended).
+All reviews are conducted with adversarial thinking.
 
 ```bash
-ARGS="$ARGUMENTS"
-LENIENT_MODE=false
+echo "*** CRITICAL REVIEW MODE ***"
+echo ""
+echo "This review will be thorough and critical:"
+echo "  - Assume nothing is correct until verified"
+echo "  - Look for hidden bugs, edge cases, and design flaws"
+echo "  - Question every design decision"
+echo "  - Check for security vulnerabilities aggressively"
+echo "  - Verify consistency with existing codebase"
+echo ""
 
-if echo "$ARGS" | grep -q "\-\-lenient"; then
-  LENIENT_MODE=true
-  echo "*** LENIENT REVIEW MODE ***"
-  echo "(Not recommended - use critical review for better code quality)"
-else
-  echo "*** CRITICAL REVIEW MODE (DEFAULT) ***"
-  echo ""
-  echo "This review will be thorough and critical:"
-  echo "  - Assume nothing is correct until verified"
-  echo "  - Look for hidden bugs, edge cases, and design flaws"
-  echo "  - Question every design decision"
-  echo "  - Check for security vulnerabilities aggressively"
-  echo "  - Verify consistency with existing codebase"
-  echo ""
-fi
-
-# Extract PR number (remove flags)
-PR_NUM=$(echo "$ARGS" | sed 's/--lenient//g; s/--critical//g' | tr -d ' ')
+PR_NUM=$(echo "$ARGUMENTS" | tr -d ' ')
 echo "PR Number: $PR_NUM"
 ```
 

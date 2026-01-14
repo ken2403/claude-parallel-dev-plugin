@@ -255,11 +255,35 @@ if [ -d "$WORKTREES_DIR" ] && [ -z "$(ls -A "$WORKTREES_DIR")" ]; then
   echo "Removed empty worktrees directory"
 fi
 
+# Update default branch to latest
+if [ ${#CLEANED_JOBS[@]} -gt 0 ]; then
+  echo ""
+  echo "=== Updating Default Branch ==="
+
+  # Switch to default branch
+  CURRENT_BRANCH=$(git branch --show-current)
+  if [ "$CURRENT_BRANCH" != "$BASE_BRANCH" ]; then
+    git checkout "$BASE_BRANCH" 2>/dev/null || true
+  fi
+
+  # Pull latest changes
+  echo "Pulling latest $BASE_BRANCH..."
+  if git pull origin "$BASE_BRANCH" --ff-only 2>/dev/null; then
+    echo "Default branch updated successfully"
+  else
+    echo "Could not fast-forward, trying rebase..."
+    git pull origin "$BASE_BRANCH" --rebase 2>/dev/null || echo "Manual update may be needed"
+  fi
+fi
+
 echo ""
 echo "=== Cleanup Complete ==="
 echo "Cleaned: ${#CLEANED_JOBS[@]}"
 echo "Failed: ${#FAILED_JOBS[@]}"
 echo "Blocked (unmerged): ${#UNMERGED_JOBS[@]}"
+if [ ${#CLEANED_JOBS[@]} -gt 0 ]; then
+  echo "Default branch: $BASE_BRANCH (updated)"
+fi
 ```
 
 ---
