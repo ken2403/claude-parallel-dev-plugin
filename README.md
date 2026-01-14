@@ -80,6 +80,7 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 | `/pw:orchestrate` | 並列ワーカーを起動 | ブランチ名のリスト |
 | `/pw:worker` | ワーカータスクを実行 | タスク説明 |
 | `/pw:worktree-job` | 独立worktreeで自律実装 | `#issue番号` / `"タスク説明"` |
+| `/pw:cleanup-job` | worktree-job環境をクリーンアップ | `job名` / `--all` |
 | `/pw:status` | 進捗を確認 | (オプション) セッション名 |
 | `/pw:precheck` | PR作成前の事前チェック | ブランチ名または`HEAD` |
 | `/pw:review` | PRをレビュー | PR番号またはブランチ名 |
@@ -150,6 +151,17 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 - 親ディレクトリ・mainブランチを絶対に変更しない
 - PR作成まで承認なしで自律的に作業
 - 複数の独立タスクを同時並行で実行可能
+
+**クリーンアップ（PRマージ後）:**
+```bash
+# 特定のjobをクリーンアップ
+/pw:cleanup-job issue-123
+
+# マージ済みの全jobをクリーンアップ
+/pw:cleanup-job --all
+```
+
+**注意**: PRがマージされる前にworktreeを削除することは禁止されています。`cleanup-job`はマージ済みのブランチのみ削除します。
 
 ## 依存関係
 
@@ -253,6 +265,7 @@ cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.m
 | `/pw:orchestrate` | - | `status-monitor` (バックグラウンド) |
 | `/pw:worker` | `explorer` | `analyzer` |
 | `/pw:worktree-job` | `explorer` | `analyzer` |
+| `/pw:cleanup-job` | - | - |
 | `/pw:status` | - | - |
 | `/pw:precheck` | `explorer` | `analyzer` |
 | `/pw:review` | - | `explorer`, `analyzer` |
@@ -400,6 +413,7 @@ GIT_REPO=/workspace/my-project ./scripts/spinup.sh feature/auth
 │   ├── orchestrate.md
 │   ├── worker.md
 │   ├── worktree-job.md      # 独立worktreeで自律実装
+│   ├── cleanup-job.md       # worktree-job環境クリーンアップ
 │   ├── status.md
 │   ├── precheck.md
 │   ├── review.md
