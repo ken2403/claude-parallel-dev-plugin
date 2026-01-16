@@ -1,13 +1,13 @@
 ---
 allowed-tools: Bash
 argument-hint: [job-name or --all]
-description: Clean up worktree-job environments after PRs are merged
+description: Clean up wtj environments after PRs are merged
 model: haiku
 ---
 
 # Cleanup Worktree Job
 
-Clean up worktree environments created by `/pw:worktree-job`.
+Clean up worktree environments created by `/pw:wtj`.
 
 ## Input
 $ARGUMENTS
@@ -145,8 +145,8 @@ for job_dir in "$WORKTREES_DIR"/*/; do
   branch_name=""
 
   # Method 1: Read from metadata file (most reliable)
-  if [ -f "$job_dir/.worktree-job-meta" ]; then
-    branch_name=$(grep "^BRANCH_NAME=" "$job_dir/.worktree-job-meta" | cut -d'"' -f2)
+  if [ -f "$job_dir/.wtj-meta" ]; then
+    branch_name=$(grep "^BRANCH_NAME=" "$job_dir/.wtj-meta" | cut -d'"' -f2)
   fi
 
   # Method 2: Get from git worktree directly
@@ -338,7 +338,7 @@ fi
 # Clean up a specific job
 /pw:cleanup-job issue-123
 
-# Clean up all merged worktree-jobs
+# Clean up all merged wtj
 /pw:cleanup-job --all
 
 # Check status without cleaning (just run the scan part)
