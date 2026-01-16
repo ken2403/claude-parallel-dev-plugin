@@ -5,7 +5,7 @@ description: Create isolated worktree and autonomously implement task until PR c
 model: opus
 ---
 
-# Worktree Job - Autonomous Isolated Development
+# Worktree Job (wtj) - Autonomous Isolated Development
 
 Execute a development task in a completely isolated git worktree environment.
 **This command runs autonomously until PR creation without requiring user approval.**
@@ -243,7 +243,7 @@ fi
 # 6. Save Metadata for Other Phases
 # ============================================
 # Each bash block runs in a separate process, so we save variables to a file
-cat > "$WORKTREE_PATH/.worktree-job-meta" << EOF
+cat > "$WORKTREE_PATH/.wtj-meta" << EOF
 WORKTREE_PATH="$WORKTREE_PATH"
 BRANCH_NAME="$BRANCH_NAME"
 BRANCH_PREFIX="$BRANCH_PREFIX"
@@ -262,7 +262,7 @@ echo "  - Never modify files outside this directory"
 echo "  - Never switch to $BASE_BRANCH"
 echo "  - Cleanup after merge: /pw:cleanup-job $JOB_NAME"
 echo ""
-echo "Environment variables saved to .worktree-job-meta:"
+echo "Environment variables saved to .wtj-meta:"
 echo "  WORKTREE_PATH=$WORKTREE_PATH"
 echo "  BRANCH_NAME=$BRANCH_NAME"
 echo "  BRANCH_PREFIX=$BRANCH_PREFIX"
@@ -280,8 +280,8 @@ echo "  TASK_DESCRIPTION=$TASK_DESCRIPTION"
 ```bash
 # Load metadata from Phase 1
 if [ -z "$WORKTREE_PATH" ]; then
-  # Try to find worktree-job-meta in any worktree
-  for meta in worktrees/*/.worktree-job-meta; do
+  # Try to find wtj-meta in any worktree
+  for meta in worktrees/*/.wtj-meta; do
     if [ -f "$meta" ]; then
       source "$meta"
       break
@@ -296,7 +296,7 @@ if [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ]; then
 fi
 
 # Source metadata file for all variables
-source "$WORKTREE_PATH/.worktree-job-meta"
+source "$WORKTREE_PATH/.wtj-meta"
 cd "$WORKTREE_PATH"
 
 if [ -n "$ISSUE_NUM" ]; then
@@ -310,12 +310,12 @@ fi
 ```bash
 # Load metadata from Phase 1
 if [ -z "$WORKTREE_PATH" ]; then
-  for meta in worktrees/*/.worktree-job-meta; do
+  for meta in worktrees/*/.wtj-meta; do
     [ -f "$meta" ] && source "$meta" && break
   done
 fi
 [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
-source "$WORKTREE_PATH/.worktree-job-meta"
+source "$WORKTREE_PATH/.wtj-meta"
 cd "$WORKTREE_PATH"
 
 echo "=== Project Configuration ==="
@@ -389,12 +389,12 @@ Before EVERY file write or edit, verify:
 ```bash
 # Load metadata from Phase 1
 if [ -z "$WORKTREE_PATH" ]; then
-  for meta in worktrees/*/.worktree-job-meta; do
+  for meta in worktrees/*/.wtj-meta; do
     [ -f "$meta" ] && source "$meta" && break
   done
 fi
 [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
-source "$WORKTREE_PATH/.worktree-job-meta"
+source "$WORKTREE_PATH/.wtj-meta"
 cd "$WORKTREE_PATH"
 
 echo "=== Running Verification ==="
@@ -447,12 +447,12 @@ fi
 ```bash
 # Load metadata from Phase 1
 if [ -z "$WORKTREE_PATH" ]; then
-  for meta in worktrees/*/.worktree-job-meta; do
+  for meta in worktrees/*/.wtj-meta; do
     [ -f "$meta" ] && source "$meta" && break
   done
 fi
 [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
-source "$WORKTREE_PATH/.worktree-job-meta"
+source "$WORKTREE_PATH/.wtj-meta"
 cd "$WORKTREE_PATH"
 
 echo "=== Running Tests ==="
@@ -489,12 +489,12 @@ If checks or tests fail:
 ```bash
 # Load metadata from Phase 1
 if [ -z "$WORKTREE_PATH" ]; then
-  for meta in worktrees/*/.worktree-job-meta; do
+  for meta in worktrees/*/.wtj-meta; do
     [ -f "$meta" ] && source "$meta" && break
   done
 fi
 [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
-source "$WORKTREE_PATH/.worktree-job-meta"
+source "$WORKTREE_PATH/.wtj-meta"
 cd "$WORKTREE_PATH"
 
 echo "=== Final Safety Check ==="
@@ -534,7 +534,7 @@ else
 
   git commit -m "${COMMIT_TITLE}
 
-Automated implementation by worktree-job
+Automated implementation by wtj
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
@@ -558,12 +558,12 @@ echo "Branch pushed successfully"
 ```bash
 # Load metadata from Phase 1
 if [ -z "$WORKTREE_PATH" ]; then
-  for meta in worktrees/*/.worktree-job-meta; do
+  for meta in worktrees/*/.wtj-meta; do
     [ -f "$meta" ] && source "$meta" && break
   done
 fi
 [ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
-source "$WORKTREE_PATH/.worktree-job-meta"
+source "$WORKTREE_PATH/.wtj-meta"
 cd "$WORKTREE_PATH"
 
 # Variables are now loaded from metadata file:
@@ -584,7 +584,7 @@ gh pr create --title "${PR_TITLE}" --body "## Summary
 
 ${TASK_DESCRIPTION}
 
-Automated implementation by worktree-job.
+Automated implementation by wtj.
 
 ## Changes
 
