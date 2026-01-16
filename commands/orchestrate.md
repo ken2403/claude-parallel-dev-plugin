@@ -243,7 +243,7 @@ When all PRs are created:
 
 2. Start review process:
    ```
-   For each PR, run: /pw:review [pr-number]
+   For each PR, run: /pw:rv [pr-number]
    ```
 
 3. After all reviews approved and merged:
@@ -304,7 +304,7 @@ Checking status every 60 seconds...
 | #47 | feature/zzz | test: Add integration tests |
 
 ## Next Steps
-1. Review each PR: `/pw:review 45`, `/pw:review 46`, `/pw:review 47`
+1. Review each PR: `/pw:rv 45`, `/pw:rv 46`, `/pw:rv 47`
 2. After all approved and merged: `/pw:cleanup feature/xxx feature/yyy feature/zzz`
 ```
 

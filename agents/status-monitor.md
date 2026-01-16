@@ -58,7 +58,7 @@ while [ $CHECK_COUNT -lt $MAX_CHECKS ]; do
   if [ $COMPLETED -eq $TOTAL ] && [ $TOTAL -gt 0 ]; then
     echo ""
     echo "🎉 ALL WORKERS COMPLETED!"
-    echo "Next: Run /pw:review for each PR"
+    echo "Next: Run /pw:rv for each PR"
     break
   fi
 

@@ -68,6 +68,6 @@ done
 
 Based on status, suggested next steps:
 
-- **All PRs created**: Run `/pw:review [pr-number]` for each
+- **All PRs created**: Run `/pw:rv [pr-number]` for each
 - **Worker stuck**: Check output, consider restarting
 - **All merged**: Run `/pw:cleanup [branches]`

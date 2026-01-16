@@ -113,7 +113,7 @@ EOF
 [Any items that couldn't be resolved or need clarification]
 
 ## Next Steps
-Ready for re-review: `/pw:review [pr-number]`
+Ready for re-review: `/pw:rv [pr-number]`
 ```
 
 ## Handling Unclear Feedback

@@ -86,7 +86,7 @@ This project uses the parallel-workflow plugin for large-scale tasks.
 | `/pw:orchestrate` | Start parallel workers |
 | `/pw:worker [task]` | Execute assigned worker task |
 | `/pw:status` | Check all workers status |
-| `/pw:review [pr]` | Review a PR |
+| `/pw:rv [pr]` | Review a PR |
 | `/pw:fix [feedback]` | Address review feedback |
 | `/pw:merge [pr]` | Merge a PR |
 | `/pw:cleanup [branches]` | Clean up worker environments |
