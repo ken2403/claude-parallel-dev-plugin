@@ -336,10 +336,10 @@ fi
 
 ```bash
 # Clean up a specific job
-/pw:wt-cleanup issue-123
+/pw:wt-clean issue-123
 
 # Clean up all merged wtj
-/pw:wt-cleanup --all
+/pw:wt-clean --all
 
 # Check status without cleaning (just run the scan part)
 ls -la worktrees/
@@ -376,5 +376,5 @@ gh pr view <pr-number> --json state
 git branch -D <branch-name>
 
 # Then re-run cleanup
-/pw:wt-cleanup <job-name>
+/pw:wt-clean <job-name>
 ```
