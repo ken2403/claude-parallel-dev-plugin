@@ -34,8 +34,8 @@ $ARGUMENTS
    - NEVER use `git push --force` on existing branches
 
 5. **NEVER delete the worktree before the PR is merged**
-   - Worktree cleanup is handled by `/pw:cleanup-job`
-   - Only cleanup-job can delete worktrees, and only after merge verification
+   - Worktree cleanup is handled by `/pw:wt-cleanup`
+   - Only wt-cleanup can delete worktrees, and only after merge verification
 
 ### Verification Before Any File Operation
 
@@ -163,7 +163,7 @@ if git show-ref --verify --quiet "refs/heads/$BRANCH_NAME" 2>/dev/null; then
   echo "Options:"
   echo "  1. Use a different task description"
   echo "  2. Delete the existing branch: git branch -D $BRANCH_NAME"
-  echo "  3. Clean up existing worktree: /pw:cleanup-job $JOB_NAME"
+  echo "  3. Clean up existing worktree: /pw:wt-cleanup $JOB_NAME"
   exit 1
 fi
 
@@ -198,7 +198,7 @@ if [ -d "$WORKTREE_PATH" ]; then
   echo ""
   echo "Options:"
   echo "  1. Use a different task description"
-  echo "  2. Clean up existing worktree: /pw:cleanup-job $JOB_NAME"
+  echo "  2. Clean up existing worktree: /pw:wt-cleanup $JOB_NAME"
   exit 1
 fi
 
@@ -260,7 +260,7 @@ echo "IMPORTANT REMINDERS:"
 echo "  - All work must be done in: $WORKTREE_PATH"
 echo "  - Never modify files outside this directory"
 echo "  - Never switch to $BASE_BRANCH"
-echo "  - Cleanup after merge: /pw:cleanup-job $JOB_NAME"
+echo "  - Cleanup after merge: /pw:wt-cleanup $JOB_NAME"
 echo ""
 echo "Environment variables saved to .wtj-meta:"
 echo "  WORKTREE_PATH=$WORKTREE_PATH"
@@ -605,7 +605,7 @@ ${CLOSES_LINE:-N/A}
 
 **Worktree Job**: This PR was created in an isolated worktree environment.
 
-To clean up after merge: \`/pw:cleanup-job $(basename $(pwd))\`
+To clean up after merge: \`/pw:wt-cleanup $(basename $(pwd))\`
 "
 
 echo ""
@@ -650,7 +650,7 @@ echo "PR created successfully"
 
 After PR is merged, run:
 ```bash
-/pw:cleanup-job [job-name]
+/pw:wt-cleanup [job-name]
 ```
 
 **WARNING**: Do NOT manually delete the worktree before merging!

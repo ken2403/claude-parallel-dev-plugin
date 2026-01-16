@@ -193,7 +193,7 @@ echo "  /pw:cleanup [branch1] [branch2] ..."
 
 | Error | Solution |
 |-------|----------|
-| Not approved | Request review: `/pw:review [number]` |
+| Not approved | Request review: `/pw:rv [number]` |
 | CI failing | Fix issues in worker session |
 | Conflicts | Resolve: `/pw:resolve-conflicts [branch]` |
 | Protected branch | Request admin merge or adjust settings |

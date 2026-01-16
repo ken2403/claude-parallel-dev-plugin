@@ -213,7 +213,7 @@ Apply **adversarial thinking** to every review:
 
 ## Next Steps
 - [What should happen after this review]
-- If changes requested: Fix issues and run `/pw:review [pr]` again
+- If changes requested: Fix issues and run `/pw:rv [pr]` again
 ```
 
 ## Actions
