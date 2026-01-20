@@ -66,12 +66,13 @@ The scripts automatically detect the git repository:
 2. If running from a parent directory, detect git repo in subdirectories
 3. If multiple repos found, specify with `GIT_REPO` environment variable
 
-This allows running from a parent directory where worktrees are located alongside the repo:
+Worktrees are located inside the repository's `worktrees/` directory (consistent with `/pw:wtj`):
 ```
-/workspace/              ← Claude session here
-├── my-project/          ← Git repo (auto-detected)
-├── wt-feature-auth/     ← worktree (to be cleaned)
-└── wt-feature-api/      ← worktree (to be cleaned)
+/workspace/
+└── my-project/              ← Git repo
+    └── worktrees/           ← Worktrees directory
+        ├── feature-auth/    ← worktree (to be cleaned)
+        └── feature-api/     ← worktree (to be cleaned)
 ```
 
 ## Cleanup Process

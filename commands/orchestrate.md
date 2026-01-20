@@ -42,12 +42,14 @@ The scripts automatically detect the git repository:
 2. If running from a parent directory, detect git repo in subdirectories
 3. If multiple repos found, specify with `GIT_REPO` environment variable
 
-This allows running from a parent directory:
+Worktrees are created inside the repository's `worktrees/` directory (consistent with `/pw:wtj`):
 ```
-/workspace/              ← Claude session here
-├── my-project/          ← Git repo (auto-detected)
-├── wt-feature-auth/     ← worktree (auto-created)
-└── wt-feature-api/      ← worktree (auto-created)
+/workspace/
+└── my-project/              ← Git repo
+    ├── src/                 ← Source code
+    └── worktrees/           ← Worktrees directory (auto-created)
+        ├── feature-auth/    ← worktree for feature/auth
+        └── feature-api/     ← worktree for feature/api
 ```
 
 ## Base Branch Detection

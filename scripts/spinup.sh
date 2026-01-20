@@ -114,35 +114,36 @@ if [ $# -lt 1 ]; then
   exit 1
 fi
 
-# Worktree directory: parent of repo (so worktrees are siblings of the repo)
-PARENT_DIR="$(dirname "$REPO_ROOT")"
+# Worktree directory: inside repo (consistent with wtj)
+WORKTREES_DIR="${REPO_ROOT}/worktrees"
+mkdir -p "$WORKTREES_DIR"
 
 echo "Project: $PROJECT_NAME"
 echo "Base branch: $BASE_BRANCH"
 echo "Repo: $REPO_ROOT"
-echo "Worktree parent: $PARENT_DIR"
+echo "Worktrees dir: $WORKTREES_DIR"
 echo ""
 
 for wt in "$@"; do
   safe_wt="${wt//\//-}"                 # feature/foo -> feature-foo
   # Sanitize session name for tmux (remove problematic characters)
   safe_session="${safe_wt//[.:]/_}"     # Replace . and : with _
-  dir="${PARENT_DIR}/wt-${safe_wt}"     # sibling of repo (絶対パス)
+  WORKTREE_PATH="${WORKTREES_DIR}/${safe_wt}"
   session="${PROJECT_NAME}__${safe_session}"
 
-  if [ ! -d "$dir" ]; then
+  if [ ! -d "$WORKTREE_PATH" ]; then
     if git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$wt"; then
-      git -C "$REPO_ROOT" worktree add "$dir" "$wt"
+      git -C "$REPO_ROOT" worktree add "$WORKTREE_PATH" "$wt"
     else
-      git -C "$REPO_ROOT" worktree add "$dir" -b "$wt" "$BASE_BRANCH"
+      git -C "$REPO_ROOT" worktree add "$WORKTREE_PATH" -b "$wt" "$BASE_BRANCH"
     fi
   fi
 
   if ! tmux has-session -t "$session" 2>/dev/null; then
-    tmux new-session -d -s "$session" -c "$dir"
+    tmux new-session -d -s "$session" -c "$WORKTREE_PATH"
   fi
 
-  echo "Session: $session (dir: $dir)"
+  echo "Session: $session (dir: $WORKTREE_PATH)"
 done
 
 echo ""
