@@ -106,7 +106,7 @@ else
 fi
 
 PROJECT_NAME="$(get_project_name "$REPO_ROOT")"
-PARENT_DIR="$(dirname "$REPO_ROOT")"
+WORKTREES_DIR="${REPO_ROOT}/worktrees"
 
 run() {
   if $DRY_RUN; then
@@ -118,7 +118,7 @@ run() {
 
 echo "Project: $PROJECT_NAME"
 echo "Repo: $REPO_ROOT"
-echo "Worktree parent: $PARENT_DIR"
+echo "Worktrees dir: $WORKTREES_DIR"
 echo "Branches: ${ARGS[*]}"
 echo "Keep branches: $KEEP_BRANCHES"
 echo "Dry run: $DRY_RUN"
@@ -128,7 +128,7 @@ for wt in "${ARGS[@]}"; do
   safe_wt="${wt//\//-}"
   # Sanitize session name for tmux (must match spinup.sh logic)
   safe_session="${safe_wt//[.:]/_}"
-  dir="${PARENT_DIR}/wt-${safe_wt}"
+  WORKTREE_PATH="${WORKTREES_DIR}/${safe_wt}"
   session="${PROJECT_NAME}__${safe_session}"
   branch="$wt"
 
@@ -143,14 +143,14 @@ for wt in "${ARGS[@]}"; do
   fi
 
   # 2) remove worktree
-  if [ -d "$dir" ]; then
-    run "git -C '$REPO_ROOT' worktree remove --force '$dir' 2>/dev/null || true"
-    run "rm -rf '$dir' 2>/dev/null || true"
-    echo "removed worktree dir: $dir"
+  if [ -d "$WORKTREE_PATH" ]; then
+    run "git -C '$REPO_ROOT' worktree remove --force '$WORKTREE_PATH' 2>/dev/null || true"
+    run "rm -rf '$WORKTREE_PATH' 2>/dev/null || true"
+    echo "removed worktree dir: $WORKTREE_PATH"
   else
     # ディレクトリが無くても登録だけ残っている場合があるので一応試す
-    run "git -C '$REPO_ROOT' worktree remove --force '$dir' 2>/dev/null || true"
-    echo "worktree dir not found (attempted detach anyway): $dir"
+    run "git -C '$REPO_ROOT' worktree remove --force '$WORKTREE_PATH' 2>/dev/null || true"
+    echo "worktree dir not found (attempted detach anyway): $WORKTREE_PATH"
   fi
 
   # 3) delete branch (optional)
@@ -176,5 +176,11 @@ for wt in "${ARGS[@]}"; do
 
   echo ""
 done
+
+# Remove empty worktrees directory
+if [ -d "$WORKTREES_DIR" ] && [ -z "$(ls -A "$WORKTREES_DIR")" ]; then
+  run "rmdir '$WORKTREES_DIR'"
+  echo "Removed empty worktrees directory"
+fi
 
 echo "Done. (teardown)"
