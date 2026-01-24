@@ -140,6 +140,7 @@ Apply **adversarial thinking** to every review:
 - [ ] Integer overflow/underflow?
 - [ ] Null pointer dereferences?
 - [ ] Unhandled exceptions that could crash the system?
+- [ ] N+1 query problems (queries inside loops)?
 
 #### Edge Cases
 - [ ] Empty collections/strings

@@ -61,6 +61,23 @@ Apply these quality criteria when reviewing or writing code.
 - **Feature envy**: Move method to appropriate class
 - **Dead code**: Remove unused code
 
+## Performance
+
+### N+1 Query Prevention
+- No database queries inside loops
+- Use eager loading / preloading for related data
+- Batch queries when fetching multiple records
+
+Common patterns to avoid:
+```python
+# Bad - N+1 query
+for user in users:
+    posts = db.query(Post).filter(Post.user_id == user.id).all()
+
+# Good - Eager loading
+users = db.query(User).options(joinedload(User.posts)).all()
+```
+
 ## Testing Requirements
 
 - Unit tests for business logic
