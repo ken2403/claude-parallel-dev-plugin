@@ -23,14 +23,14 @@ GitHubからクローンします。プラグインは**任意のディレクト
 ```bash
 # 任意のディレクトリにクローン
 cd /path/to/any-directory
-git clone https://github.com/ken2403/.claude-paralell-dev-plugin.git
+git clone https://github.com/ken2403/claude-paralell.git
 ```
 
 配置例：
 
 ```
 /opt/claude-plugins/
-└── .claude-paralell-dev-plugin/  # このプラグイン
+└── claude-paralell/              # このプラグイン
 ```
 
 ### 2. Claude Codeでプラグインを有効化
@@ -41,7 +41,7 @@ git clone https://github.com/ken2403/.claude-paralell-dev-plugin.git
 
 ```bash
 # プラグインをMarketplaceとして追加
-claude plugin marketplace add /path/to/any-directory/.claude-paralell-dev-plugin
+claude plugin marketplace add /path/to/any-directory/claude-paralell
 
 # プラグインをインストール
 claude plugin install pw@claude-parallel-dev-plugin
@@ -53,13 +53,13 @@ claude plugin install pw@claude-parallel-dev-plugin
 
 ```bash
 cd your-project
-claude --plugin-dir /path/to/any-directory/.claude-paralell-dev-plugin
+claude --plugin-dir /path/to/any-directory/claude-paralell
 ```
 
 ### 3. プロジェクトにCLAUDE.mdを配置（推奨）
 
 ```bash
-cp ../.claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.md
+cp ../claude-paralell/examples/CLAUDE.project-template.md ./CLAUDE.md
 # プロジェクトに合わせて編集
 ```
 
@@ -414,7 +414,7 @@ Use analyzer subagent to understand the payment system architecture
 
 ```bash
 mkdir -p .claude
-cp ../.claude-paralell-dev-plugin/examples/hooks-python.json .claude/settings.json
+cp ../claude-paralell/examples/hooks-python.json .claude/settings.json
 ```
 
 ## 自動検出
@@ -456,7 +456,7 @@ GIT_REPO=/workspace/my-project ./scripts/spinup.sh feature/auth
 ## ディレクトリ構造
 
 ```
-.claude-paralell-dev-plugin/
+claude-paralell/
 ├── plugin.json              # プラグインマニフェスト
 │
 ├── commands/                # スラッシュコマンド
