@@ -217,6 +217,108 @@ Apply **adversarial thinking** to every review:
 - If changes requested: Fix issues and run `/pw:rv [pr]` again
 ```
 
+## Structured Findings for GitHub Posting
+
+While generating the review report, internally track each finding that references a specific file and line as a structured inline comment. For each finding, record:
+- **path**: File path relative to the repository root (e.g., `src/auth/login.ts`)
+- **line**: The line number in the new version of the file (must appear in the PR diff)
+- **body**: A concise description including severity and recommendation
+
+These will be used when posting the review to GitHub.
+
+## Post Review to GitHub
+
+**MANDATORY**: After generating the review report, ALWAYS ask the user whether to post the review to GitHub using the AskUserQuestion tool.
+
+Prompt: **「このレビュー結果をGitHub PRにコメントとして投稿しますか？」**
+
+Explain what will be posted:
+1. PR Review としてサマリー（レビュー全体の要約）をbodyに投稿
+2. 指摘箇所にインラインコメントを投稿
+3. レビュー結果に応じて APPROVE / REQUEST_CHANGES / COMMENT として送信
+
+### If the user confirms (yes):
+
+#### 1. Determine review event type
+
+Map the review verdict to a GitHub review event:
+- `Status: ✅ Approved` → `APPROVE`
+- `Status: ⚠️ Changes Requested` → `REQUEST_CHANGES`
+- `Status: ❌ Rejected` → `REQUEST_CHANGES`
+- その他 → `COMMENT`
+
+#### 2. Construct review body
+
+Use the full review markdown report (Summary, Critical Findings, Verdict, Required Changes, Recommended Changes) as the review body.
+
+#### 3. Collect inline comments
+
+From all findings tables (Design Issues, Potential Bugs, Security Concerns, Consistency Problems, Required Changes, Recommended Changes), extract entries with `file:line` locations. For each, create:
+
+```json
+{
+  "path": "relative/path/to/file.ext",
+  "line": 42,
+  "side": "RIGHT",
+  "body": "**[Severity]**: [Issue description]\n\n[Recommendation]"
+}
+```
+
+**Important**: The `line` must refer to a line present in the PR diff (right side). If a line number is not in the diff, skip that inline comment and include the finding only in the review body.
+
+If no findings have specific `file:line` references, post only the review body with an empty comments array.
+
+#### 4. Post via gh api
+
+```bash
+# Get repository info
+OWNER_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+OWNER=$(echo "$OWNER_REPO" | cut -d'/' -f1)
+REPO=$(echo "$OWNER_REPO" | cut -d'/' -f2)
+
+# Construct JSON payload and post
+# Claude must dynamically build this JSON from actual review findings
+cat <<'REVIEW_JSON' | gh api \
+  --method POST \
+  -H "Accept: application/vnd.github+json" \
+  "/repos/$OWNER/$REPO/pulls/$PR_NUM/reviews" \
+  --input -
+{
+  "body": "## Review Summary\n\n...(full review body here)...",
+  "event": "REQUEST_CHANGES",
+  "comments": [
+    {
+      "path": "src/example.ts",
+      "line": 42,
+      "side": "RIGHT",
+      "body": "**High**: Description of issue and recommendation"
+    }
+  ]
+}
+REVIEW_JSON
+```
+
+**Note**: The JSON above is illustrative. Claude must dynamically construct the actual payload from the review findings. Use proper JSON escaping for the body content.
+
+#### 5. Report result
+
+After posting, report:
+```markdown
+### ✅ Review Posted to GitHub
+
+- **Review type**: APPROVE / REQUEST_CHANGES / COMMENT
+- **Inline comments**: N件投稿
+- **PR URL**: [link]
+```
+
+If the API call fails, report the error and suggest retrying or manual posting.
+
+### If the user declines (no):
+
+Do not post. Proceed to the Actions section.
+
+---
+
 ## Actions
 
 After review:
