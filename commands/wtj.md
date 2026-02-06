@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Edit, Write, Bash, Grep, Glob
+allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Skill
 argument-hint: [#issue-number or "task description"] [--feature|--fix]
 description: Create isolated worktree and autonomously implement task until PR creation
 model: opus
@@ -382,67 +382,11 @@ Before EVERY file write or edit, verify:
 
 ---
 
-## Phase 4: Verification
+## Phase 4: Verification (via /pw:precheck)
 
-### Run Project Checks
+### 4.1 Create Interim Commit
 
-```bash
-# Load metadata from Phase 1
-if [ -z "$WORKTREE_PATH" ]; then
-  for meta in worktrees/*/.wtj-meta; do
-    [ -f "$meta" ] && source "$meta" && break
-  done
-fi
-[ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
-source "$WORKTREE_PATH/.wtj-meta"
-cd "$WORKTREE_PATH"
-
-echo "=== Running Verification ==="
-
-# Track status
-CHECKS_PASSED=true
-
-# Lint/Format/TypeCheck
-if [ -f "Makefile" ]; then
-  echo "--- Makefile checks ---"
-  grep -q "^lint:" Makefile && { make lint || CHECKS_PASSED=false; }
-  grep -q "^format:" Makefile && { make format || true; }
-  grep -q "^typecheck:" Makefile && { make typecheck || CHECKS_PASSED=false; }
-fi
-
-if [ -f "package.json" ]; then
-  echo "--- Node.js checks ---"
-  grep -q '"lint"' package.json && { npm run lint 2>/dev/null || CHECKS_PASSED=false; }
-  grep -q '"typecheck"' package.json && { npm run typecheck 2>/dev/null || CHECKS_PASSED=false; }
-  grep -q '"build"' package.json && { npm run build 2>/dev/null || CHECKS_PASSED=false; }
-fi
-
-if [ -f "pyproject.toml" ]; then
-  echo "--- Python checks ---"
-  command -v ruff &>/dev/null && { ruff check . 2>/dev/null || CHECKS_PASSED=false; }
-  { uv run mypy . 2>/dev/null || mypy . 2>/dev/null || true; }
-fi
-
-if [ -f "Cargo.toml" ]; then
-  echo "--- Rust checks ---"
-  cargo check || CHECKS_PASSED=false
-  cargo clippy -- -D warnings 2>/dev/null || CHECKS_PASSED=false
-fi
-
-if [ -f "go.mod" ]; then
-  echo "--- Go checks ---"
-  go vet ./... || CHECKS_PASSED=false
-fi
-
-echo ""
-if [ "$CHECKS_PASSED" = true ]; then
-  echo "All checks passed"
-else
-  echo "Some checks failed - please fix before continuing"
-fi
-```
-
-### Run Tests
+`/pw:precheck` uses `git diff BASE...HEAD` to review committed changes. Create an interim commit so precheck can analyze the diff.
 
 ```bash
 # Load metadata from Phase 1
@@ -455,30 +399,32 @@ fi
 source "$WORKTREE_PATH/.wtj-meta"
 cd "$WORKTREE_PATH"
 
-echo "=== Running Tests ==="
+echo "=== Creating Interim Commit for Precheck ==="
 
-if [ -f "Makefile" ] && grep -q "^test:" Makefile; then
-  make test
-elif [ -f "package.json" ] && grep -q '"test"' package.json; then
-  npm test 2>/dev/null || true
-elif [ -f "pyproject.toml" ] || [ -d "tests" ]; then
-  uv run pytest 2>/dev/null || pytest 2>/dev/null || true
-elif [ -f "Cargo.toml" ]; then
-  cargo test
-elif [ -f "go.mod" ]; then
-  go test ./...
+git add .
+if ! git diff --cached --quiet; then
+  git commit -m "wip: ${TASK_DESCRIPTION}"
+  echo "Interim commit created"
 else
-  echo "No test framework detected"
+  echo "No changes to commit"
 fi
 ```
 
-### Fix Any Issues
+### 4.2 Run /pw:precheck
 
-If checks or tests fail:
-1. Analyze the error output
-2. Fix the issues
-3. Re-run verification
-4. Repeat until all checks pass
+Use the Skill tool to invoke `/pw:precheck HEAD`. This runs comprehensive checks including:
+- Local checks (lint, format, type check, build)
+- Test verification
+- Code quality & codebase consistency review
+- Specification alignment check
+
+### 4.3 Fix Issues and Re-verify
+
+If `/pw:precheck` reports any issues:
+1. Fix the reported problems
+2. Stage and amend the interim commit: `git add . && git commit --amend --no-edit`
+3. Re-run `/pw:precheck HEAD` via the Skill tool
+4. Repeat until all precheck phases pass
 
 ---
 
@@ -518,21 +464,18 @@ if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ] || [ "$CUR
 fi
 
 echo ""
-echo "=== Files to be committed ==="
-git status --short
+echo "=== Finalizing commit ==="
 
-echo ""
-echo "=== Creating commit ==="
+# Stage any remaining changes (from precheck fix iterations)
 git add .
+if ! git diff --cached --quiet; then
+  git commit --amend --no-edit
+fi
 
-# Check if there are changes to commit
-if git diff --cached --quiet; then
-  echo "No changes to commit"
-else
-  # Generate commit message from task description
-  COMMIT_TITLE="${BRANCH_PREFIX}: ${TASK_DESCRIPTION}"
+# Amend interim commit with proper message
+COMMIT_TITLE="${BRANCH_PREFIX}: ${TASK_DESCRIPTION}"
 
-  git commit -m "${COMMIT_TITLE}
+git commit --amend -m "${COMMIT_TITLE}
 
 Automated implementation by wtj
 
@@ -540,8 +483,7 @@ Automated implementation by wtj
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 
-  echo "Commit created: ${COMMIT_TITLE}"
-fi
+echo "Commit finalized: ${COMMIT_TITLE}"
 
 echo ""
 echo "=== Pushing branch ==="
