@@ -1,246 +1,246 @@
 # Parallel Workflow Plugin
 
-Git worktreeとtmuxを使用した並列開発環境のためのClaude Codeプラグイン。
+A Claude Code plugin for parallel development environments using Git worktree and tmux.
 
-## 概要
+## Overview
 
-大規模な開発タスクを複数の独立したサブタスクに分解し、並列で実行することで開発効率を最大化します。
+Maximizes development efficiency by decomposing large development tasks into multiple independent subtasks and executing them in parallel.
 
-### 主な機能
+### Key Features
 
-- **Issue駆動の設計**: GitHub Issueから実装設計を自動生成
-- **タスク分解**: 大規模タスクを並列実行可能なサブタスクに分割
-- **並列ワーカー管理**: Git worktreeとtmuxで独立した作業環境を提供
-- **統合レビュー**: PRレビュー、マージ、クリーンアップまでをサポート
-- **高速探索**: Haikuモデルのサブエージェントによる高速コード探索
+- **Issue-Driven Design**: Automatically generate implementation designs from GitHub Issues
+- **Task Decomposition**: Split large tasks into parallelizable subtasks
+- **Parallel Worker Management**: Provide independent work environments with Git worktree and tmux
+- **Integrated Review**: Support for PR review, merge, and cleanup
+- **Fast Exploration**: High-speed code exploration via Haiku model subagents
 
-## インストール
+## Installation
 
-### 1. プラグインの配置
+### 1. Place the Plugin
 
-GitHubからクローンします。プラグインは**任意のディレクトリ**に配置可能です：
+Clone from GitHub. The plugin can be placed in **any directory**:
 
 ```bash
-# 任意のディレクトリにクローン
+# Clone to any directory
 cd /path/to/any-directory
 git clone https://github.com/ken2403/claude-paralell.git
 ```
 
-配置例：
+Example layout:
 
 ```
 /opt/claude-plugins/
-└── claude-paralell/              # このプラグイン
+└── claude-paralell/              # This plugin
 ```
 
-### 2. Claude Codeでプラグインを有効化
+### 2. Enable the Plugin in Claude Code
 
-#### 方法A: Marketplaceとして登録（推奨）
+#### Method A: Register as Marketplace (Recommended)
 
-プラグインをMarketplaceとして登録すると、どのプロジェクトでも利用可能になります：
+Registering the plugin as a Marketplace makes it available in any project:
 
 ```bash
-# プラグインをMarketplaceとして追加
+# Add the plugin as a Marketplace
 claude plugin marketplace add /path/to/any-directory/claude-paralell
 
-# プラグインをインストール
+# Install the plugin
 claude plugin install pw@claude-parallel-dev-plugin
 ```
 
-#### 方法B: 起動時にオプション指定
+#### Method B: Specify at Launch
 
-特定のセッションでのみ使用する場合は、`--plugin-dir`オプションを指定してClaude Codeを起動：
+To use only in a specific session, launch Claude Code with the `--plugin-dir` option:
 
 ```bash
 cd your-project
 claude --plugin-dir /path/to/any-directory/claude-paralell
 ```
 
-### 3. プロジェクトにCLAUDE.mdを配置（推奨）
+### 3. Place CLAUDE.md in Your Project (Recommended)
 
 ```bash
 cp ../claude-paralell/examples/CLAUDE.project-template.md ./CLAUDE.md
-# プロジェクトに合わせて編集
+# Edit to fit your project
 ```
 
-## 使い方
+## Usage
 
-### ワークフロー
+### Workflow
 
-このプラグインは2つのワークフローをサポートします：
+This plugin supports two workflows:
 
-#### A. 並列実行ワークフロー（大規模タスク向け）
-
-```
-仕様受領 → 設計 → タスク分解 → 並列実行 → レビュー → マージ → クリーンアップ
-```
-
-複数のサブタスクに分解し、tmuxで並列実行する場合に使用します。
-
-#### B. Worktree Jobワークフロー（独立タスク向け）
+#### A. Parallel Execution Workflow (For Large Tasks)
 
 ```
-Issue/タスク → wtj → (自律実装) → レビュー → マージ → クリーンアップ
+Receive spec → Design → Task decomposition → Parallel execution → Review → Merge → Cleanup
 ```
 
-独立したタスクを隔離された環境で自律的に実装する場合に使用します。
+Use this when decomposing into multiple subtasks and executing in parallel with tmux.
 
-### コマンド一覧
+#### B. Worktree Job Workflow (For Independent Tasks)
 
-| コマンド | 説明 | 引数 |
-|----------|------|------|
-| `/pw:design` | 仕様から設計を作成 | `#issue番号` / `@ファイル参照` / `"テキスト"` |
-| `/pw:decompose` | タスクを分解 | 設計出力またはタスク説明 |
-| `/pw:orchestrate` | 並列ワーカーを起動 | ブランチ名のリスト |
-| `/pw:worker` | ワーカータスクを実行 | タスク説明 |
-| `/pw:wtj` | 独立worktreeで自律実装 | `#issue番号` / `"タスク説明"` `[--feature\|--fix]` |
-| `/pw:wt-clean` | wtj環境をクリーンアップ | `job名` / `--all` |
-| `/pw:status` | 進捗を確認 | (オプション) セッション名 |
-| `/pw:precheck` | PR作成前の事前チェック | ブランチ名または`HEAD` |
-| `/pw:rv` | PRをレビュー（批判的） | PR番号 |
-| `/pw:fix` | レビュー指摘を修正 | フィードバック内容 |
-| `/pw:merge` | PRをマージ | PR番号 `[--skip]` |
-| `/pw:cleanup` | 環境をクリーンアップ | ブランチ名のリスト |
-| `/pw:resolve-conflicts` | コンフリクトを解消 | ブランチ名 |
+```
+Issue/Task → wtj → (Autonomous implementation) → Review → Merge → Cleanup
+```
 
-### 使用例
+Use this when autonomously implementing independent tasks in an isolated environment.
 
-#### 1. GitHub Issueから実装
+### Command List
+
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `/pw:design` | Create design from spec | `#issue-number` / `@file-reference` / `"text"` |
+| `/pw:decompose` | Decompose tasks | Design output or task description |
+| `/pw:orchestrate` | Launch parallel workers | List of branch names |
+| `/pw:worker` | Execute worker task | Task description |
+| `/pw:wtj` | Autonomous implementation in isolated worktree | `#issue-number` / `"task description"` `[--feature\|--fix]` |
+| `/pw:wt-clean` | Clean up wtj environment | `job-name` / `--all` |
+| `/pw:status` | Check progress | (Optional) session name |
+| `/pw:precheck` | Pre-check before PR creation | Branch name or `HEAD` |
+| `/pw:rv` | Review PR (critical) | PR number |
+| `/pw:fix` | Fix review feedback | Feedback content |
+| `/pw:merge` | Merge PR | PR number `[--skip]` |
+| `/pw:cleanup` | Clean up environment | List of branch names |
+| `/pw:resolve-conflicts` | Resolve conflicts | Branch name |
+
+### Examples
+
+#### 1. Implement from GitHub Issue
 
 ```bash
-# 設計
+# Design
 /pw:design #123
 
-# タスク分解
+# Task decomposition
 /pw:decompose
 
-# 並列ワーカー起動
+# Launch parallel workers
 /pw:orchestrate feature/auth feature/api feature/tests
 
-# 進捗確認
+# Check progress
 /pw:status
 
-# PRレビュー
+# PR review
 /pw:rv 45
 
-# マージ
+# Merge
 /pw:merge 45
 
-# クリーンアップ（全PRマージ後）
+# Cleanup (after all PRs are merged)
 /pw:cleanup feature/auth feature/api feature/tests
 ```
 
-#### 2. 対話的なタスク実行
+#### 2. Interactive Task Execution
 
 ```bash
-# 仕様を直接指定
+# Specify spec directly
 /pw:design "Add OAuth2 authentication with Google and GitHub providers"
 
-# Claudeが詳細を質問してくる場合もあります
+# Claude may ask for details
 ```
 
-#### 3. 単発タスク（並列化なし）
+#### 3. Single Task (No Parallelization)
 
 ```bash
-# 小規模なタスクはworkerコマンドを直接使用
+# Use the worker command directly for small tasks
 /pw:worker Fix the null pointer exception in src/auth/login.ts
 ```
 
-#### 4. Worktree Jobワークフロー（推奨）
+#### 4. Worktree Job Workflow (Recommended)
 
-独立したタスクを隔離環境で自律実装するワークフローです。
+A workflow for autonomously implementing independent tasks in an isolated environment.
 
-##### パターンA: Issueから設計→実装
+##### Pattern A: Design from Issue then Implement
 
 ```bash
-# 1. Issueから設計を作成（要件を理解）
+# 1. Create design from Issue (understand requirements)
 /pw:design #123
 
-# 2. wtjで自律実装開始
-#    - worktrees/issue-123/ にworktreeが作成される
-#    - feature/issue-123 ブランチで作業
-#    - PR作成まで自動で実行される
+# 2. Start autonomous implementation with wtj
+#    - A worktree is created at worktrees/issue-123/
+#    - Work on feature/issue-123 branch
+#    - Automatically runs through to PR creation
 /pw:wtj #123
 
-# 3. PRをレビュー（批判的レビューがデフォルト）
-/pw:rv <PR番号>
+# 3. Review PR (critical review by default)
+/pw:rv <PR-number>
 
-# 4. レビューOKならマージ
-#    --skip: 人間のApprovalをスキップ（セルフレビュー用）
-/pw:merge <PR番号> --skip
+# 4. Merge if review passes
+#    --skip: Skip human Approval (for self-review)
+/pw:merge <PR-number> --skip
 
-# 5. クリーンアップ（worktree削除＆デフォルトブランチ最新化）
+# 5. Cleanup (delete worktree & update default branch)
 /pw:wt-clean issue-123
 ```
 
-##### パターンB: 直接タスク指定で実装
+##### Pattern B: Implement with Direct Task Specification
 
 ```bash
-# 1. フリーテキストで直接実装開始
-#    - worktrees/add-dark-mode-toggle/ にworktreeが作成される
-#    - feature/add-dark-mode-toggle ブランチで作業
+# 1. Start implementation directly with free text
+#    - A worktree is created at worktrees/add-dark-mode-toggle/
+#    - Work on feature/add-dark-mode-toggle branch
 /pw:wtj "Add dark mode toggle to settings page"
 
-# バグ修正の場合は --fix を指定
+# For bug fixes, specify --fix
 /pw:wtj "Fix null pointer in auth module" --fix
-# -> fix/fix-null-pointer-in-auth-module ブランチが作成される
+# -> fix/fix-null-pointer-in-auth-module branch is created
 
-# 2. レビュー → マージ → クリーンアップ
-/pw:rv <PR番号>
-/pw:merge <PR番号> --skip
+# 2. Review → Merge → Cleanup
+/pw:rv <PR-number>
+/pw:merge <PR-number> --skip
 /pw:wt-clean add-dark-mode-toggle
 ```
 
-##### 複数タスクの同時実行
+##### Running Multiple Tasks Simultaneously
 
 ```bash
-# 別々のターミナルで同時実行可能
+# Can run simultaneously in separate terminals
 Terminal 1: /pw:wtj #100
 Terminal 2: /pw:wtj #200
 Terminal 3: /pw:wtj "Refactor utils"
 
-# 全てマージ後にまとめてクリーンアップ
+# Cleanup all at once after all are merged
 /pw:wt-clean --all
 ```
 
-##### Worktree Jobの特徴
+##### Worktree Job Features
 
-| 特徴 | 説明 |
-|------|------|
-| **隔離環境** | `worktrees/` 以下に独立したworktreeを作成 |
-| **安全性** | 親ディレクトリ・mainブランチを絶対に変更しない |
-| **自律実行** | PR作成まで承認なしで自動実行 |
-| **並行実行** | 複数タスクを同時に実行可能 |
-| **ブランチ命名** | `--feature`(デフォルト) または `--fix` で接頭辞を指定 |
+| Feature | Description |
+|---------|-------------|
+| **Isolated Environment** | Creates independent worktrees under `worktrees/` |
+| **Safety** | Never modifies parent directory or main branch |
+| **Autonomous Execution** | Runs automatically through PR creation without approval |
+| **Concurrent Execution** | Can run multiple tasks simultaneously |
+| **Branch Naming** | Specify prefix with `--feature` (default) or `--fix` |
 
-**注意**: PRがマージされる前にworktreeを削除することは禁止されています。`wt-clean`はマージ済みのブランチのみ削除します。
+**Note**: Deleting worktrees before PRs are merged is prohibited. `wt-clean` only deletes branches that have been merged.
 
-## 依存関係
+## Dependencies
 
-### コンポーネント依存図
+### Component Dependency Diagram
 
 ```
                                     ┌─────────────────┐
                                     │   /pw:design    │
-                                    │  (設計フェーズ)  │
+                                    │  (Design Phase) │
                                     └────────┬────────┘
                                              │ uses
                                              ▼
                               ┌──────────────────────────────┐
                               │         explorer             │
-                              │      (コード探索)             │
+                              │    (Code Exploration)        │
                               └──────────────────────────────┘
                                              │
                                              ▼
                                     ┌─────────────────┐
                                     │  /pw:decompose  │
-                                    │ (タスク分解)    │
+                                    │(Task Decompose) │
                                     └────────┬────────┘
                                              │
                                              ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          /pw:orchestrate                                 │
-│                         (ワーカー起動・管理)                               │
+│                      (Worker Launch & Management)                        │
 │  ┌─────────────────────────────────────────────────────────────────┐    │
 │  │  calls spinup.sh → creates worktrees + tmux sessions            │    │
 │  │  spawns status-monitor subagent (background)                    │    │
@@ -270,13 +270,13 @@ Terminal 3: /pw:wtj "Refactor utils"
                                ▼
                       ┌─────────────────┐
                       │   /pw:status    │◄──── status-monitor (bg)
-                      │  (進捗確認)      │
+                      │(Progress Check) │
                       └────────┬────────┘
                                │
                                ▼
                       ┌─────────────────┐
                       │    /pw:rv       │
-                      │  (PRレビュー)    │
+                      │  (PR Review)    │
                       └────────┬────────┘
                                │ uses
                                ▼
@@ -289,32 +289,32 @@ Terminal 3: /pw:wtj "Refactor utils"
           ▼                    │                    ▼
    ┌─────────────┐             │             ┌─────────────┐
    │  /pw:fix    │◄────────────┘             │ /pw:resolve │
-   │(指摘修正)   │                           │ -conflicts  │
+   │(Fix Issues) │                           │ -conflicts  │
    └─────────────┘                           └─────────────┘
                                │
                                ▼
                       ┌─────────────────┐
                       │   /pw:merge     │
-                      │  (PRマージ)     │
-                      │ ⚠️ CI+承認必須  │
+                      │  (PR Merge)     │
+                      │ ⚠️ CI+Approval  │
                       └────────┬────────┘
                                │
                                ▼
                       ┌─────────────────┐
                       │  /pw:cleanup    │
-                      │(環境クリーンアップ)│
+                      │(Env Cleanup)    │
                       │ calls teardown.sh│
-                      │ ⚠️ 人間確認必須  │
+                      │ ⚠️ Human Review │
                       └─────────────────┘
 ```
 
-### コマンド → サブエージェント依存
+### Command → Subagent Dependencies
 
-| コマンド | 必須サブエージェント | オプション |
-|----------|---------------------|------------|
+| Command | Required Subagents | Optional |
+|---------|-------------------|----------|
 | `/pw:design` | `explorer` | `analyzer` |
 | `/pw:decompose` | `explorer` | - |
-| `/pw:orchestrate` | - | `status-monitor` (バックグラウンド) |
+| `/pw:orchestrate` | - | `status-monitor` (background) |
 | `/pw:worker` | `explorer` | `analyzer` |
 | `/pw:wtj` | `explorer` | `analyzer` |
 | `/pw:wt-clean` | - | - |
@@ -326,43 +326,43 @@ Terminal 3: /pw:wtj "Refactor utils"
 | `/pw:cleanup` | - | - |
 | `/pw:resolve-conflicts` | - | - |
 
-### コマンド → スキル依存
+### Command → Skill Dependencies
 
-| コマンド | 適用スキル |
-|----------|------------|
+| Command | Applied Skills |
+|---------|---------------|
 | `/pw:worker` | `code-quality`, `security-review` |
 | `/pw:wtj` | `code-quality`, `security-review` |
 | `/pw:precheck` | `code-quality`, `security-review` |
 | `/pw:rv` | `code-quality`, `security-review` |
 | `/pw:fix` | `code-quality` |
 
-### コマンド → スクリプト依存
+### Command → Script Dependencies
 
-| コマンド | 使用スクリプト | 機能 |
-|----------|----------------|------|
-| `/pw:orchestrate` | `spinup.sh` | worktree作成、tmuxセッション起動 |
-| `/pw:cleanup` | `teardown.sh` | worktree削除、tmuxセッション終了 |
+| Command | Script Used | Function |
+|---------|------------|----------|
+| `/pw:orchestrate` | `spinup.sh` | Create worktrees, launch tmux sessions |
+| `/pw:cleanup` | `teardown.sh` | Delete worktrees, terminate tmux sessions |
 
-### サブエージェント一覧
+### Subagent List
 
-| サブエージェント | モデル | 用途 | ツール |
-|------------------|--------|------|--------|
-| `explorer` | Haiku | 高速なファイル/パターン検索 | Read, Grep, Glob |
-| `analyzer` | Sonnet | 詳細なアーキテクチャ分析 | Read, Grep, Glob, Bash |
-| `status-monitor` | Haiku | バックグラウンド進捗監視 (30秒間隔) | Bash |
+| Subagent | Model | Purpose | Tools |
+|----------|-------|---------|-------|
+| `explorer` | Haiku | Fast file/pattern search | Read, Grep, Glob |
+| `analyzer` | Sonnet | Detailed architecture analysis | Read, Grep, Glob, Bash |
+| `status-monitor` | Haiku | Background progress monitoring (30s interval) | Bash |
 
-### スキル一覧
+### Skill List
 
-| スキル | 自動適用タイミング | 内容 |
-|--------|-------------------|------|
-| `code-quality` | コードレビュー時、実装時 | 可読性、保守性、型安全性、コーディングスタイル一貫性 |
-| `security-review` | セキュリティ関連変更時 | OWASP Top 10、認証/認可、入力検証 |
+| Skill | Auto-Applied When | Content |
+|-------|-------------------|---------|
+| `code-quality` | During code review, implementation | Readability, maintainability, type safety, coding style consistency |
+| `security-review` | During security-related changes | OWASP Top 10, authentication/authorization, input validation |
 
-## サブエージェント詳細
+## Subagent Details
 
 ### explorer (Haiku)
 
-高速なコード探索用。ファイル検索やパターン探索に使用。
+For fast code exploration. Used for file search and pattern discovery.
 
 ```
 Use explorer subagent to find authentication-related files
@@ -370,7 +370,7 @@ Use explorer subagent to find authentication-related files
 
 ### analyzer (Sonnet)
 
-詳細なコード分析用。アーキテクチャ理解や複雑な依存関係の分析に使用。
+For detailed code analysis. Used for architecture understanding and complex dependency analysis.
 
 ```
 Use analyzer subagent to understand the payment system architecture
@@ -378,94 +378,94 @@ Use analyzer subagent to understand the payment system architecture
 
 ### status-monitor (Haiku)
 
-バックグラウンド監視用。オーケストレーターが起動後、自動で進捗を監視。
+For background monitoring. Automatically monitors progress after orchestrator launches.
 
-- **監視間隔**: 30秒
-- **最大監視時間**: 30分
-- **検出**: PR作成、エラー、完了
+- **Monitoring Interval**: 30 seconds
+- **Maximum Monitoring Duration**: 30 minutes
+- **Detects**: PR creation, errors, completion
 
-## スキル
+## Skills
 
 ### code-quality
 
-コードレビュー時に自動適用される品質基準。
+Quality standards automatically applied during code review.
 
 ### security-review
 
-セキュリティ関連のコード変更時に自動適用されるチェックリスト。
+Checklist automatically applied during security-related code changes.
 
 ## Hooks
 
-### 汎用Hooks（プラグイン内蔵）
+### General Hooks (Built into Plugin)
 
-- **ファイル保護**: `.env`, `credentials`等の編集をブロック
-- **通知**: 作業完了時にデスクトップ通知
-- **ログ**: セッション完了をログ記録
+- **File Protection**: Blocks editing of `.env`, `credentials`, etc.
+- **Notification**: Desktop notification on work completion
+- **Logging**: Logs session completion
 
-### 言語別Hooks（プロジェクトに設定）
+### Language-Specific Hooks (Configured per Project)
 
-`examples/` ディレクトリに言語別のHooks設定例があります：
+The `examples/` directory contains language-specific Hooks configuration examples:
 
-- `hooks-python.json` - Python用（ruff lint/format + mypy型チェック）
-- `hooks-javascript.json` - JavaScript/TypeScript用（prettier/eslint）
-- `hooks-go.json` - Go用（gofmt/goimports）
+- `hooks-python.json` - For Python (ruff lint/format + mypy type checking)
+- `hooks-javascript.json` - For JavaScript/TypeScript (prettier/eslint)
+- `hooks-go.json` - For Go (gofmt/goimports)
 
-プロジェクトに適用するには：
+To apply to your project:
 
 ```bash
 mkdir -p .claude
 cp ../claude-paralell/examples/hooks-python.json .claude/settings.json
 ```
 
-## 自動検出
+## Auto-Detection
 
-スクリプトは以下を自動的に検出します（設定ファイル不要）：
+Scripts automatically detect the following (no configuration file needed):
 
-| 項目 | 検出方法 |
-|------|----------|
-| **Gitリポジトリ** | 現在のディレクトリ → サブディレクトリから自動検出 |
-| **プロジェクト名** | Gitリポジトリのディレクトリ名 |
-| **ベースブランチ** | `main` → `master` → 現在のブランチ（優先順） |
+| Item | Detection Method |
+|------|-----------------|
+| **Git Repository** | Auto-detected from current directory → subdirectories |
+| **Project Name** | Directory name of the Git repository |
+| **Base Branch** | `main` → `master` → current branch (in priority order) |
 
-セッション名は `{プロジェクト名}__{ブランチ名}` 形式で自動生成されます。
+Session names are automatically generated in the format `{project-name}__{branch-name}`.
 
-### 親ディレクトリからの実行
+### Running from Parent Directory
 
-Gitリポジトリの**親ディレクトリ**からClaudeセッションを起動して、`/pw:orchestrate` と `/pw:cleanup` を実行できます：
+You can launch a Claude session from the **parent directory** of a Git repository and run `/pw:orchestrate` and `/pw:cleanup`:
 
 ```
-/workspace/              ← Claudeセッションを起動
-├── my-project/          ← Gitリポジトリ（自動検出）
-├── wt-feature-auth/     ← worktree 1（自動作成）
-├── wt-feature-api/      ← worktree 2（自動作成）
-└── wt-feature-tests/    ← worktree 3（自動作成）
+/workspace/              ← Launch Claude session here
+├── my-project/          ← Git repository (auto-detected)
+├── wt-feature-auth/     ← worktree 1 (auto-created)
+├── wt-feature-api/      ← worktree 2 (auto-created)
+└── wt-feature-tests/    ← worktree 3 (auto-created)
 ```
 
-この構成により：
-- worktreeがリポジトリと同じ階層に作成される
-- Claudeセッションから全worktreeを簡単に参照可能
-- 複数リポジトリがある場合は `GIT_REPO` 環境変数で指定可能
+With this setup:
+- Worktrees are created at the same level as the repository
+- All worktrees are easily accessible from the Claude session
+- If there are multiple repositories, specify with the `GIT_REPO` environment variable
 
 ```bash
-# 複数リポジトリがある場合の指定方法
+# How to specify when there are multiple repositories
 GIT_REPO=/workspace/my-project ./scripts/spinup.sh feature/auth
 ```
 
-**注意**: `review`, `merge`, `fix`, `resolve-conflicts` などのコマンドはworktree内またはgitリポジトリ内から実行する必要があります。
+**Note**: Commands such as `review`, `merge`, `fix`, and `resolve-conflicts` must be run from within a worktree or git repository.
 
-## ディレクトリ構造
+## Directory Structure
 
 ```
 claude-paralell/
-├── plugin.json              # プラグインマニフェスト
+├── plugin.json              # Plugin manifest
 │
-├── commands/                # スラッシュコマンド
+├── commands/                # Slash commands
 │   ├── design.md
 │   ├── decompose.md
 │   ├── orchestrate.md
 │   ├── worker.md
-│   ├── wtj.md               # 独立worktreeで自律実装
-│   ├── wt-clean.md        # wtj環境クリーンアップ
+│   ├── wtj.md               # Autonomous implementation in isolated worktree
+│   ├── wt-clean.md          # wtj environment cleanup
 │   ├── status.md
 │   ├── precheck.md
 │   ├── rv.md
@@ -474,82 +474,82 @@ claude-paralell/
 │   ├── cleanup.md
 │   └── resolve-conflicts.md
 │
-├── agents/                  # サブエージェント
-│   ├── explorer.md          # 高速探索 (Haiku)
-│   ├── analyzer.md          # 詳細分析 (Sonnet)
-│   └── status-monitor.md    # バックグラウンド監視 (Haiku)
+├── agents/                  # Subagents
+│   ├── explorer.md          # Fast exploration (Haiku)
+│   ├── analyzer.md          # Detailed analysis (Sonnet)
+│   └── status-monitor.md    # Background monitoring (Haiku)
 │
-├── skills/                  # 自動適用スキル
+├── skills/                  # Auto-applied skills
 │   ├── code-quality/
 │   │   └── SKILL.md
 │   └── security-review/
 │       └── SKILL.md
 │
-├── hooks/                   # 汎用Hooks
+├── hooks/                   # General Hooks
 │   └── hooks.json
 │
-├── examples/                # 設定例
+├── examples/                # Configuration examples
 │   ├── CLAUDE.project-template.md
 │   ├── hooks-python.json
 │   ├── hooks-javascript.json
 │   └── hooks-go.json
 │
-├── scripts/                 # 実行スクリプト
-│   ├── spinup.sh            # 並列環境起動
-│   └── teardown.sh          # 並列環境削除
+├── scripts/                 # Execution scripts
+│   ├── spinup.sh            # Launch parallel environment
+│   └── teardown.sh          # Remove parallel environment
 │
-└── README.md               # このファイル
+└── README.md               # This file
 ```
 
-## ベストプラクティス
+## Best Practices
 
-### タスク分解
+### Task Decomposition
 
-- **独立性**: 各サブタスクは同じファイルを編集しない
-- **完結性**: 各サブタスクは単独でマージ可能なPRを生成
-- **適切な粒度**: 2-5個のサブタスクが最適
+- **Independence**: Each subtask should not edit the same files
+- **Self-Containment**: Each subtask should produce a PR that can be merged independently
+- **Appropriate Granularity**: 2-5 subtasks is optimal
 
-### 並列実行
+### Parallel Execution
 
-- プロンプトは**常に英語**で記述（日本語出力でも）
-- 定期的に`/pw:status`で進捗を確認
-- ブロッカーがあれば早期に介入
+- Prompts should **always be written in English** (even for Japanese output)
+- Regularly check progress with `/pw:status`
+- Intervene early if there are blockers
 
-### クリーンアップ
+### Cleanup
 
-- **全PRがマージされるまでクリーンアップしない**
-- `gh pr list --state open`で確認してから実行
+- **Do not clean up until all PRs are merged**
+- Verify with `gh pr list --state open` before running
 
-## トラブルシューティング
+## Troubleshooting
 
-### セッションが見つからない
+### Session Not Found
 
 ```bash
 tmux list-sessions
 ```
 
-### Worktreeが見つからない
+### Worktree Not Found
 
 ```bash
 git worktree list
 ```
 
-### 強制クリーンアップ
+### Force Cleanup
 
 ```bash
-# Worktreeを強制削除
+# Force remove worktree
 git worktree remove --force /path/to/worktree
 
-# tmuxセッションを強制終了
+# Force kill tmux session
 tmux kill-session -t session-name
 
-# 孤立したworktreeエントリを削除
+# Remove orphaned worktree entries
 git worktree prune
 ```
 
-## 関連ドキュメント
+## Related Documentation
 
-- [Claude Code公式ドキュメント](https://docs.anthropic.com/claude-code)
+- [Claude Code Official Documentation](https://docs.anthropic.com/claude-code)
 - [Plugins](https://code.claude.com/docs/en/plugins)
 - [Commands](https://code.claude.com/docs/en/slash-commands)
 - [Subagents](https://code.claude.com/docs/en/sub-agents)
