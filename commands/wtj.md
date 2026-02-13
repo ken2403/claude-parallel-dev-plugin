@@ -212,6 +212,16 @@ else
 fi
 
 # ============================================
+# 4.5 Copy Claude Local Settings
+# ============================================
+if [ -f "${GIT_ROOT}/.claude/settings.local.json" ]; then
+  echo "Copying .claude/settings.local.json to worktree..."
+  mkdir -p "${WORKTREE_PATH}/.claude"
+  cp "${GIT_ROOT}/.claude/settings.local.json" "${WORKTREE_PATH}/.claude/settings.local.json"
+  echo "Done."
+fi
+
+# ============================================
 # 5. Verify Setup
 # ============================================
 echo ""

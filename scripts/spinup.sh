@@ -139,6 +139,12 @@ for wt in "$@"; do
     fi
   fi
 
+  # Copy Claude local settings if present
+  if [ -f "${REPO_ROOT}/.claude/settings.local.json" ]; then
+    mkdir -p "${WORKTREE_PATH}/.claude"
+    cp "${REPO_ROOT}/.claude/settings.local.json" "${WORKTREE_PATH}/.claude/settings.local.json"
+  fi
+
   if ! tmux has-session -t "$session" 2>/dev/null; then
     tmux new-session -d -s "$session" -c "$WORKTREE_PATH"
   fi
