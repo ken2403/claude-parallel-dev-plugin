@@ -1,7 +1,7 @@
 ---
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob
 argument-hint: [branch name]
-description: Resolve merge conflicts with main branch
+description: Resolve merge conflicts with default branch
 model: opus
 ---
 
@@ -12,7 +12,8 @@ $ARGUMENTS
 
 ## Context
 - Current branch: !`git branch --show-current`
-- Behind main by: !`git rev-list --count HEAD..origin/main 2>/dev/null || echo "unknown"`
+- Default branch: !`git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //'`
+- Behind default branch by: !`git rev-list --count HEAD..origin/$(git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //') 2>/dev/null || echo "unknown"`
 
 ## Conflict Status
 ```bash
@@ -22,10 +23,12 @@ git status 2>/dev/null || echo "Not in git repo"
 
 ## Resolution Process
 
-### Step 1: Fetch and Attempt Merge
+### Step 1: Detect Default Branch, Fetch and Attempt Merge
 ```bash
-git fetch origin main
-git merge origin/main
+DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
+echo "Default branch: $DEFAULT_BRANCH"
+git fetch origin "$DEFAULT_BRANCH"
+git merge "origin/$DEFAULT_BRANCH"
 ```
 
 ### Step 2: Identify Conflicts
@@ -57,8 +60,9 @@ git add [file]
 
 ### Step 5: Complete Merge
 ```bash
-git commit -m "$(cat <<'EOF'
-merge: resolve conflicts with main
+DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
+git commit -m "$(cat <<EOF
+merge: resolve conflicts with $DEFAULT_BRANCH
 
 Resolved conflicts in:
 - [file1]
@@ -94,7 +98,7 @@ git push
 When our changes are correct and theirs should be discarded.
 
 ### Strategy 2: Keep Theirs
-When main branch changes should take precedence.
+When default branch changes should take precedence.
 
 ### Strategy 3: Combine Both
 When both changes are needed and can coexist.
@@ -121,7 +125,7 @@ When neither version is correct and new code is needed.
 
 ## Commit
 - SHA: [commit-sha]
-- Message: merge: resolve conflicts with main
+- Message: merge: resolve conflicts with [default-branch]
 
 ## Next Steps
 PR is now mergeable. Run `/pw:merge [pr-number]`
