@@ -157,7 +157,8 @@ fi
 ```bash
 echo ""
 echo "=== Merge Complete ==="
-echo "Update your local main branch:"
+DEFAULT_BRANCH=$(gh pr view $PR_NUM --json baseRefName --jq '.baseRefName' 2>/dev/null || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //' || echo "main")
+echo "Update your local $DEFAULT_BRANCH branch:"
 echo "  git checkout [base-branch] && git pull"
 echo ""
 echo "If more PRs to merge:"

@@ -42,14 +42,16 @@ gh pr view $1 2>/dev/null || echo "Provide PR number as argument"
 ### Changes Overview
 ```bash
 echo "=== Files Changed ==="
-gh pr diff $1 --stat 2>/dev/null || git diff origin/main...HEAD --stat
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
+gh pr diff $1 --stat 2>/dev/null || git diff "origin/${DEFAULT_BRANCH:-main}"...HEAD --stat
 ```
 
 ### Detailed Diff
 ```bash
 echo ""
 echo "=== Diff Preview (first 200 lines) ==="
-gh pr diff $1 2>/dev/null | head -200 || git diff origin/main...HEAD | head -200
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
+gh pr diff $1 2>/dev/null | head -200 || git diff "origin/${DEFAULT_BRANCH:-main}"...HEAD | head -200
 ```
 
 ### CI Status

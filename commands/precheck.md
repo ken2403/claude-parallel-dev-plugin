@@ -340,14 +340,14 @@ Refer to the skill definitions for detailed checklists.
 
 ```bash
 echo "=== Changed Files for Review ==="
-BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //' || echo "main")
 git diff ${BASE_BRANCH}...HEAD --name-only 2>/dev/null || git diff HEAD~5 --name-only
 ```
 
 ```bash
 echo ""
 echo "=== Diff Preview (first 300 lines) ==="
-BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //' || echo "main")
 git diff ${BASE_BRANCH}...HEAD 2>/dev/null | head -300 || git diff HEAD~5 | head -300
 ```
 
@@ -390,7 +390,7 @@ echo "=== Related Context ==="
 
 # Check for issue references in commits
 echo "--- Issue References in Commits ---"
-BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //' || echo "main")
 git log ${BASE_BRANCH}..HEAD --oneline 2>/dev/null | grep -oE "#[0-9]+" || echo "No issue references found in commits"
 
 # Check branch name for issue reference
