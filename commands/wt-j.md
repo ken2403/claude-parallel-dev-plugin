@@ -353,10 +353,77 @@ Use analyzer subagent to understand architecture and dependencies if needed
 ### Planning
 
 Before writing code:
-1. List all files to create or modify
-2. Identify patterns to follow from existing code
-3. Plan minimal, focused changes
-4. Consider edge cases and error handling
+1. List ALL files to create or modify with expected changes per file
+2. Estimate lines changed per file
+3. Identify patterns to follow from existing code (reference specific files)
+4. Identify file dependencies (which files call functions from other files)
+5. Consider edge cases and error handling
+6. **Assess parallelizability**: If 3+ independent files need modification, plan for parallel execution
+
+### Parallel Implementation (3+ files)
+
+If the implementation plan involves modifying or creating 3 or more files, use simple-implementer subagents for parallel execution:
+
+#### 1. Group files
+Group by directory or functional area. Each group should have:
+- Max 5 files
+- Estimated total changes under ~200 lines
+- Minimal cross-group dependencies
+
+#### 2. Write detailed per-file instructions
+For each file in each group, describe exactly what to create or modify:
+- Function/class signatures and logic
+- Expected behavior and edge cases
+- Code patterns to follow (reference specific existing files)
+- How this file relates to files in other groups (shared interfaces, imports)
+
+#### 3. Pre-Dispatch Review
+Before launching subagents, verify your instructions:
+- **Sufficiency**: Each group's instructions are self-contained enough for standalone implementation
+- **Cross-group consistency**: Function signatures, types, and interfaces match across groups
+- **Scope**: Each group's estimated changes are within simple-implementer limits (~200 lines)
+- **Dependencies**: Shared contracts between groups are explicitly documented in each group's instructions
+
+Fix any issues in the instructions before dispatching.
+
+#### 4. Launch simple-implementer subagents in parallel
+
+Launch multiple simple-implementer subagents in parallel using the Task tool. For each group:
+
+```
+Use simple-implementer subagent to implement changes in the following files:
+
+Working directory: [WORKTREE_PATH]
+
+Files and changes:
+- `[file1]`: [Detailed description — function signatures, logic, patterns to follow from existing_file:line]
+- `[file2]`: [Detailed description — must match interface defined in file1]
+
+Context:
+- This is part of a larger task: [task description]
+- Related files (read-only reference): [list of files that provide context]
+- Code patterns to follow: See [existing file:line] for style reference
+
+After implementation:
+1. Verify each file is syntactically correct
+2. Stage changed files: `git add [file]`
+
+IMPORTANT:
+- Only modify the files listed above
+- Follow existing code style exactly
+- Do NOT run git commit or git push
+```
+
+#### 5. Integration Review
+After all subagents complete:
+- Read `git diff` for all changed files to verify correctness
+- Verify cross-file consistency (imports, function calls, type definitions)
+- Handle any REJECTED tasks directly
+- Fix any integration issues found
+
+### Sequential Implementation (1-2 files)
+
+If only 1-2 files need modification, implement directly without subagent overhead.
 
 ### Implementation Guidelines
 

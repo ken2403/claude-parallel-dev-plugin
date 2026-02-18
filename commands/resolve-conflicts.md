@@ -1,7 +1,7 @@
 ---
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob
 argument-hint: [branch name]
-description: Resolve merge conflicts with default branch
+description: Resolve merge conflicts with default branch using parallel subagents for 3+ files
 model: opus
 ---
 
@@ -33,32 +33,172 @@ git fetch origin "$BASE_BRANCH"
 git merge "origin/$BASE_BRANCH"
 ```
 
-### Step 2: Identify Conflicts
+### Step 2: Identify and Group Conflicting Files
 ```bash
 echo "=== Conflicting Files ==="
-git status | grep "both modified" || echo "No conflicts or not in merge state"
+CONFLICTED_FILES=$(git diff --name-only --diff-filter=U 2>/dev/null)
+if [ -z "$CONFLICTED_FILES" ]; then
+  echo "No conflicts detected. Merge completed cleanly."
+  exit 0
+fi
+
+echo "$CONFLICTED_FILES"
+CONFLICT_COUNT=$(echo "$CONFLICTED_FILES" | wc -l | tr -d ' ')
+echo ""
+echo "Total conflicting files: $CONFLICT_COUNT"
+
+echo ""
+echo "=== Files by Directory ==="
+echo "$CONFLICTED_FILES" | while read f; do dirname "$f"; done | sort -u | while read dir; do
+  count=$(echo "$CONFLICTED_FILES" | while read f; do dirname "$f"; done | grep -c "^${dir}$" || true)
+  echo "  ${dir}/ : ${count} files"
+done
 ```
 
-### Step 3: Analyze Each Conflict
+### Step 3: Analyze Conflicts and Prepare Resolution Instructions
 
 For each conflicted file:
-1. Read the file to see conflict markers
-2. Understand both versions (ours vs theirs)
-3. Determine correct resolution
-4. Edit to resolve
 
-Use explorer subagent if context is needed:
-```
-Use explorer subagent to understand the purpose of conflicting code
-```
+1. **Read** the file to see all conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`)
+2. **Understand both sides**:
+   - `<<<<<<< HEAD` (ours): Changes on the current branch
+   - `>>>>>>> origin/[base]` (theirs): Changes from the base branch
+3. **Use explorer subagent** for additional context if needed:
+   ```
+   Use explorer subagent to understand the purpose and dependencies of conflicting code
+   ```
+4. **Determine resolution strategy** for each conflict block:
+   - **Keep Ours**: Our changes are correct, theirs should be discarded
+   - **Keep Theirs**: Base branch changes should take precedence
+   - **Combine Both**: Both changes are needed and can coexist
+   - **Rewrite**: Neither version is correct; new code is needed
+5. **Write detailed per-file resolution instructions** with line-level specificity:
+   - For Keep Ours/Theirs: Specify which lines to keep and which to remove
+   - For Combine: Specify exact ordering and how to merge both sides
+   - For Rewrite: Provide the exact replacement code
+
+### Step 3.5: Pre-Dispatch Review
+
+Before dispatching to subagents, verify the resolution instructions:
+
+1. **Sufficiency**: Each instruction set is detailed enough for standalone execution
+   - File paths are accurate
+   - Line numbers and conflict block locations are specified
+   - Resolution strategy is concrete (not vague)
+2. **Cross-file consistency**: Instructions don't contradict each other
+   - Function signatures match across files
+   - Import/export changes are consistent
+   - Shared types or interfaces align
+3. **Scope check**: Estimated changes per group are within simple-implementer limits (~200 lines)
+
+Fix any issues in the instructions before proceeding.
 
 ### Step 4: Resolve Conflicts
 
-For each conflicted file:
-```bash
-# After editing to resolve
-git add [file]
+#### For 1-2 conflicting files (sequential):
+
+Resolve directly without subagent overhead:
+1. Edit each file to remove all conflict markers, applying the chosen strategy
+2. Verify no conflict markers remain
+3. Run `git add [file]` for each resolved file
+
+#### For 3+ conflicting files (parallel via simple-implementer subagents):
+
+Group files by parent directory. Each group becomes one subagent task.
+
+**Grouping rules:**
+- Files in the same directory form one group
+- Max 5 files per group (split larger groups)
+- Root-level files form their own group
+
+Launch multiple simple-implementer subagents in parallel using the Task tool. For each group:
+
 ```
+Use simple-implementer subagent to resolve merge conflicts in the following files:
+
+Files:
+- [file1 path]
+- [file2 path]
+
+Detailed resolution instructions per file:
+
+### [file1]
+Strategy: [Keep Ours / Keep Theirs / Combine Both / Rewrite]
+- Conflict block at lines [N-M]:
+  - [Specific line-level instructions: which lines to keep, remove, or how to combine]
+  - [Expected final result description]
+
+### [file2]
+Strategy: [strategy]
+- Conflict block at lines [N-M]:
+  - [Specific instructions]
+
+After resolving each file:
+1. Verify NO conflict markers (<<<<<<< / ======= / >>>>>>>) remain in the file
+2. Run `git add [file]` for each resolved file
+
+IMPORTANT:
+- Remove ALL conflict markers from every file
+- Follow the resolution instructions exactly
+- Do NOT modify any code outside of conflict blocks
+```
+
+Wait for all subagents to complete before proceeding.
+
+### Step 4.5: Integration Review (CRITICAL)
+
+After all subagents complete (or after direct resolution), perform thorough verification.
+
+#### 4.5a. Marker Residue Check (mechanical)
+
+```bash
+echo "=== Checking for remaining conflict markers ==="
+REMAINING=$(grep -rn "<<<<<<< \|======= \|>>>>>>> " . --include='*' 2>/dev/null | grep -v '.git/' || true)
+if [ -n "$REMAINING" ]; then
+  echo "WARNING: Conflict markers still present:"
+  echo "$REMAINING"
+else
+  echo "All conflict markers removed."
+fi
+
+echo ""
+echo "=== Checking unresolved files ==="
+UNMERGED=$(git diff --name-only --diff-filter=U 2>/dev/null)
+if [ -n "$UNMERGED" ]; then
+  echo "WARNING: Unmerged files remain:"
+  echo "$UNMERGED"
+else
+  echo "All files merged and staged."
+fi
+```
+
+If any markers remain or files are unmerged, resolve them directly before continuing.
+
+#### 4.5b. Logic Integrity Review (Opus reads all resolved files)
+
+**MANDATORY**: Read each resolved file in its entirety and verify:
+
+1. **Strategy compliance**: The resolution matches the strategy decided in Step 3
+   - Keep Ours was not accidentally replaced with Theirs content
+   - Combine correctly includes both sides in the right order
+   - No unintended code was kept or removed
+
+2. **Syntactic correctness**: The resolved code is valid
+   - Brackets, parentheses, and indentation are correct
+   - No dangling or orphaned code blocks
+   - Import statements reference symbols that exist
+
+3. **Cross-file consistency**: Changes across files are compatible
+   - Function signatures match their call sites
+   - Type definitions are consistent across files
+   - Shared constants or config values are not contradictory
+
+4. **Business logic correctness**: The merged result makes functional sense
+   - Incoming (base branch) changes' intent is preserved where chosen
+   - Current branch changes' intent is preserved where chosen
+   - Combined changes work together as a coherent whole
+
+5. **If issues found**: Fix them directly — do not re-dispatch to subagents
 
 ### Step 5: Complete Merge
 ```bash
@@ -115,11 +255,21 @@ When neither version is correct and new code is needed.
 ```markdown
 # Conflict Resolution Report
 
+## Execution Mode
+- **Mode**: Sequential / Parallel (N subagents)
+- **Files**: N conflicting files in M groups
+
 ## Files Resolved
-| File | Strategy | Notes |
-|------|----------|-------|
-| [file1] | Combined | Merged both changes |
-| [file2] | Keep ours | Our logic was correct |
+| File | Strategy | Resolved By | Notes |
+|------|----------|-------------|-------|
+| [file1] | Combined | subagent-1 | Merged both changes |
+| [file2] | Keep ours | lead | Our logic was correct |
+
+## Integration Review
+- [ ] All conflict markers removed
+- [ ] Logic integrity verified (Opus read all files)
+- [ ] Cross-file consistency confirmed
+- [ ] Business logic correctness verified
 
 ## Verification
 - [ ] Merge completed
