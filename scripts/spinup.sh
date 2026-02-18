@@ -114,7 +114,7 @@ if [ $# -lt 1 ]; then
   exit 1
 fi
 
-# Worktree directory: inside repo (consistent with wtj)
+# Worktree directory: inside repo (consistent with wt-j)
 WORKTREES_DIR="${REPO_ROOT}/worktrees"
 mkdir -p "$WORKTREES_DIR"
 

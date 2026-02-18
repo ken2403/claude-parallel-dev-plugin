@@ -72,7 +72,7 @@ This plugin supports two workflows:
 #### A. Parallel Execution Workflow (For Large Tasks)
 
 ```
-Receive spec → Design → Task decomposition → Parallel execution → Review → Merge → Cleanup
+Receive spec → Design (with decomposition) → Parallel execution → Review → Merge → Cleanup
 ```
 
 Use this when decomposing into multiple subtasks and executing in parallel with tmux.
@@ -80,7 +80,7 @@ Use this when decomposing into multiple subtasks and executing in parallel with 
 #### B. Worktree Job Workflow (For Independent Tasks)
 
 ```
-Issue/Task → wtj → (Autonomous implementation) → Review → Merge → Cleanup
+Issue/Task → wt-j → (Autonomous implementation) → Review → Merge → Cleanup
 ```
 
 Use this when autonomously implementing independent tasks in an isolated environment.
@@ -89,12 +89,11 @@ Use this when autonomously implementing independent tasks in an isolated environ
 
 | Command | Description | Arguments |
 |---------|-------------|-----------|
-| `/pw:design` | Create design from spec | `#issue-number` / `@file-reference` / `"text"` |
-| `/pw:decompose` | Decompose tasks | Design output or task description |
+| `/pw:design` | Create design and decompose tasks from spec | `#issue-number` / `@file-reference` / `"text"` |
 | `/pw:orchestrate` | Launch parallel workers | List of branch names |
 | `/pw:worker` | Execute worker task | Task description |
-| `/pw:wtj` | Autonomous implementation in isolated worktree | `#issue-number` / `"task description"` `[--feature\|--fix]` |
-| `/pw:wt-clean` | Clean up wtj environment | `job-name` / `--all` |
+| `/pw:wt-j` | Autonomous implementation in isolated worktree | `#issue-number` / `"task description"` `[--feature\|--fix]` |
+| `/pw:wt-clean` | Clean up wt-j environment | `job-name` / `--all` |
 | `/pw:status` | Check progress | (Optional) session name |
 | `/pw:precheck` | Pre-check before PR creation | Branch name or `HEAD` |
 | `/pw:rv` | Review PR (critical) | PR number |
@@ -108,11 +107,8 @@ Use this when autonomously implementing independent tasks in an isolated environ
 #### 1. Implement from GitHub Issue
 
 ```bash
-# Design
+# Design (includes task decomposition)
 /pw:design #123
-
-# Task decomposition
-/pw:decompose
 
 # Launch parallel workers
 /pw:orchestrate feature/auth feature/api feature/tests
@@ -156,11 +152,11 @@ A workflow for autonomously implementing independent tasks in an isolated enviro
 # 1. Create design from Issue (understand requirements)
 /pw:design #123
 
-# 2. Start autonomous implementation with wtj
+# 2. Start autonomous implementation with wt-j
 #    - A worktree is created at worktrees/issue-123/
 #    - Work on feature/issue-123 branch
 #    - Automatically runs through to PR creation
-/pw:wtj #123
+/pw:wt-j #123
 
 # 3. Review PR (critical review by default)
 /pw:rv <PR-number>
@@ -179,10 +175,10 @@ A workflow for autonomously implementing independent tasks in an isolated enviro
 # 1. Start implementation directly with free text
 #    - A worktree is created at worktrees/add-dark-mode-toggle/
 #    - Work on feature/add-dark-mode-toggle branch
-/pw:wtj "Add dark mode toggle to settings page"
+/pw:wt-j "Add dark mode toggle to settings page"
 
 # For bug fixes, specify --fix
-/pw:wtj "Fix null pointer in auth module" --fix
+/pw:wt-j "Fix null pointer in auth module" --fix
 # -> fix/fix-null-pointer-in-auth-module branch is created
 
 # 2. Review → Merge → Cleanup
@@ -195,9 +191,9 @@ A workflow for autonomously implementing independent tasks in an isolated enviro
 
 ```bash
 # Can run simultaneously in separate terminals
-Terminal 1: /pw:wtj #100
-Terminal 2: /pw:wtj #200
-Terminal 3: /pw:wtj "Refactor utils"
+Terminal 1: /pw:wt-j #100
+Terminal 2: /pw:wt-j #200
+Terminal 3: /pw:wt-j "Refactor utils"
 
 # Cleanup all at once after all are merged
 /pw:wt-clean --all
@@ -222,7 +218,7 @@ Terminal 3: /pw:wtj "Refactor utils"
 ```
                                     ┌─────────────────┐
                                     │   /pw:design    │
-                                    │  (Design Phase) │
+                                    │(Design + Decomp)│
                                     └────────┬────────┘
                                              │ uses
                                              ▼
@@ -230,12 +226,6 @@ Terminal 3: /pw:wtj "Refactor utils"
                               │         explorer             │
                               │    (Code Exploration)        │
                               └──────────────────────────────┘
-                                             │
-                                             ▼
-                                    ┌─────────────────┐
-                                    │  /pw:decompose  │
-                                    │(Task Decompose) │
-                                    └────────┬────────┘
                                              │
                                              ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -313,10 +303,9 @@ Terminal 3: /pw:wtj "Refactor utils"
 | Command | Required Subagents | Optional |
 |---------|-------------------|----------|
 | `/pw:design` | `explorer` | `analyzer` |
-| `/pw:decompose` | `explorer` | - |
 | `/pw:orchestrate` | - | `status-monitor` (background) |
 | `/pw:worker` | `explorer` | `analyzer` |
-| `/pw:wtj` | `explorer` | `analyzer` |
+| `/pw:wt-j` | `explorer` | `analyzer` |
 | `/pw:wt-clean` | - | - |
 | `/pw:status` | - | - |
 | `/pw:precheck` | `explorer` | `analyzer` |
@@ -331,7 +320,7 @@ Terminal 3: /pw:wtj "Refactor utils"
 | Command | Applied Skills |
 |---------|---------------|
 | `/pw:worker` | `code-quality`, `security-review` |
-| `/pw:wtj` | `code-quality`, `security-review` |
+| `/pw:wt-j` | `code-quality`, `security-review` |
 | `/pw:precheck` | `code-quality`, `security-review` |
 | `/pw:rv` | `code-quality`, `security-review` |
 | `/pw:fix` | `code-quality` |
@@ -461,11 +450,10 @@ claude-paralell/
 │
 ├── commands/                # Slash commands
 │   ├── design.md
-│   ├── decompose.md
 │   ├── orchestrate.md
 │   ├── worker.md
-│   ├── wtj.md               # Autonomous implementation in isolated worktree
-│   ├── wt-clean.md          # wtj environment cleanup
+│   ├── wt-j.md              # Autonomous implementation in isolated worktree
+│   ├── wt-clean.md          # wt-j environment cleanup
 │   ├── status.md
 │   ├── precheck.md
 │   ├── rv.md

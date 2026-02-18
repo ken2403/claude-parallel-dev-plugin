@@ -66,7 +66,7 @@ The scripts automatically detect the git repository:
 2. If running from a parent directory, detect git repo in subdirectories
 3. If multiple repos found, specify with `GIT_REPO` environment variable
 
-Worktrees are located inside the repository's `worktrees/` directory (consistent with `/pw:wtj`):
+Worktrees are located inside the repository's `worktrees/` directory (consistent with `/pw:wt-j`):
 ```
 /workspace/
 └── my-project/              ← Git repo
