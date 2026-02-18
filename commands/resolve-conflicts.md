@@ -76,7 +76,23 @@ git add [file]
 
 ### Step 5: Complete Merge
 ```bash
-# Reuse BASE_BRANCH from earlier detection (canonical: scripts/detect-base-branch.sh)
+# Base branch detection (canonical: scripts/detect-base-branch.sh)
+BASE_BRANCH=""
+if [ -f "CLAUDE.md" ]; then
+  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
+fi
+if [ -z "$BASE_BRANCH" ]; then
+  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
+fi
+if [ -z "$BASE_BRANCH" ]; then
+  for branch in main master develop dev; do
+    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      BASE_BRANCH="$branch"
+      break
+    fi
+  done
+fi
+BASE_BRANCH="${BASE_BRANCH:-main}"
 git commit -m "$(cat <<EOF
 merge: resolve conflicts with $BASE_BRANCH
 

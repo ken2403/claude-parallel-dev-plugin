@@ -342,15 +342,47 @@ Refer to the skill definitions for detailed checklists.
 
 ```bash
 echo "=== Changed Files for Review ==="
-# Reuse BASE_BRANCH from earlier detection (canonical: scripts/detect-base-branch.sh)
-git diff ${BASE_BRANCH:-main}...HEAD --name-only 2>/dev/null || git diff HEAD~5 --name-only
+# Base branch detection (canonical: scripts/detect-base-branch.sh)
+BASE_BRANCH=""
+if [ -f "CLAUDE.md" ]; then
+  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
+fi
+if [ -z "$BASE_BRANCH" ]; then
+  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
+fi
+if [ -z "$BASE_BRANCH" ]; then
+  for branch in main master develop dev; do
+    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      BASE_BRANCH="$branch"
+      break
+    fi
+  done
+fi
+BASE_BRANCH="${BASE_BRANCH:-main}"
+git diff ${BASE_BRANCH}...HEAD --name-only 2>/dev/null || git diff HEAD~5 --name-only
 ```
 
 ```bash
 echo ""
 echo "=== Diff Preview (first 300 lines) ==="
-# Reuse BASE_BRANCH from earlier detection (canonical: scripts/detect-base-branch.sh)
-git diff ${BASE_BRANCH:-main}...HEAD 2>/dev/null | head -300 || git diff HEAD~5 | head -300
+# Base branch detection (canonical: scripts/detect-base-branch.sh)
+BASE_BRANCH=""
+if [ -f "CLAUDE.md" ]; then
+  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
+fi
+if [ -z "$BASE_BRANCH" ]; then
+  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
+fi
+if [ -z "$BASE_BRANCH" ]; then
+  for branch in main master develop dev; do
+    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      BASE_BRANCH="$branch"
+      break
+    fi
+  done
+fi
+BASE_BRANCH="${BASE_BRANCH:-main}"
+git diff ${BASE_BRANCH}...HEAD 2>/dev/null | head -300 || git diff HEAD~5 | head -300
 ```
 
 ### 3.4 Quality Checklist
@@ -392,8 +424,24 @@ echo "=== Related Context ==="
 
 # Check for issue references in commits
 echo "--- Issue References in Commits ---"
-# Reuse BASE_BRANCH from earlier detection (canonical: scripts/detect-base-branch.sh)
-git log ${BASE_BRANCH:-main}..HEAD --oneline 2>/dev/null | grep -oE "#[0-9]+" || echo "No issue references found in commits"
+# Base branch detection (canonical: scripts/detect-base-branch.sh)
+BASE_BRANCH=""
+if [ -f "CLAUDE.md" ]; then
+  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
+fi
+if [ -z "$BASE_BRANCH" ]; then
+  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
+fi
+if [ -z "$BASE_BRANCH" ]; then
+  for branch in main master develop dev; do
+    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      BASE_BRANCH="$branch"
+      break
+    fi
+  done
+fi
+BASE_BRANCH="${BASE_BRANCH:-main}"
+git log ${BASE_BRANCH}..HEAD --oneline 2>/dev/null | grep -oE "#[0-9]+" || echo "No issue references found in commits"
 
 # Check branch name for issue reference
 echo ""
