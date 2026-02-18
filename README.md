@@ -23,14 +23,14 @@ Clone from GitHub. The plugin can be placed in **any directory**:
 ```bash
 # Clone to any directory
 cd /path/to/any-directory
-git clone https://github.com/ken2403/claude-paralell.git
+git clone https://github.com/ken2403/claude-paralell-dev-plugin.git
 ```
 
 Example layout:
 
 ```
 /opt/claude-plugins/
-└── claude-paralell/              # This plugin
+└── claude-paralell-dev-plugin/   # This plugin
 ```
 
 ### 2. Enable the Plugin in Claude Code
@@ -41,7 +41,7 @@ Registering the plugin as a Marketplace makes it available in any project:
 
 ```bash
 # Add the plugin as a Marketplace
-claude plugin marketplace add /path/to/any-directory/claude-paralell
+claude plugin marketplace add /path/to/any-directory/claude-paralell-dev-plugin
 
 # Install the plugin
 claude plugin install pw@claude-parallel-dev-plugin
@@ -53,13 +53,13 @@ To use only in a specific session, launch Claude Code with the `--plugin-dir` op
 
 ```bash
 cd your-project
-claude --plugin-dir /path/to/any-directory/claude-paralell
+claude --plugin-dir /path/to/any-directory/claude-paralell-dev-plugin
 ```
 
 ### 3. Place CLAUDE.md in Your Project (Recommended)
 
 ```bash
-cp ../claude-paralell/examples/CLAUDE.project-template.md ./CLAUDE.md
+cp ../claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.md
 # Edit to fit your project
 ```
 
@@ -403,7 +403,7 @@ To apply to your project:
 
 ```bash
 mkdir -p .claude
-cp ../claude-paralell/examples/hooks-python.json .claude/settings.json
+cp ../claude-paralell-dev-plugin/examples/hooks-python.json .claude/settings.json
 ```
 
 ## Auto-Detection
