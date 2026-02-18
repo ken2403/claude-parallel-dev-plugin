@@ -153,7 +153,7 @@ After all subagents complete (or after direct resolution), perform thorough veri
 
 ```bash
 echo "=== Checking for remaining conflict markers ==="
-REMAINING=$(grep -rn "<<<<<<< \|======= \|>>>>>>> " . --include='*' 2>/dev/null | grep -v '.git/' || true)
+REMAINING=$(grep -rn -E "^<<<<<<<|^=======|^>>>>>>>" . --include='*' 2>/dev/null | grep -v '.git/' || true)
 if [ -n "$REMAINING" ]; then
   echo "WARNING: Conflict markers still present:"
   echo "$REMAINING"

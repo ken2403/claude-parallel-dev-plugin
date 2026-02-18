@@ -135,10 +135,10 @@ After all fixes are applied:
 1. **Review changes**: Read `git diff` to verify all changes are correct
    ```bash
    echo "=== Changed Files ==="
-   git diff --name-only
+   git diff --cached --name-only
    echo ""
    echo "=== Diff Summary ==="
-   git diff --stat
+   git diff --cached --stat
    ```
 2. **Verify completeness**: Confirm all Critical and Required findings were addressed
 3. **Cross-file consistency**: Check that fixes in one file don't break another
