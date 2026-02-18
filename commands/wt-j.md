@@ -5,7 +5,7 @@ description: Create isolated worktree and autonomously implement task until PR c
 model: opus
 ---
 
-# Worktree Job (wtj) - Autonomous Isolated Development
+# Worktree Job (wt-j) - Autonomous Isolated Development
 
 Execute a development task in a completely isolated git worktree environment.
 **This command runs autonomously until PR creation without requiring user approval.**
@@ -487,7 +487,7 @@ COMMIT_TITLE="${BRANCH_PREFIX}: ${TASK_DESCRIPTION}"
 
 git commit --amend -m "${COMMIT_TITLE}
 
-Automated implementation by wtj
+Automated implementation by wt-j
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
@@ -536,7 +536,7 @@ gh pr create --title "${PR_TITLE}" --body "## Summary
 
 ${TASK_DESCRIPTION}
 
-Automated implementation by wtj.
+Automated implementation by wt-j.
 
 ## Changes
 

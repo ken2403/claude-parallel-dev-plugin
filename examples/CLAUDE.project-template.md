@@ -81,8 +81,7 @@ This project uses the parallel-workflow plugin for large-scale tasks.
 
 | Command | Purpose |
 |---------|---------|
-| `/pw:design [spec]` | Create implementation design from specification |
-| `/pw:decompose` | Split task into parallel subtasks |
+| `/pw:design [spec]` | Create implementation design and decompose into subtasks |
 | `/pw:orchestrate` | Start parallel workers |
 | `/pw:worker [task]` | Execute assigned worker task |
 | `/pw:status` | Check all workers status |

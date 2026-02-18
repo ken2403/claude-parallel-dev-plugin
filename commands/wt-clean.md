@@ -1,13 +1,13 @@
 ---
 allowed-tools: Bash
 argument-hint: [job-name or --all]
-description: Clean up wtj environments after PRs are merged
+description: Clean up wt-j environments after PRs are merged
 model: haiku
 ---
 
 # Cleanup Worktree Job
 
-Clean up worktree environments created by `/pw:wtj`.
+Clean up worktree environments created by `/pw:wt-j`.
 
 ## Input
 $ARGUMENTS
@@ -467,7 +467,7 @@ fi
 # Clean up a specific job
 /pw:wt-clean issue-123
 
-# Clean up all merged wtj
+# Clean up all merged wt-j
 /pw:wt-clean --all
 
 # Check status without cleaning (just run the scan part)
