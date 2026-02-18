@@ -114,6 +114,7 @@ fi
 
 # ============================================================
 # SAFETY-CRITICAL FUNCTION: check if branch is merged
+# (canonical: scripts/merge-check.sh)
 #
 # Principle: NEVER return "merged" unless we have POSITIVE PROOF.
 # When in doubt, return "not merged" (safe side).
@@ -157,14 +158,14 @@ is_branch_merged() {
 
   if [ "$branch_exists" = true ]; then
     # Check if branch is merged into local base
-    if git branch --merged "$base" 2>/dev/null | grep -q "^\s*$branch\$"; then
+    if git branch --merged "$base" 2>/dev/null | grep -qx "[ *]*$branch"; then
       verified_by="git branch --merged $base"
       echo "  Merge verified by: $verified_by"
       return 0  # CONFIRMED merged
     fi
 
     # Check if branch is merged into remote base
-    if git branch --merged "origin/$base" 2>/dev/null | grep -q "^\s*$branch\$"; then
+    if git branch --merged "origin/$base" 2>/dev/null | grep -qx "[ *]*$branch"; then
       verified_by="git branch --merged origin/$base"
       echo "  Merge verified by: $verified_by"
       return 0  # CONFIRMED merged

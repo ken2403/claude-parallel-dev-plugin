@@ -52,7 +52,7 @@ BASE_BRANCH=$("${PLUGIN_DIR}/scripts/detect-base-branch.sh" 2>/dev/null || echo 
 echo "Base branch: $BASE_BRANCH"
 ```
 
-## Pre-cleanup Merge Verification (BLOCKING)
+## Pre-cleanup Merge Verification, Teardown, and Branch Deletion
 
 **CRITICAL**: NEVER delete a branch or worktree whose branch has NOT been merged.
 
@@ -60,6 +60,9 @@ This uses the same multi-method verification as `/pw:wt-clean`:
 - Method 1: GitHub API (most reliable, handles squash/rebase merges)
 - Method 2: `git branch --merged` (local + remote)
 - Principle: **When in doubt, REFUSE to delete**
+
+All verification, teardown, and branch deletion are executed in a single block
+to ensure variable state (MERGED_BRANCHES, BLOCKED_BRANCHES) is preserved.
 
 ```bash
 #!/bin/bash
@@ -73,9 +76,11 @@ git fetch origin "${BASE_BRANCH:-main}" --quiet 2>/dev/null || true
 # Parse arguments: extract branch names and flags
 BRANCHES=()
 CLEANUP_FLAGS=""
+USER_KEEP_BRANCHES=false
 for arg in $ARGUMENTS; do
   case "$arg" in
-    --keep-branches|--dry-run) CLEANUP_FLAGS="$CLEANUP_FLAGS $arg" ;;
+    --keep-branches) USER_KEEP_BRANCHES=true ;;
+    --dry-run) CLEANUP_FLAGS="$CLEANUP_FLAGS --dry-run" ;;
     *) BRANCHES+=("$arg") ;;
   esac
 done
@@ -90,91 +95,12 @@ echo "Branches to verify: ${BRANCHES[*]}"
 echo "Base branch: ${BASE_BRANCH:-main}"
 echo ""
 
-# Detect GitHub CLI availability
-GH_AVAILABLE=false
-if command -v gh &>/dev/null && git remote get-url origin &>/dev/null; then
-  GH_AVAILABLE=true
-fi
+# Source canonical merge verification (single source of truth: scripts/merge-check.sh)
+source "${PLUGIN_DIR}/scripts/merge-check.sh"
 
 # ============================================================
-# SAFETY-CRITICAL FUNCTION: check if branch is merged
-#
-# Principle: NEVER return "merged" unless we have POSITIVE PROOF.
-# When in doubt, return "not merged" (safe side).
-#
-# Verification methods (in order):
-#   1. gh pr — check GitHub PR state (most reliable, handles squash merge)
-#   2. git branch --merged — check local git merge status
-#   3. If all methods are inconclusive → return NOT MERGED
+# Phase 1: Verify merge status for all branches
 # ============================================================
-is_branch_merged() {
-  local branch="$1"
-  local base="$2"
-  local verified_by=""
-
-  # --- Method 1: Check via GitHub PR (most reliable) ---
-  # This correctly handles squash merges, rebase merges, etc.
-  if [ "$GH_AVAILABLE" = true ]; then
-    local pr_state=""
-    pr_state=$(gh pr list --head "$branch" --state merged --json number,state --jq '.[0].state' 2>/dev/null || echo "")
-    if [ "$pr_state" = "MERGED" ]; then
-      verified_by="GitHub PR (state=MERGED)"
-      echo "  Merge verified by: $verified_by"
-      return 0  # CONFIRMED merged
-    fi
-
-    # Also check if PR is still open (definitively NOT merged)
-    local pr_open=""
-    pr_open=$(gh pr list --head "$branch" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
-    if [ -n "$pr_open" ]; then
-      echo "  PR #$pr_open is still OPEN — NOT merged"
-      return 1  # Definitively not merged
-    fi
-  fi
-
-  # --- Method 2: Check local git merge status ---
-  # Only works for non-squash merges; requires branch to exist locally
-  local branch_exists=false
-  if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-    branch_exists=true
-  fi
-
-  if [ "$branch_exists" = true ]; then
-    # Check if branch is merged into local base
-    if git branch --merged "$base" 2>/dev/null | grep -q "^\s*$branch\$"; then
-      verified_by="git branch --merged $base"
-      echo "  Merge verified by: $verified_by"
-      return 0  # CONFIRMED merged
-    fi
-
-    # Check if branch is merged into remote base
-    if git branch --merged "origin/$base" 2>/dev/null | grep -q "^\s*$branch\$"; then
-      verified_by="git branch --merged origin/$base"
-      echo "  Merge verified by: $verified_by"
-      return 0  # CONFIRMED merged
-    fi
-
-    # Branch exists but not merged into base
-    echo "  Branch exists locally but is NOT merged into $base"
-    return 1  # NOT merged
-  fi
-
-  # --- Branch does not exist locally ---
-  # CRITICAL: Do NOT assume "branch gone = merged".
-  # The branch could have been deleted without merging, or the name could be wrong.
-  # Without positive proof from GitHub PR, we REFUSE to confirm merge.
-  if [ "$GH_AVAILABLE" = true ]; then
-    echo "  Branch not found locally AND no merged PR found on GitHub"
-    echo "  → REFUSING to confirm merge (no positive proof)"
-    return 1  # SAFE: treat as not merged
-  else
-    echo "  Branch not found locally AND gh CLI unavailable for verification"
-    echo "  → REFUSING to confirm merge (cannot verify)"
-    return 1  # SAFE: treat as not merged
-  fi
-}
-
-# Track results
 MERGED_BRANCHES=()
 BLOCKED_BRANCHES=()
 
@@ -206,7 +132,6 @@ echo "=== Verification Summary ==="
 echo "Merged (safe to clean):  ${#MERGED_BRANCHES[@]}"
 echo "Blocked (NOT merged):    ${#BLOCKED_BRANCHES[@]}"
 
-# Report blocked branches
 if [ ${#BLOCKED_BRANCHES[@]} -gt 0 ]; then
   echo ""
   echo "*** BLOCKED BRANCHES ***"
@@ -218,51 +143,52 @@ if [ ${#BLOCKED_BRANCHES[@]} -gt 0 ]; then
   echo "Merge them first, then re-run cleanup."
 fi
 
-# If nothing is safe to clean, exit
 if [ ${#MERGED_BRANCHES[@]} -eq 0 ]; then
   echo ""
   echo "No merged branches to clean up."
   exit 0
 fi
-```
 
-## Cleanup Execution (Merged Branches Only)
-
-### Using teardown.sh
-
-Only pass **confirmed-merged** branches to teardown.sh. Use `--keep-branches` so teardown.sh
-only handles worktrees and sessions; branch deletion is handled here after verification.
-
-```bash
+# ============================================================
+# Phase 2: Call teardown.sh for worktrees and sessions only
+# ============================================================
 echo ""
 echo "=== Cleaning Up Merged Branches ==="
 echo "Passing to teardown.sh: ${MERGED_BRANCHES[*]}"
 echo ""
 
-# Call teardown with --keep-branches (we handle branch deletion ourselves)
+# Always pass --keep-branches (we handle branch deletion ourselves)
 # Also pass --skip-merge-check since we already verified
+# Pass user's --dry-run if specified
 "${PLUGIN_DIR}/scripts/teardown.sh" --keep-branches --skip-merge-check ${CLEANUP_FLAGS} "${MERGED_BRANCHES[@]}"
-```
 
-### Delete Verified-Merged Branches
+# ============================================================
+# Phase 3: Delete verified-merged branches (unless --keep-branches)
+# ============================================================
+if [ "$USER_KEEP_BRANCHES" = true ]; then
+  echo ""
+  echo "=== Skipping branch deletion (--keep-branches) ==="
+else
+  echo ""
+  echo "=== Deleting Verified-Merged Branches ==="
 
-```bash
-echo ""
-echo "=== Deleting Verified-Merged Branches ==="
-
-for branch in "${MERGED_BRANCHES[@]}"; do
-  if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-    # Use -d (safe delete) — only deletes if fully merged
-    if git branch -d "$branch" 2>/dev/null; then
-      echo "  Deleted local branch: $branch"
+  for branch in "${MERGED_BRANCHES[@]}"; do
+    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      # Use -d (safe delete) — only deletes if fully merged
+      if git branch -d "$branch" 2>/dev/null; then
+        echo "  Deleted local branch: $branch"
+      else
+        echo "  WARNING: git branch -d failed for $branch (git does not consider it merged)"
+        echo "  Keeping branch for safety. Force delete with: git branch -D $branch"
+      fi
     else
-      echo "  WARNING: git branch -d failed for $branch (git does not consider it merged)"
-      echo "  Keeping branch for safety. Force delete with: git branch -D $branch"
+      echo "  Local branch already gone: $branch"
     fi
-  else
-    echo "  Local branch already gone: $branch"
-  fi
-done
+  done
+fi
+
+echo ""
+echo "=== Cleanup Complete ==="
 ```
 
 ### Options

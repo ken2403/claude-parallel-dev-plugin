@@ -59,59 +59,9 @@ get_project_name() {
   basename "$repo_root"
 }
 
-# ==============================================================================
-# SAFETY-CRITICAL: Check if a branch is merged into base branch
-#
-# Principle: NEVER return "merged" unless we have POSITIVE PROOF.
-# When in doubt, return "not merged" (safe side).
-#
-# Verification methods (in order):
-#   1. gh pr — check GitHub PR state (most reliable, handles squash merge)
-#   2. git branch --merged — check local git merge status
-#   3. If all methods are inconclusive → return NOT MERGED
-# ==============================================================================
-is_branch_merged() {
-  local branch="$1"
-  local base="$2"
-  local repo_root="$3"
-
-  # --- Method 1: Check via GitHub PR (most reliable) ---
-  if command -v gh &>/dev/null; then
-    local pr_state=""
-    pr_state=$(cd "$repo_root" && gh pr list --head "$branch" --state merged --json number,state --jq '.[0].state' 2>/dev/null || echo "")
-    if [ "$pr_state" = "MERGED" ]; then
-      echo "  Merge verified by: GitHub PR (state=MERGED)" >&2
-      return 0
-    fi
-
-    # Check if PR is still open (definitively NOT merged)
-    local pr_open=""
-    pr_open=$(cd "$repo_root" && gh pr list --head "$branch" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
-    if [ -n "$pr_open" ]; then
-      echo "  PR #$pr_open is still OPEN — NOT merged" >&2
-      return 1
-    fi
-  fi
-
-  # --- Method 2: Check local git merge status ---
-  if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-    if git -C "$repo_root" branch --merged "$base" 2>/dev/null | grep -q "^\s*$branch\$"; then
-      echo "  Merge verified by: git branch --merged $base" >&2
-      return 0
-    fi
-    if git -C "$repo_root" branch --merged "origin/$base" 2>/dev/null | grep -q "^\s*$branch\$"; then
-      echo "  Merge verified by: git branch --merged origin/$base" >&2
-      return 0
-    fi
-    echo "  Branch exists locally but is NOT merged into $base" >&2
-    return 1
-  fi
-
-  # --- Branch does not exist locally ---
-  # Without positive proof, REFUSE to confirm merge
-  echo "  Branch not found locally and no merged PR found — REFUSING to confirm merge" >&2
-  return 1
-}
+# Source canonical merge verification
+# (single source of truth: scripts/merge-check.sh)
+source "$(dirname "$0")/merge-check.sh"
 
 KEEP_BRANCHES=false
 DRY_RUN=false
