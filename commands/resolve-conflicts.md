@@ -12,8 +12,8 @@ $ARGUMENTS
 
 ## Context
 - Current branch: !`git branch --show-current`
-- Default branch: !`_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; "$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main"`
-- Behind default branch by: !`_BB=$(_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; "$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main"); git rev-list --count HEAD..origin/$_BB 2>/dev/null || echo "unknown"`
+- Default branch: !`_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"; "$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main"`
+- Behind default branch by: !`_BB=$(_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"; "$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main"); git rev-list --count HEAD..origin/$_BB 2>/dev/null || echo "unknown"`
 
 ## Conflict Status
 ```bash

@@ -33,7 +33,17 @@ Example layout:
 └── claude-paralell-dev-plugin/   # This plugin
 ```
 
-### 2. Enable the Plugin in Claude Code
+### 2. Set the Environment Variable
+
+Add `PW_PLUGIN_DIR` to your shell profile so that plugin scripts (e.g. base branch detection) are always discoverable:
+
+```bash
+# Add to ~/.zshrc (or ~/.bashrc)
+echo 'export PW_PLUGIN_DIR="/path/to/any-directory/claude-paralell-dev-plugin"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+### 3. Enable the Plugin in Claude Code
 
 #### Method A: Register as Marketplace (Recommended)
 
@@ -56,7 +66,7 @@ cd your-project
 claude --plugin-dir /path/to/any-directory/claude-paralell-dev-plugin
 ```
 
-### 3. Place CLAUDE.md in Your Project (Recommended)
+### 4. Place CLAUDE.md in Your Project (Recommended)
 
 ```bash
 cp ../claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.md
