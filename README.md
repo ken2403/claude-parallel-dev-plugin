@@ -339,7 +339,7 @@ Terminal 3: /pw:wt-j "Refactor utils"
 | `explorer` | Haiku | Fast file/pattern search | Read, Grep, Glob |
 | `analyzer` | Sonnet | Detailed architecture analysis | Read, Grep, Glob, Bash |
 | `status-monitor` | Haiku | Background progress monitoring (30s interval) | Bash |
-| `simple-implementer` | Opus | Small to medium focused changes (~200 lines), with scope assessment | Read, Edit, Write, Grep, Glob, Bash |
+| `simple-implementer` | Sonnet | Small to medium focused changes (~200 lines), with scope assessment | Read, Edit, Write, Grep, Glob, Bash |
 
 ### Skill List
 
@@ -374,7 +374,7 @@ For background monitoring. Automatically monitors progress after orchestrator la
 - **Maximum Monitoring Duration**: 30 minutes
 - **Detects**: PR creation, errors, completion
 
-### simple-implementer (Opus)
+### simple-implementer (Sonnet)
 
 For small, focused code changes. Assesses task scope before implementation.
 

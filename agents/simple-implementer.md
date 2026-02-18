@@ -2,7 +2,7 @@
 name: simple-implementer
 description: Lightweight implementation agent for small to medium code changes (under ~200 lines). Assesses task scope before implementation and rejects tasks that are too complex. Use for quick fixes, small features, and minor refactors.
 tools: Read, Edit, Write, Grep, Glob, Bash
-model: opus
+model: sonnet
 ---
 
 # Simple Implementer
