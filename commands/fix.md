@@ -52,7 +52,7 @@ Group findings by file ownership:
 - Files in the same directory may be combined (max 5 files per group)
 - Findings without file references are handled directly by the lead
 
-### Step 1.5: Prepare Fix Instructions
+### Step 2: Prepare Fix Instructions
 
 For each file group, write detailed instructions:
 - Exact code location (file:line)
@@ -65,7 +65,7 @@ Use explorer subagent if context is needed:
 Use explorer subagent to find related code patterns or understand dependencies
 ```
 
-### Step 1.75: Pre-Dispatch Review
+### Step 3: Pre-Dispatch Review
 
 Before dispatching to subagents, verify the fix instructions:
 
@@ -80,7 +80,7 @@ Before dispatching to subagents, verify the fix instructions:
 
 Fix any issues in the instructions before proceeding.
 
-### Step 2: Address Each Issue
+### Step 4: Address Each Issue
 
 #### For 1-2 affected files (sequential):
 
@@ -128,7 +128,7 @@ Wait for all subagents to complete before proceeding.
 
 If any simple-implementer subagent rejects a task (scope too large), address those files directly as the lead.
 
-### Step 2.5: Integration Review
+### Step 5: Integration Review
 
 After all fixes are applied:
 
@@ -147,7 +147,7 @@ After all fixes are applied:
 4. **No regressions**: Fixes don't introduce new issues
 5. **Fix issues directly** if the integration review finds problems
 
-### Step 3: Verification
+### Step 6: Verification
 
 Run project checks:
 ```bash
@@ -160,7 +160,7 @@ elif [ -f "pyproject.toml" ]; then
 fi
 ```
 
-### Step 4: Commit Fixes
+### Step 7: Commit Fixes
 
 ```bash
 git add .
@@ -177,7 +177,7 @@ EOF
 )"
 ```
 
-### Step 5: Push and Notify
+### Step 8: Push and Notify
 
 ```bash
 git push
