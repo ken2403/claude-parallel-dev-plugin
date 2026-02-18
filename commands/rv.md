@@ -42,16 +42,20 @@ gh pr view $1 2>/dev/null || echo "Provide PR number as argument"
 ### Changes Overview
 ```bash
 echo "=== Files Changed ==="
-DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
-gh pr diff $1 --stat 2>/dev/null || git diff "origin/${DEFAULT_BRANCH:-main}"...HEAD --stat
+# Base branch detection (using shared script)
+_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
+gh pr diff $1 --stat 2>/dev/null || git diff "origin/${BASE_BRANCH}"...HEAD --stat
 ```
 
 ### Detailed Diff
 ```bash
 echo ""
 echo "=== Diff Preview (first 200 lines) ==="
-DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
-gh pr diff $1 2>/dev/null | head -200 || git diff "origin/${DEFAULT_BRANCH:-main}"...HEAD | head -200
+# Base branch detection (using shared script)
+_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
+gh pr diff $1 2>/dev/null | head -200 || git diff "origin/${BASE_BRANCH}"...HEAD | head -200
 ```
 
 ### CI Status

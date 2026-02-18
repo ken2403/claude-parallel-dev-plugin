@@ -55,35 +55,9 @@ get_project_name() {
   basename "$repo_root"
 }
 
-# Get base branch from workspace configuration
-# Priority: CLAUDE.md settings > git remote HEAD > common branch names
-get_base_branch() {
-  local repo_root="$1"
-  local base_branch=""
-
-  # 1. Check CLAUDE.md for base branch specification (in repo root)
-  if [ -f "${repo_root}/CLAUDE.md" ]; then
-    base_branch=$(grep -i "base.branch\|default.branch\|primary.branch" "${repo_root}/CLAUDE.md" 2>/dev/null | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
-  fi
-
-  # 2. Fallback: check git remote HEAD
-  if [ -z "$base_branch" ]; then
-    base_branch=$(git -C "$repo_root" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
-  fi
-
-  # 3. Final fallback: check which common branch exists
-  if [ -z "$base_branch" ]; then
-    for branch in main master develop dev; do
-      if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-        base_branch="$branch"
-        break
-      fi
-    done
-  fi
-
-  # Default to main if nothing found
-  echo "${base_branch:-main}"
-}
+# Source canonical base branch detection
+# (single source of truth: scripts/detect-base-branch.sh)
+source "$(dirname "$0")/detect-base-branch.sh"
 
 # Allow override via environment variable
 if [ -n "${GIT_REPO:-}" ]; then

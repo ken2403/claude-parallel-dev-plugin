@@ -10,6 +10,10 @@ if ! command -v tmux >/dev/null 2>&1; then
   exit 1
 fi
 
+# Source canonical base branch detection
+# (single source of truth: scripts/detect-base-branch.sh)
+source "$(dirname "$0")/detect-base-branch.sh"
+
 # Find git repository
 # 1. If current directory is inside a git repo, use it
 # 2. Otherwise, look for a git repo in immediate subdirectories
@@ -55,22 +59,30 @@ get_project_name() {
   basename "$repo_root"
 }
 
+# Source canonical merge verification
+# (single source of truth: scripts/merge-check.sh)
+source "$(dirname "$0")/merge-check.sh"
+
 KEEP_BRANCHES=false
 DRY_RUN=false
+SKIP_MERGE_CHECK=false
 
 usage() {
   cat <<'EOF'
 Usage:
-  teardown.sh [--keep-branches] [--dry-run] <branch1> [branch2] ...
+  teardown.sh [--keep-branches] [--dry-run] [--skip-merge-check] <branch1> [branch2] ...
 
 Options:
-  --keep-branches  Keep local branches, only remove worktrees and sessions
-  --dry-run        Show what would be done without executing
+  --keep-branches    Keep local branches, only remove worktrees and sessions
+  --dry-run          Show what would be done without executing
+  --skip-merge-check Skip merge verification before branch deletion
+                     (use only when caller has already verified merge status)
 
 Examples:
   ./scripts/teardown.sh feature/task1 feature/task2
   ./scripts/teardown.sh --keep-branches feature/task1 feature/task2
   ./scripts/teardown.sh --dry-run feature/task1 feature/task2
+  ./scripts/teardown.sh --skip-merge-check feature/task1 feature/task2
 EOF
 }
 
@@ -79,6 +91,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --keep-branches) KEEP_BRANCHES=true; shift ;;
     --dry-run) DRY_RUN=true; shift ;;
+    --skip-merge-check) SKIP_MERGE_CHECK=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) ARGS+=("$1"); shift ;;
   esac
@@ -106,6 +119,7 @@ else
 fi
 
 PROJECT_NAME="$(get_project_name "$REPO_ROOT")"
+BASE_BRANCH="$(get_base_branch "$REPO_ROOT")"
 WORKTREES_DIR="${REPO_ROOT}/worktrees"
 
 run() {
@@ -117,12 +131,16 @@ run() {
 }
 
 echo "Project: $PROJECT_NAME"
+echo "Base branch: $BASE_BRANCH"
 echo "Repo: $REPO_ROOT"
 echo "Worktrees dir: $WORKTREES_DIR"
 echo "Branches: ${ARGS[*]}"
 echo "Keep branches: $KEEP_BRANCHES"
+echo "Skip merge check: $SKIP_MERGE_CHECK"
 echo "Dry run: $DRY_RUN"
 echo ""
+
+SKIPPED_BRANCHES=()
 
 for wt in "${ARGS[@]}"; do
   safe_wt="${wt//\//-}"
@@ -148,15 +166,15 @@ for wt in "${ARGS[@]}"; do
     run "rm -rf '$WORKTREE_PATH' 2>/dev/null || true"
     echo "removed worktree dir: $WORKTREE_PATH"
   else
-    # ディレクトリが無くても登録だけ残っている場合があるので一応試す
+    # Directory may not exist but registration could remain
     run "git -C '$REPO_ROOT' worktree remove --force '$WORKTREE_PATH' 2>/dev/null || true"
     echo "worktree dir not found (attempted detach anyway): $WORKTREE_PATH"
   fi
 
-  # 3) delete branch (optional)
+  # 3) delete branch (with merge verification)
   if ! $KEEP_BRANCHES; then
     if git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$branch"; then
-      # 他worktreeで使用中なら削除しない
+      # Check if branch is still used by another worktree
       if git -C "$REPO_ROOT" worktree list --porcelain | awk -v b="refs/heads/$branch" '
         /^branch /{br=$2}
         br==b {found=1}
@@ -164,8 +182,28 @@ for wt in "${ARGS[@]}"; do
       '; then
         echo "branch is still used by a worktree, skip delete: $branch"
       else
-        run "git -C '$REPO_ROOT' branch -D '$branch'"
-        echo "deleted branch: $branch"
+        # SAFETY: Verify branch is merged before deletion (unless explicitly skipped)
+        if ! $SKIP_MERGE_CHECK; then
+          echo "Checking merge status for: $branch"
+          if is_branch_merged "$branch" "$BASE_BRANCH" "$REPO_ROOT"; then
+            # Use -d (safe delete, only merged branches) instead of -D
+            run "git -C '$REPO_ROOT' branch -d '$branch'"
+            echo "deleted branch (verified merged): $branch"
+          else
+            echo "SAFETY BLOCK: Branch '$branch' is NOT confirmed merged into $BASE_BRANCH"
+            echo "  Skipping branch deletion to prevent data loss."
+            echo "  To force delete: git branch -D $branch"
+            SKIPPED_BRANCHES+=("$branch")
+          fi
+        else
+          # Caller has already verified — use -d for git-level safety
+          if run "git -C '$REPO_ROOT' branch -d '$branch'"; then
+            echo "deleted branch (skip-merge-check): $branch"
+          else
+            echo "WARNING: git branch -d failed for $branch (branch may not be merged). Skipping."
+            SKIPPED_BRANCHES+=("$branch")
+          fi
+        fi
       fi
     else
       echo "branch not found: $branch"
@@ -181,6 +219,19 @@ done
 if [ -d "$WORKTREES_DIR" ] && [ -z "$(ls -A "$WORKTREES_DIR")" ]; then
   run "rmdir '$WORKTREES_DIR'"
   echo "Removed empty worktrees directory"
+fi
+
+# Report skipped branches
+if [ ${#SKIPPED_BRANCHES[@]} -gt 0 ]; then
+  echo ""
+  echo "=== WARNING: ${#SKIPPED_BRANCHES[@]} branch(es) NOT deleted (unmerged) ==="
+  for b in "${SKIPPED_BRANCHES[@]}"; do
+    echo "  - $b"
+  done
+  echo ""
+  echo "To resolve:"
+  echo "  1. Merge the PR first: /pw:merge <pr-number>"
+  echo "  2. Or force delete: git branch -D <branch-name>"
 fi
 
 echo "Done. (teardown)"

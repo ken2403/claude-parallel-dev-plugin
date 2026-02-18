@@ -12,8 +12,8 @@ $ARGUMENTS
 
 ## Context
 - Current branch: !`git branch --show-current`
-- Default branch: !`git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //'`
-- Behind default branch by: !`git rev-list --count HEAD..origin/$(git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //') 2>/dev/null || echo "unknown"`
+- Default branch: !`_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; "$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main"`
+- Behind default branch by: !`_BB=$(_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; "$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main"); git rev-list --count HEAD..origin/$_BB 2>/dev/null || echo "unknown"`
 
 ## Conflict Status
 ```bash
@@ -23,12 +23,14 @@ git status 2>/dev/null || echo "Not in git repo"
 
 ## Resolution Process
 
-### Step 1: Detect Default Branch, Fetch and Attempt Merge
+### Step 1: Detect Base Branch, Fetch and Attempt Merge
 ```bash
-DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
-echo "Default branch: $DEFAULT_BRANCH"
-git fetch origin "$DEFAULT_BRANCH"
-git merge "origin/$DEFAULT_BRANCH"
+# Base branch detection (using shared script)
+_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
+echo "Base branch: $BASE_BRANCH"
+git fetch origin "$BASE_BRANCH"
+git merge "origin/$BASE_BRANCH"
 ```
 
 ### Step 2: Identify Conflicts
@@ -60,9 +62,11 @@ git add [file]
 
 ### Step 5: Complete Merge
 ```bash
-DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
+# Base branch detection (using shared script)
+_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
 git commit -m "$(cat <<EOF
-merge: resolve conflicts with $DEFAULT_BRANCH
+merge: resolve conflicts with $BASE_BRANCH
 
 Resolved conflicts in:
 - [file1]

@@ -86,22 +86,9 @@ cd "$GIT_ROOT"
 echo ""
 echo "--- Base Branch Detection ---"
 
-BASE_BRANCH=""
-if [ -f "CLAUDE.md" ]; then
-  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev)" || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  for branch in main master develop dev; do
-    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-      BASE_BRANCH="$branch"
-      break
-    fi
-  done
-fi
-BASE_BRANCH="${BASE_BRANCH:-main}"
+# Base branch detection (using shared script)
+_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
 
 echo "Base branch: $BASE_BRANCH"
 

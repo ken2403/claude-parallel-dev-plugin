@@ -34,28 +34,16 @@ Parse the specification as provided.
 
 Detect the base branch from workspace configuration (NOT always main/master):
 ```bash
-# Check CLAUDE.md for base branch specification
-BASE_BRANCH=""
-if [ -f "CLAUDE.md" ]; then
-  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
-fi
+# Find plugin directory for shared scripts
+PLUGIN_DIR=""
+for d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do
+  [ -d "$d/scripts" ] && PLUGIN_DIR="$d" && break
+done
+[ -n "${PW_PLUGIN_DIR:-}" ] && PLUGIN_DIR="$PW_PLUGIN_DIR"
 
-# Fallback: check git remote HEAD or common branches
-if [ -z "$BASE_BRANCH" ]; then
-  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
-fi
-
-# Final fallback: check which exists
-if [ -z "$BASE_BRANCH" ]; then
-  for branch in main master develop dev; do
-    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-      BASE_BRANCH="$branch"
-      break
-    fi
-  done
-fi
-
-echo "Base branch: ${BASE_BRANCH:-main}"
+# Base branch detection (using shared script)
+BASE_BRANCH=$("${PLUGIN_DIR}/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
+echo "Base branch: $BASE_BRANCH"
 ```
 
 ## Automatic Subagent Usage

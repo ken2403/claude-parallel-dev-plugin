@@ -10,37 +10,6 @@ model: haiku
 ## Branches to Clean
 $ARGUMENTS
 
-## Pre-cleanup Safety Check
-
-**CRITICAL**: Never cleanup until ALL PRs are merged!
-
-### Verify No Open PRs
-```bash
-echo "=== Open PRs (MUST be empty before cleanup) ==="
-OPEN_PRS=$(gh pr list --state open --json number,headRefName --jq 'length' 2>/dev/null || echo "0")
-gh pr list --state open 2>/dev/null || echo "Cannot fetch PRs"
-
-if [ "$OPEN_PRS" -gt 0 ]; then
-  echo ""
-  echo "⚠️  WARNING: $OPEN_PRS open PR(s) found!"
-  echo "⚠️  Do NOT run cleanup until all PRs are merged."
-  echo ""
-  echo "To merge open PRs:"
-  echo "  /pw:merge [pr-number]"
-fi
-```
-
-### Current State
-```bash
-echo ""
-echo "=== Active Sessions ==="
-tmux list-sessions 2>/dev/null || echo "No tmux sessions"
-
-echo ""
-echo "=== Git Worktrees ==="
-git worktree list 2>/dev/null || echo "Not in git repo"
-```
-
 ## Plugin Location
 
 Locate the parallel-workflow plugin scripts:
@@ -75,16 +44,151 @@ Worktrees are located inside the repository's `worktrees/` directory (consistent
         └── feature-api/     ← worktree (to be cleaned)
 ```
 
-## Cleanup Process
-
-### Using teardown.sh
-
-The cleanup uses the plugin's `teardown.sh` script:
+## Base Branch Detection
 
 ```bash
-# Run teardown with provided arguments
-# $ARGUMENTS contains: branch1 branch2 ... [--keep-branches] [--dry-run]
-"${PLUGIN_DIR}/scripts/teardown.sh" $ARGUMENTS
+# Base branch detection (using shared script)
+BASE_BRANCH=$("${PLUGIN_DIR}/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
+echo "Base branch: $BASE_BRANCH"
+```
+
+## Pre-cleanup Merge Verification, Teardown, and Branch Deletion
+
+**CRITICAL**: NEVER delete a branch or worktree whose branch has NOT been merged.
+
+This uses the same multi-method verification as `/pw:wt-clean`:
+- Method 1: GitHub API (most reliable, handles squash/rebase merges)
+- Method 2: `git branch --merged` (local + remote)
+- Principle: **When in doubt, REFUSE to delete**
+
+All verification, teardown, and branch deletion are executed in a single block
+to ensure variable state (MERGED_BRANCHES, BLOCKED_BRANCHES) is preserved.
+
+```bash
+#!/bin/bash
+set -e
+
+echo "=== Pre-cleanup Merge Verification ==="
+
+# Ensure base branch is up to date
+git fetch origin "${BASE_BRANCH:-main}" --quiet 2>/dev/null || true
+
+# Parse arguments: extract branch names and flags
+BRANCHES=()
+CLEANUP_FLAGS=""
+USER_KEEP_BRANCHES=false
+for arg in $ARGUMENTS; do
+  case "$arg" in
+    --keep-branches) USER_KEEP_BRANCHES=true ;;
+    --dry-run) CLEANUP_FLAGS="$CLEANUP_FLAGS --dry-run" ;;
+    *) BRANCHES+=("$arg") ;;
+  esac
+done
+
+if [ ${#BRANCHES[@]} -eq 0 ]; then
+  echo "ERROR: No branches specified."
+  echo "Usage: /pw:cleanup branch1 branch2 ... [--keep-branches] [--dry-run]"
+  exit 1
+fi
+
+echo "Branches to verify: ${BRANCHES[*]}"
+echo "Base branch: ${BASE_BRANCH:-main}"
+echo ""
+
+# Source canonical merge verification (single source of truth: scripts/merge-check.sh)
+source "${PLUGIN_DIR}/scripts/merge-check.sh"
+
+# ============================================================
+# Phase 1: Verify merge status for all branches
+# ============================================================
+MERGED_BRANCHES=()
+BLOCKED_BRANCHES=()
+
+echo "=== Verifying Merge Status ==="
+echo ""
+
+for branch in "${BRANCHES[@]}"; do
+  echo "--- $branch ---"
+
+  if is_branch_merged "$branch" "${BASE_BRANCH:-main}"; then
+    echo "  Status: MERGED"
+    MERGED_BRANCHES+=("$branch")
+  else
+    echo "  Status: NOT MERGED"
+    echo ""
+    echo "  *** BLOCKED: Branch '$branch' has NOT been merged! ***"
+    echo "  *** Cannot clean up this branch. ***"
+    echo ""
+    echo "  To resolve:"
+    echo "    1. Merge the PR: /pw:merge <pr-number>"
+    echo "    2. Or abandon: git branch -D $branch"
+    echo ""
+    BLOCKED_BRANCHES+=("$branch")
+  fi
+done
+
+echo ""
+echo "=== Verification Summary ==="
+echo "Merged (safe to clean):  ${#MERGED_BRANCHES[@]}"
+echo "Blocked (NOT merged):    ${#BLOCKED_BRANCHES[@]}"
+
+if [ ${#BLOCKED_BRANCHES[@]} -gt 0 ]; then
+  echo ""
+  echo "*** BLOCKED BRANCHES ***"
+  for b in "${BLOCKED_BRANCHES[@]}"; do
+    echo "  - $b"
+  done
+  echo ""
+  echo "These branches will NOT be cleaned up."
+  echo "Merge them first, then re-run cleanup."
+fi
+
+if [ ${#MERGED_BRANCHES[@]} -eq 0 ]; then
+  echo ""
+  echo "No merged branches to clean up."
+  exit 0
+fi
+
+# ============================================================
+# Phase 2: Call teardown.sh for worktrees and sessions only
+# ============================================================
+echo ""
+echo "=== Cleaning Up Merged Branches ==="
+echo "Passing to teardown.sh: ${MERGED_BRANCHES[*]}"
+echo ""
+
+# Always pass --keep-branches (we handle branch deletion ourselves)
+# Also pass --skip-merge-check since we already verified
+# Pass user's --dry-run if specified
+"${PLUGIN_DIR}/scripts/teardown.sh" --keep-branches --skip-merge-check ${CLEANUP_FLAGS} "${MERGED_BRANCHES[@]}"
+
+# ============================================================
+# Phase 3: Delete verified-merged branches (unless --keep-branches)
+# ============================================================
+if [ "$USER_KEEP_BRANCHES" = true ]; then
+  echo ""
+  echo "=== Skipping branch deletion (--keep-branches) ==="
+else
+  echo ""
+  echo "=== Deleting Verified-Merged Branches ==="
+
+  for branch in "${MERGED_BRANCHES[@]}"; do
+    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      # Use -d (safe delete) — only deletes if fully merged
+      if git branch -d "$branch" 2>/dev/null; then
+        echo "  Deleted local branch: $branch"
+      else
+        echo "  WARNING: git branch -d failed for $branch (git does not consider it merged)"
+        echo "  Keeping branch for safety. Force delete with: git branch -D $branch"
+      fi
+    else
+      echo "  Local branch already gone: $branch"
+    fi
+  done
+fi
+
+echo ""
+echo "=== Cleanup Complete ==="
 ```
 
 ### Options
@@ -94,39 +198,53 @@ The cleanup uses the plugin's `teardown.sh` script:
 | `--keep-branches` | Keep local branches, only remove worktrees and sessions |
 | `--dry-run` | Show what would be done without executing |
 
-## Cleanup Steps (performed by teardown.sh)
+## Current State
 
-1. **Kill tmux sessions**
-   - Find session by project name and branch
-   - Terminate session
+```bash
+echo ""
+echo "=== Active Sessions ==="
+tmux list-sessions 2>/dev/null || echo "No tmux sessions"
 
-2. **Remove worktrees**
-   - Find worktree directory
-   - Force remove worktree
+echo ""
+echo "=== Git Worktrees ==="
+git worktree list 2>/dev/null || echo "Not in git repo"
+```
 
-3. **Delete branches** (unless --keep-branches)
-   - Delete local branch
-   - Optionally delete remote branch
+## Post-cleanup
+
+After cleanup:
+1. Update base branch: `git checkout ${BASE_BRANCH} && git pull`
+2. Ready for next task: `/pw:design [new-task]`
 
 ## Output Format
 
 ```markdown
 # Cleanup Report
 
+## Merge Verification
+| Branch | Verified By | Status |
+|--------|-------------|--------|
+| feature/branch1 | GitHub PR (state=MERGED) | MERGED |
+| feature/branch2 | git branch --merged main | MERGED |
+| feature/branch3 | — | NOT MERGED (BLOCKED) |
+
 ## Sessions Terminated
-- [session1] ✅
-- [session2] ✅
+- [session1]
+- [session2]
 
 ## Worktrees Removed
-- /path/to/wt-branch1 ✅
-- /path/to/wt-branch2 ✅
+- /path/to/wt-branch1
+- /path/to/wt-branch2
 
 ## Branches Deleted
-- feature/branch1 ✅ (local + remote)
-- feature/branch2 ✅ (local + remote)
+- feature/branch1 (verified merged)
+- feature/branch2 (verified merged)
+
+## Blocked (NOT Merged)
+- feature/branch3 — Must merge PR first
 
 ## Status
-All cleanup completed successfully.
+Cleanup completed for merged branches.
 
 ## Verify
 ```bash
@@ -136,43 +254,9 @@ git branch              # Should not show cleaned branches
 ```
 ```
 
-## Base Branch Detection
-
-Detect the base branch from workspace configuration:
-```bash
-# Check CLAUDE.md for base branch specification
-BASE_BRANCH=""
-if [ -f "CLAUDE.md" ]; then
-  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
-fi
-
-# Fallback: check git remote HEAD or common branches
-if [ -z "$BASE_BRANCH" ]; then
-  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
-fi
-
-# Final fallback: check which exists
-if [ -z "$BASE_BRANCH" ]; then
-  for branch in main master develop dev; do
-    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-      BASE_BRANCH="$branch"
-      break
-    fi
-  done
-fi
-
-echo "Base branch: ${BASE_BRANCH:-main}"
-```
-
-## Post-cleanup
-
-After cleanup:
-1. Update base branch: `git checkout ${BASE_BRANCH} && git pull`
-2. Ready for next task: `/pw:design [new-task]`
-
 ## Troubleshooting
 
-### ⚠️ CRITICAL: Human Confirmation Required
+### CRITICAL: Human Confirmation Required
 
 **NEVER execute force commands without explicit human approval!**
 
@@ -183,7 +267,7 @@ These commands are destructive and irreversible. Always ask the user to confirm 
 If cleanup fails, present these options to the user and **wait for explicit confirmation**:
 
 ```markdown
-⚠️ **Manual intervention required**
+**Manual intervention required**
 
 The following commands may be needed. Please confirm which to execute:
 
