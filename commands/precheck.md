@@ -19,28 +19,14 @@ git branch --show-current
 
 echo ""
 echo "=== Base Branch Detection ==="
-# Base branch detection (canonical: scripts/detect-base-branch.sh)
-BASE_BRANCH=""
-if [ -f "CLAUDE.md" ]; then
-  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  for branch in main master develop dev; do
-    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-      BASE_BRANCH="$branch"
-      break
-    fi
-  done
-fi
-BASE_BRANCH="${BASE_BRANCH:-main}"
+# Base branch detection (using shared script)
+_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
 echo "Base branch: $BASE_BRANCH"
 
 echo ""
 echo "=== Changes Summary ==="
-git diff ${BASE_BRANCH:-main}...HEAD --stat 2>/dev/null || git diff HEAD~5 --stat
+git diff ${BASE_BRANCH}...HEAD --stat 2>/dev/null || git diff HEAD~5 --stat
 ```
 
 ---
@@ -341,47 +327,15 @@ Refer to the skill definitions for detailed checklists.
 ### 3.3 Review Changed Files
 
 ```bash
-echo "=== Changed Files for Review ==="
-# Base branch detection (canonical: scripts/detect-base-branch.sh)
-BASE_BRANCH=""
-if [ -f "CLAUDE.md" ]; then
-  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  for branch in main master develop dev; do
-    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-      BASE_BRANCH="$branch"
-      break
-    fi
-  done
-fi
-BASE_BRANCH="${BASE_BRANCH:-main}"
-git diff ${BASE_BRANCH}...HEAD --name-only 2>/dev/null || git diff HEAD~5 --name-only
-```
+# Base branch detection (using shared script)
+_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
 
-```bash
+echo "=== Changed Files for Review ==="
+git diff ${BASE_BRANCH}...HEAD --name-only 2>/dev/null || git diff HEAD~5 --name-only
+
 echo ""
 echo "=== Diff Preview (first 300 lines) ==="
-# Base branch detection (canonical: scripts/detect-base-branch.sh)
-BASE_BRANCH=""
-if [ -f "CLAUDE.md" ]; then
-  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  for branch in main master develop dev; do
-    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-      BASE_BRANCH="$branch"
-      break
-    fi
-  done
-fi
-BASE_BRANCH="${BASE_BRANCH:-main}"
 git diff ${BASE_BRANCH}...HEAD 2>/dev/null | head -300 || git diff HEAD~5 | head -300
 ```
 
@@ -424,23 +378,9 @@ echo "=== Related Context ==="
 
 # Check for issue references in commits
 echo "--- Issue References in Commits ---"
-# Base branch detection (canonical: scripts/detect-base-branch.sh)
-BASE_BRANCH=""
-if [ -f "CLAUDE.md" ]; then
-  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  for branch in main master develop dev; do
-    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-      BASE_BRANCH="$branch"
-      break
-    fi
-  done
-fi
-BASE_BRANCH="${BASE_BRANCH:-main}"
+# Base branch detection (using shared script)
+_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
 git log ${BASE_BRANCH}..HEAD --oneline 2>/dev/null | grep -oE "#[0-9]+" || echo "No issue references found in commits"
 
 # Check branch name for issue reference

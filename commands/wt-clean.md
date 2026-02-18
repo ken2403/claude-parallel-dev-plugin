@@ -57,23 +57,9 @@ fi
 cd "$GIT_ROOT"
 echo "Repository: $GIT_ROOT"
 
-# Base branch detection (canonical: scripts/detect-base-branch.sh)
-BASE_BRANCH=""
-if [ -f "CLAUDE.md" ]; then
-  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
-fi
-if [ -z "$BASE_BRANCH" ]; then
-  for branch in main master develop dev; do
-    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-      BASE_BRANCH="$branch"
-      break
-    fi
-  done
-fi
-BASE_BRANCH="${BASE_BRANCH:-main}"
+# Base branch detection (using shared script)
+_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
 echo "Base branch: $BASE_BRANCH"
 
 # Fetch latest from remote
@@ -105,93 +91,57 @@ UNKNOWN_JOBS=()
 CLEANED_JOBS=()
 FAILED_JOBS=()
 
-# Detect GitHub remote for gh CLI
-GITHUB_REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
-GH_AVAILABLE=false
-if command -v gh &>/dev/null && [ -n "$GITHUB_REMOTE_URL" ]; then
-  GH_AVAILABLE=true
-fi
-
 # ============================================================
 # SAFETY-CRITICAL FUNCTION: check if branch is merged
-# (canonical: scripts/merge-check.sh)
+# Source from canonical implementation (scripts/merge-check.sh)
 #
 # Principle: NEVER return "merged" unless we have POSITIVE PROOF.
 # When in doubt, return "not merged" (safe side).
-#
-# Verification methods (in order):
-#   1. gh pr — check GitHub PR state (most reliable, handles squash merge)
-#   2. git branch --merged — check local git merge status
-#   3. If all methods are inconclusive → return NOT MERGED
 # ============================================================
-is_branch_merged() {
-  local branch="$1"
-  local base="$2"
-  local verified_by=""
+if [ -n "$_PD" ] && [ -f "$_PD/scripts/merge-check.sh" ]; then
+  source "$_PD/scripts/merge-check.sh"
+fi
 
-  # --- Method 1: Check via GitHub PR (most reliable) ---
-  # This correctly handles squash merges, rebase merges, etc.
-  if [ "$GH_AVAILABLE" = true ]; then
-    local pr_state=""
-    pr_state=$(gh pr list --head "$branch" --state merged --json number,state --jq '.[0].state' 2>/dev/null || echo "")
-    if [ "$pr_state" = "MERGED" ]; then
-      verified_by="GitHub PR (state=MERGED)"
-      echo "  Merge verified by: $verified_by"
-      return 0  # CONFIRMED merged
+# Verify function is available (define inline fallback if sourcing failed)
+if ! type is_branch_merged &>/dev/null; then
+  is_branch_merged() {
+    local branch="$1"
+    local base="$2"
+
+    # Method 1: Check via GitHub PR
+    if command -v gh &>/dev/null; then
+      local pr_state=""
+      pr_state=$(gh pr list --head "$branch" --state merged --json number,state --jq '.[0].state' 2>/dev/null || echo "")
+      if [ "$pr_state" = "MERGED" ]; then
+        echo "  Merge verified by: GitHub PR (state=MERGED)"
+        return 0
+      fi
+      local pr_open=""
+      pr_open=$(gh pr list --head "$branch" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
+      if [ -n "$pr_open" ]; then
+        echo "  PR #$pr_open is still OPEN — NOT merged"
+        return 1
+      fi
     fi
 
-    # Also check if PR is still open (definitively NOT merged)
-    local pr_open=""
-    pr_open=$(gh pr list --head "$branch" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
-    if [ -n "$pr_open" ]; then
-      echo "  PR #$pr_open is still OPEN — NOT merged"
-      return 1  # Definitively not merged
-    fi
-  fi
-
-  # --- Method 2: Check local git merge status ---
-  # Only works for non-squash merges; requires branch to exist locally
-  local branch_exists=false
-  if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-    branch_exists=true
-  fi
-
-  if [ "$branch_exists" = true ]; then
-    # Check if branch is merged into local base
-    if git branch --merged "$base" 2>/dev/null | grep -qx "[ *]*$branch"; then
-      verified_by="git branch --merged $base"
-      echo "  Merge verified by: $verified_by"
-      return 0  # CONFIRMED merged
+    # Method 2: Check local git merge status
+    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      if git branch --merged "$base" 2>/dev/null | sed 's/^[ *]*//' | grep -Fqx "$branch"; then
+        echo "  Merge verified by: git branch --merged $base"
+        return 0
+      fi
+      if git branch --merged "origin/$base" 2>/dev/null | sed 's/^[ *]*//' | grep -Fqx "$branch"; then
+        echo "  Merge verified by: git branch --merged origin/$base"
+        return 0
+      fi
+      echo "  Branch exists locally but is NOT merged into $base"
+      return 1
     fi
 
-    # Check if branch is merged into remote base
-    if git branch --merged "origin/$base" 2>/dev/null | grep -qx "[ *]*$branch"; then
-      verified_by="git branch --merged origin/$base"
-      echo "  Merge verified by: $verified_by"
-      return 0  # CONFIRMED merged
-    fi
-
-    # Branch exists but not merged into base
-    echo "  Branch exists locally but is NOT merged into $base"
-    return 1  # NOT merged
-  fi
-
-  # --- Branch does not exist locally ---
-  # CRITICAL: Do NOT assume "branch gone = merged".
-  # The branch could have been deleted without merging, or the name could be wrong.
-  # Without positive proof from GitHub PR, we REFUSE to confirm merge.
-  if [ "$GH_AVAILABLE" = true ]; then
-    # gh was available but found no merged PR → not confirmed
-    echo "  Branch not found locally AND no merged PR found on GitHub"
-    echo "  → REFUSING to confirm merge (no positive proof)"
-    return 1  # SAFE: treat as not merged
-  else
-    # gh is not available, cannot verify remotely
-    echo "  Branch not found locally AND gh CLI unavailable for verification"
-    echo "  → REFUSING to confirm merge (cannot verify)"
-    return 1  # SAFE: treat as not merged
-  fi
-}
+    echo "  Branch not found locally and no merged PR found — REFUSING to confirm merge"
+    return 1
+  }
+fi
 
 # ============================================================
 # SAFETY-CRITICAL FUNCTION: resolve branch name
