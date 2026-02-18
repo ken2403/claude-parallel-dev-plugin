@@ -19,6 +19,7 @@ git branch --show-current
 
 echo ""
 echo "=== Base Branch Detection ==="
+# Base branch detection (canonical: scripts/detect-base-branch.sh)
 BASE_BRANCH=""
 if [ -f "CLAUDE.md" ]; then
   BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
@@ -34,7 +35,8 @@ if [ -z "$BASE_BRANCH" ]; then
     fi
   done
 fi
-echo "Base branch: ${BASE_BRANCH:-main}"
+BASE_BRANCH="${BASE_BRANCH:-main}"
+echo "Base branch: $BASE_BRANCH"
 
 echo ""
 echo "=== Changes Summary ==="
@@ -340,15 +342,15 @@ Refer to the skill definitions for detailed checklists.
 
 ```bash
 echo "=== Changed Files for Review ==="
-BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //' || echo "main")
-git diff ${BASE_BRANCH}...HEAD --name-only 2>/dev/null || git diff HEAD~5 --name-only
+# Reuse BASE_BRANCH from earlier detection (canonical: scripts/detect-base-branch.sh)
+git diff ${BASE_BRANCH:-main}...HEAD --name-only 2>/dev/null || git diff HEAD~5 --name-only
 ```
 
 ```bash
 echo ""
 echo "=== Diff Preview (first 300 lines) ==="
-BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //' || echo "main")
-git diff ${BASE_BRANCH}...HEAD 2>/dev/null | head -300 || git diff HEAD~5 | head -300
+# Reuse BASE_BRANCH from earlier detection (canonical: scripts/detect-base-branch.sh)
+git diff ${BASE_BRANCH:-main}...HEAD 2>/dev/null | head -300 || git diff HEAD~5 | head -300
 ```
 
 ### 3.4 Quality Checklist
@@ -390,8 +392,8 @@ echo "=== Related Context ==="
 
 # Check for issue references in commits
 echo "--- Issue References in Commits ---"
-BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //' || echo "main")
-git log ${BASE_BRANCH}..HEAD --oneline 2>/dev/null | grep -oE "#[0-9]+" || echo "No issue references found in commits"
+# Reuse BASE_BRANCH from earlier detection (canonical: scripts/detect-base-branch.sh)
+git log ${BASE_BRANCH:-main}..HEAD --oneline 2>/dev/null | grep -oE "#[0-9]+" || echo "No issue references found in commits"
 
 # Check branch name for issue reference
 echo ""

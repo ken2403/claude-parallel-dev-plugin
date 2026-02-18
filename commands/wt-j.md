@@ -86,9 +86,10 @@ cd "$GIT_ROOT"
 echo ""
 echo "--- Base Branch Detection ---"
 
+# Base branch detection (canonical: scripts/detect-base-branch.sh)
 BASE_BRANCH=""
 if [ -f "CLAUDE.md" ]; then
-  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev)" || echo "")
+  BASE_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
 fi
 if [ -z "$BASE_BRANCH" ]; then
   BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")

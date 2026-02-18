@@ -12,8 +12,8 @@ $ARGUMENTS
 
 ## Context
 - Current branch: !`git branch --show-current`
-- Default branch: !`git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //'`
-- Behind default branch by: !`git rev-list --count HEAD..origin/$(git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //') 2>/dev/null || echo "unknown"`
+- Default branch: !`git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main"`
+- Behind default branch by: !`git rev-list --count HEAD..origin/$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main") 2>/dev/null || echo "unknown"`
 
 ## Conflict Status
 ```bash
@@ -25,7 +25,23 @@ git status 2>/dev/null || echo "Not in git repo"
 
 ### Step 1: Detect Default Branch, Fetch and Attempt Merge
 ```bash
-DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
+# Base branch detection (canonical: scripts/detect-base-branch.sh)
+DEFAULT_BRANCH=""
+if [ -f "CLAUDE.md" ]; then
+  DEFAULT_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
+fi
+if [ -z "$DEFAULT_BRANCH" ]; then
+  DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
+fi
+if [ -z "$DEFAULT_BRANCH" ]; then
+  for branch in main master develop dev; do
+    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      DEFAULT_BRANCH="$branch"
+      break
+    fi
+  done
+fi
+DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
 echo "Default branch: $DEFAULT_BRANCH"
 git fetch origin "$DEFAULT_BRANCH"
 git merge "origin/$DEFAULT_BRANCH"
@@ -60,7 +76,7 @@ git add [file]
 
 ### Step 5: Complete Merge
 ```bash
-DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
+# Reuse DEFAULT_BRANCH from earlier detection (canonical: scripts/detect-base-branch.sh)
 git commit -m "$(cat <<EOF
 merge: resolve conflicts with $DEFAULT_BRANCH
 

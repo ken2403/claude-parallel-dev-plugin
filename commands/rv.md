@@ -42,15 +42,31 @@ gh pr view $1 2>/dev/null || echo "Provide PR number as argument"
 ### Changes Overview
 ```bash
 echo "=== Files Changed ==="
-DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
-gh pr diff $1 --stat 2>/dev/null || git diff "origin/${DEFAULT_BRANCH:-main}"...HEAD --stat
+# Base branch detection (canonical: scripts/detect-base-branch.sh)
+DEFAULT_BRANCH=""
+if [ -f "CLAUDE.md" ]; then
+  DEFAULT_BRANCH=$(grep -i "base.branch\|default.branch\|primary.branch" CLAUDE.md | head -1 | grep -oE "(main|master|develop|dev|release[^[:space:]]*)" || echo "")
+fi
+if [ -z "$DEFAULT_BRANCH" ]; then
+  DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "")
+fi
+if [ -z "$DEFAULT_BRANCH" ]; then
+  for branch in main master develop dev; do
+    if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+      DEFAULT_BRANCH="$branch"
+      break
+    fi
+  done
+fi
+DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+gh pr diff $1 --stat 2>/dev/null || git diff "origin/${DEFAULT_BRANCH}"...HEAD --stat
 ```
 
 ### Detailed Diff
 ```bash
 echo ""
 echo "=== Diff Preview (first 200 lines) ==="
-DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
+# Reuse DEFAULT_BRANCH from earlier detection (canonical: scripts/detect-base-branch.sh)
 gh pr diff $1 2>/dev/null | head -200 || git diff "origin/${DEFAULT_BRANCH:-main}"...HEAD | head -200
 ```
 
