@@ -1,105 +1,53 @@
 ---
 name: security-review
-description: Security review checklist for code changes. Automatically activates when reviewing security-sensitive code, authentication, authorization, or data handling.
+description: Security review checklist for code changes. Automatically activates when reviewing security-sensitive code, authentication, authorization, or data handling. Use when user asks to "check security", "review for vulnerabilities", "audit code", or when changes touch auth, crypto, user input, or API endpoints.
 allowed-tools: Read, Grep, Glob
+metadata:
+    author: ken2403
+    version: 1.1.0
 ---
 
 # Security Review Checklist
 
 Apply these security checks when reviewing or writing code that handles sensitive operations.
 
-## Authentication
+## Instructions
 
-- [ ] Authentication required for sensitive endpoints
-- [ ] Strong password requirements enforced
-- [ ] Passwords hashed with secure algorithm (bcrypt, argon2)
-- [ ] Session tokens are cryptographically random
-- [ ] Session expiration implemented
-- [ ] Logout invalidates session properly
+### Step 1: Identify Security-Sensitive Areas
 
-## Authorization
+Scan the changed files for:
+- Authentication / authorization logic
+- User input handling
+- Database queries
+- API endpoints
+- File operations
+- Cryptographic operations
+- Secrets / credentials
 
-- [ ] Authorization checked before data access
-- [ ] Role-based or attribute-based access control
-- [ ] Principle of least privilege applied
-- [ ] Ownership verified before operations
-- [ ] Admin functions properly protected
+### Step 2: Check Critical Security Controls
 
-## Input Validation
+**Authentication**:
+- Authentication required for sensitive endpoints
+- Passwords hashed with secure algorithm (bcrypt, argon2)
+- Session tokens are cryptographically random with expiration
 
-- [ ] All user input validated
-- [ ] Input length limits enforced
-- [ ] Input type/format validated
-- [ ] Whitelist validation preferred over blacklist
-- [ ] Validation on server-side (not just client)
+**Authorization**:
+- Authorization checked before data access
+- Principle of least privilege applied
+- Ownership verified before operations
 
-## Injection Prevention
+**Input Validation**:
+- All user input validated on server-side
+- Input length limits enforced
+- Whitelist validation preferred over blacklist
 
-### SQL Injection
-- [ ] Parameterized queries / prepared statements
-- [ ] ORM used correctly
-- [ ] No string concatenation in queries
+For the full detailed checklist, consult `references/checklist.md`.
 
-### XSS (Cross-Site Scripting)
-- [ ] Output encoding/escaping
-- [ ] Content Security Policy headers
-- [ ] No innerHTML with user data
+### Step 3: Scan for Dangerous Patterns
 
-### Command Injection
-- [ ] No shell commands with user input
-- [ ] If unavoidable, strict whitelisting
-
-## Data Protection
-
-- [ ] Sensitive data encrypted at rest
-- [ ] Sensitive data encrypted in transit (TLS)
-- [ ] PII handled according to regulations
-- [ ] Data minimization (collect only needed data)
-- [ ] Secure deletion when required
-
-## Secrets Management
-
-- [ ] No hardcoded credentials
-- [ ] No secrets in source code
-- [ ] Secrets in environment variables or vault
-- [ ] API keys rotatable
-- [ ] Different secrets per environment
-
-## Logging & Monitoring
-
-- [ ] Security events logged
-- [ ] No sensitive data in logs
-- [ ] Failed authentication attempts logged
-- [ ] Logs tamper-resistant
-- [ ] Alerting on suspicious activity
-
-## API Security
-
-- [ ] Rate limiting implemented
-- [ ] CORS configured correctly
-- [ ] API versioning in place
-- [ ] Proper HTTP methods used
-- [ ] Sensitive operations use POST/PUT/DELETE
-
-## Common Vulnerabilities (OWASP Top 10)
-
-1. **Broken Access Control** - Verify authorization
-2. **Cryptographic Failures** - Use strong encryption
-3. **Injection** - Parameterize all queries
-4. **Insecure Design** - Threat model considered
-5. **Security Misconfiguration** - Secure defaults
-6. **Vulnerable Components** - Dependencies updated
-7. **Authentication Failures** - Strong auth
-8. **Data Integrity Failures** - Verify signatures
-9. **Logging Failures** - Audit trail present
-10. **SSRF** - Validate URLs, restrict access
-
-## Security Red Flags
-
-Look for these patterns that often indicate security issues:
+Flag these red flags immediately:
 
 ```
-# Dangerous patterns
 eval(user_input)           # Code injection
 exec(user_input)           # Code injection
 os.system(user_input)      # Command injection
@@ -109,12 +57,75 @@ password = "hardcoded"     # Hardcoded secret
 verify=False               # SSL verification disabled
 ```
 
-## Secure Alternatives
+For complete vulnerability patterns and secure alternatives, consult `references/vulnerabilities.md`.
 
-| Insecure | Secure Alternative |
-|----------|-------------------|
-| MD5/SHA1 for passwords | bcrypt/argon2 |
-| `pickle.loads(user_data)` | JSON with validation |
-| `eval()` | Explicit parsing |
-| String concatenation SQL | Parameterized queries |
-| Storing plaintext secrets | Environment variables |
+### Step 4: Verify Data Protection
+
+- Sensitive data encrypted at rest and in transit (TLS)
+- No secrets in source code (use environment variables or vault)
+- No sensitive data in logs
+- PII handled according to regulations
+- API keys rotatable, different per environment
+
+### Step 5: Final Security Checklist
+
+- [ ] No injection vulnerabilities (SQL, XSS, Command)
+- [ ] Authentication and authorization properly implemented
+- [ ] All user input validated
+- [ ] Secrets not hardcoded
+- [ ] Sensitive data encrypted
+- [ ] Security events logged (without sensitive data)
+- [ ] Rate limiting on public endpoints
+- [ ] CORS configured correctly
+- [ ] Dependencies free of known vulnerabilities
+
+## Examples
+
+### Example 1: SQL Injection Prevention
+
+```python
+# INSECURE - SQL injection
+query = f"SELECT * FROM users WHERE name = '{user_input}'"
+
+# SECURE - Parameterized query
+query = "SELECT * FROM users WHERE name = %s"
+cursor.execute(query, (user_input,))
+```
+
+### Example 2: XSS Prevention
+
+```javascript
+// INSECURE - XSS via innerHTML
+element.innerHTML = userComment;
+
+// SECURE - Use textContent or sanitization
+element.textContent = userComment;
+// or use DOMPurify for HTML content
+element.innerHTML = DOMPurify.sanitize(userComment);
+```
+
+### Example 3: Secret Management
+
+```python
+# INSECURE - Hardcoded secret
+API_KEY = "sk-abc123..."
+
+# SECURE - Environment variable
+API_KEY = os.environ["API_KEY"]
+```
+
+## Common Issues
+
+### False Positives
+
+If the skill flags code that is actually safe:
+1. Check if the input source is trusted (internal, not user-facing)
+2. Verify if a framework-level protection is already in place
+3. Document the safety justification in a comment
+
+### Missing Context
+
+If security review seems incomplete:
+1. Use `Grep` to find all usages of the flagged pattern
+2. Check framework-level middleware (auth, CSRF, etc.)
+3. Consult `references/vulnerabilities.md` for the full OWASP Top 10 mapping
