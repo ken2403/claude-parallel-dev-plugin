@@ -36,9 +36,9 @@ Detect the base branch from workspace configuration (NOT always main/master):
 ```bash
 # Find plugin directory for shared scripts
 PLUGIN_DIR=""
-for d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do
+for d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin "$HOME"/.claude/plugins/cache/claude-parallel-dev-plugin/pw/*; do
   [ -d "$d/scripts" ] && PLUGIN_DIR="$d" && break
-done
+done 2>/dev/null
 [ -n "${PW_PLUGIN_DIR:-}" ] && PLUGIN_DIR="$PW_PLUGIN_DIR"
 
 # Base branch detection (using shared script)
@@ -258,11 +258,11 @@ Copy-paste ready commands for orchestration:
 cd [repository]
 
 # Find plugin directory
-if [ -d ".claude-paralell-dev-plugin/scripts" ]; then
-  PLUGIN_DIR=".claude-paralell-dev-plugin"
-elif [ -d "../.claude-paralell-dev-plugin/scripts" ]; then
-  PLUGIN_DIR="../.claude-paralell-dev-plugin"
-fi
+PLUGIN_DIR=""
+for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin "$HOME"/.claude/plugins/cache/claude-parallel-dev-plugin/pw/*; do
+  [ -d "$_d/scripts" ] && PLUGIN_DIR="$_d" && break
+done 2>/dev/null
+[ -n "${PW_PLUGIN_DIR:-}" ] && PLUGIN_DIR="$PW_PLUGIN_DIR"
 
 "${PLUGIN_DIR}/scripts/spinup.sh" feature/xxx feature/yyy feature/zzz
 ```
