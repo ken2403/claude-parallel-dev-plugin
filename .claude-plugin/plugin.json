@@ -1,10 +1,10 @@
 {
   "name": "pw",
-  "description": "Parallel Workflow - Generic parallel development workflow for large-scale tasks. Provides orchestration, worker management, review, and integration commands. Supports Issue-based specifications and interactive task decomposition.",
-  "version": "1.0.0",
+  "description": "Parallel Workflow - Generic parallel development workflow for large-scale tasks. Includes Agent Teams integration for enhanced parallel execution.",
+  "version": "2.0.0",
   "author": {
     "name": "ken2403"
   },
-  "keywords": ["parallel", "workflow", "orchestration", "git-worktree", "tmux"],
+  "keywords": ["parallel", "workflow", "orchestration", "git-worktree", "tmux", "agent-teams"],
   "license": "MIT"
 }
