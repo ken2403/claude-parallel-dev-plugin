@@ -12,7 +12,31 @@ Create an isolated git worktree, then create an agent team to implement the task
 ## Input
 $ARGUMENTS
 
-## Step 1: Create Worktree
+## Guardrails
+
+These rules apply to the **lead and all teammates** throughout the entire job. Violations are never acceptable, regardless of circumstances.
+
+### Worktree Boundaries (Lead + Teammates)
+- **NEVER modify files outside the worktree directory.** Before any file write/edit, verify the target path starts with the worktree path. If it doesn't, STOP.
+- **NEVER modify the parent directory** of the worktree.
+- **NEVER modify the default branch** (main/master/develop). All work must be on the feature branch created by setup.
+
+### Git Safety (Lead only — teammates must not touch git)
+- **NEVER delete or force-push branches.** Only create new branches.
+- **NEVER delete the worktree** before the PR is merged. Cleanup is handled by `/pw:wt-clean`.
+- Teammates must **NEVER run `git commit`, `git push`, or switch branches**. Only the lead handles git operations.
+
+### File Ownership (Lead + Teammates)
+- Each file belongs to exactly **one** teammate. No file appears in multiple scopes.
+- Shared files (entry points, index files, barrel exports) are reserved for the **lead** to handle after all teammates complete.
+- Teammates must **only modify files in their assigned list**.
+
+### Error Recovery
+If any error occurs: do NOT modify files outside the worktree, do NOT switch branches, do NOT delete the worktree. Document the error clearly and leave the worktree in its current state for manual inspection.
+
+---
+
+## Setup Worktree
 
 ```bash
 #!/bin/bash
@@ -31,37 +55,32 @@ fi
 "$_PD/scripts/setup-worktree.sh" "$ARGUMENTS" "Agent Team Worktree Job"
 ```
 
-## Step 2: Create Agent Team and Implement
+---
 
-After the worktree is set up, load the metadata from `.wtj-meta` and create an agent team to implement the task.
+## Implement with Agent Team
 
-### Goal
+After the worktree is ready, load `.wtj-meta` and implement the task using an agent team.
 
-Analyze the task, explore the codebase, decompose it into file-isolated work, and create an agent team to implement everything in parallel. Claude decides the team size (2-5 teammates) and specialization based on the work required.
+### What to Achieve
 
-### Input Handling
+Explore the codebase, decompose the task into file-isolated work, and create an agent team to implement everything in parallel. Decide the team size (2-5 teammates) and specialization based on the actual work required — there is no fixed team structure.
 
-- **@design-document**: Parse the design document for file lists, task scopes, and success criteria.
+**Input handling**:
+- **@design-document**: Parse for file lists, task scopes, and success criteria.
 - **#issue-number**: Fetch issue details via `gh issue view`.
 - **Text description**: Explore the codebase first, then decompose.
 
-### Task List Design
+### Task List
 
-Create 5-6 tasks per teammate in the shared task list. Use task dependencies to enforce ordering (e.g., type definitions must complete before implementation). Example tasks:
+Use the shared task list with task dependencies. Aim for several focused tasks per teammate rather than one monolithic assignment — this keeps teammates productive and lets them self-claim work as they finish. Example dependency chain:
 
-- "Explore existing patterns in [module]"
 - "Define interfaces/types for [feature]" (no dependencies)
 - "Implement [handler]" (depends on types task)
 - "Write tests for [handler]" (depends on implementation task)
-- "Handle edge cases" (depends on implementation task)
-
-### File Ownership
-
-Each file belongs to exactly one teammate. Shared files (entry points, index files, barrel exports) are reserved for the lead to handle after all teammates complete.
 
 ### Safety Context for ALL Teammates
 
-**CRITICAL**: Every teammate spawn prompt MUST include these rules verbatim, because teammates do not inherit the lead's conversation history:
+**CRITICAL**: Teammates do not inherit the lead's conversation history. Every spawn prompt MUST include these rules verbatim:
 
 > **Safety Rules** (include in every spawn prompt):
 > - Work ONLY within the worktree directory: `[WORKTREE_PATH]`
@@ -71,36 +90,30 @@ Each file belongs to exactly one teammate. Shared files (entry points, index fil
 > - Only modify files in your assigned file list
 > - Do NOT modify files assigned to other teammates
 
-Also include in each spawn prompt:
-- The worktree path from `.wtj-meta`
-- The specific files this teammate owns and the files they must NOT touch
-- Task context scoped to their work
-- Available tools: `explorer` and `analyzer` subagents, `/pw:code-quality` and `/pw:security-review` skills
+Also include in each spawn prompt: the worktree path from `.wtj-meta`, the specific files this teammate owns and must NOT touch, task context scoped to their work, and available tools (`explorer`/`analyzer` subagents, `/pw:code-quality` and `/pw:security-review` skills).
 
 ### Plan Approval
 
-Require plan approval before implementation begins. Each teammate proposes their approach first (key decisions, API shapes, notable tradeoffs). The lead reviews all proposals, resolves conflicts between teammates (e.g., shared type definitions), and approves before anyone writes code.
+For complex or risky tasks, consider requiring plan approval before implementation begins — each teammate proposes their approach first, and the lead reviews and resolves conflicts before anyone writes code. For straightforward tasks, the lead may skip this step.
 
 ### Coordination
 
-- Teammates self-claim tasks from the shared task list as they finish earlier work.
-- Teammates message each other directly to resolve API contracts or shared type questions.
-- Wait for ALL teammates to complete before proceeding.
+- Teammates **self-claim** tasks from the shared task list as they finish earlier work.
+- Teammates **message each other directly** to resolve API contracts or shared type questions.
+- The lead **monitors progress** and redirects approaches that aren't working — don't let the team run unattended too long.
+- **Wait for ALL teammates** to complete before proceeding to verification.
 - The lead handles integration files (entry points, barrel exports, wiring) after all teammates finish.
 
-## Step 3: Verify and Ship
+---
 
-After all teammates complete:
+## Verify and Ship
 
-1. **Verify file scope** — confirm no teammate modified files outside their assigned scope.
-2. **Handle integration files** — the lead wires up entry points, exports, and shared files.
-3. **Create interim commit** — `git add . && git commit -m "wip: [task]"`.
-4. **Run `/pw:precheck HEAD`** via the Skill tool. Fix any issues and re-run until all checks pass.
-5. **Finalize commit** — amend with a proper commit message: `[prefix]: [task description]` with `Co-Authored-By: Claude <noreply@anthropic.com>`.
-6. **Push** — `git push -u origin [branch]`.
-7. **Create PR** — use `gh pr create` with a summary of the task, agent team composition, and changes made. Include `Closes #[issue]` if an issue number was provided.
-8. **Clean up the team** — ask all teammates to shut down, then clean up team resources.
+After all teammates complete, verify the implementation is correct, then ship it as a PR. The lead handles all git operations.
 
-### Error Handling
+**Verification**: Confirm no teammate modified files outside their assigned scope. Handle integration files. Run `/pw:precheck HEAD` via the Skill tool — fix issues and re-run until all checks pass.
 
-If any error occurs: do NOT modify files outside the worktree, do NOT switch branches, do NOT delete the worktree. Document the error and leave the worktree for inspection.
+**Commit**: Create a commit with message `[prefix]: [task description]` and `Co-Authored-By: Claude <noreply@anthropic.com>`.
+
+**Push and PR**: Push to origin and create a PR via `gh pr create` with a summary of the task, team composition, and changes. Include `Closes #[issue]` if applicable.
+
+**Cleanup**: Shut down all teammates and clean up team resources.
