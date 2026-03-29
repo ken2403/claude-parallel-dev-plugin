@@ -77,7 +77,7 @@ cp ../claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.md
 
 ### Workflow
 
-This plugin supports two workflows:
+This plugin supports three workflows:
 
 #### A. Parallel Execution Workflow (For Large Tasks)
 
@@ -95,6 +95,14 @@ Issue/Task → wt-j → (Autonomous implementation) → Review → Merge → Cle
 
 Use this when autonomously implementing independent tasks in an isolated environment.
 
+#### C. Agent Teams Workflow (Experimental)
+
+```
+Issue/Task → at-design → at-j → at-rv → at-fix → at-resolve-conflicts → merge → wt-clean
+```
+
+Uses Claude Code's experimental Agent Teams feature for multi-agent parallel execution. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
+
 ### Command List
 
 | Command | Description | Arguments |
@@ -111,6 +119,11 @@ Use this when autonomously implementing independent tasks in an isolated environ
 | `/pw:merge` | Merge PR | PR number `[--skip]` |
 | `/pw:cleanup` | Clean up environment | List of branch names |
 | `/pw:resolve-conflicts` | Resolve conflicts (parallel for 3+ files) | Branch name |
+| `/pw:at-design` | Agent team spec discussion and task decomposition | `#issue-number` / `@file-reference` / `"text"` |
+| `/pw:at-j` | Agent team implementation in isolated worktree | `#issue-number` / `"task description"` `[--feature\|--fix]` |
+| `/pw:at-rv` | Agent team parallel PR review (3 specialists) | PR number |
+| `/pw:at-fix` | Agent team parallel review feedback fixes | PR number |
+| `/pw:at-resolve-conflicts` | Agent team parallel conflict resolution | Branch name |
 
 ### Examples
 
@@ -507,7 +520,12 @@ claude-paralell/
 │   ├── fix.md
 │   ├── merge.md
 │   ├── cleanup.md
-│   └── resolve-conflicts.md
+│   ├── resolve-conflicts.md
+│   ├── at-design.md          # Agent team spec discussion (experimental)
+│   ├── at-j.md               # Agent team implementation (experimental)
+│   ├── at-rv.md              # Agent team PR review (experimental)
+│   ├── at-fix.md             # Agent team fix (experimental)
+│   └── at-resolve-conflicts.md  # Agent team conflict resolution (experimental)
 │
 ├── agents/                  # Subagents
 │   ├── explorer.md          # Fast exploration (Haiku)
@@ -531,7 +549,8 @@ claude-paralell/
 │
 ├── scripts/                 # Execution scripts
 │   ├── spinup.sh            # Launch parallel environment
-│   └── teardown.sh          # Remove parallel environment
+│   ├── teardown.sh          # Remove parallel environment
+│   └── setup-worktree.sh    # Shared worktree setup (wt-j, at-j)
 │
 └── README.md               # This file
 ```
