@@ -34,19 +34,18 @@ echo "Agent Teams: ENABLED"
 ```bash
 echo "*** AGENT TEAM CRITICAL REVIEW MODE ***"
 echo ""
-echo "This review uses 3 specialist reviewers in parallel:"
+echo "3 specialist reviewers running in parallel:"
 echo "  - Security Reviewer: OWASP, auth, injection, secrets"
-echo "  - Quality Reviewer: readability, patterns, tests, errors"
+echo "  - Quality & Consistency Reviewer: readability, patterns, tests, hidden bugs"
 echo "  - Architecture Reviewer: design, coupling, SOLID, scalability"
 echo ""
-
 PR_NUM=$(echo "$ARGUMENTS" | tr -d ' ')
 echo "PR Number: $PR_NUM"
 ```
 
 ---
 
-## Phase 1: PR Context Collection
+## PR Context Collection
 
 ### PR Details
 ```bash
@@ -78,209 +77,90 @@ gh pr checks $1 2>/dev/null || echo "Cannot fetch CI status"
 
 ---
 
-## Phase 2: Spawn Review Team
-
-### Team Structure
+## Team Configuration
 
 | Teammate | Focus Area | Model | Skill Applied |
 |----------|-----------|-------|---------------|
-| **Security Reviewer** | OWASP, authentication, injection, secrets | sonnet | security-review |
-| **Quality Reviewer** | Readability, pattern consistency, tests, error handling | sonnet | code-quality |
-| **Architecture Reviewer** | Design, coupling, SOLID principles, scalability | sonnet | - |
+| **Security Reviewer** | OWASP Top 10, authentication, authorization, injection, secrets, data protection | sonnet | `/pw:security-review` |
+| **Quality & Consistency Reviewer** | Readability, maintainability, error handling, testing, hidden bugs, codebase consistency | sonnet | `/pw:code-quality` |
+| **Architecture Reviewer** | Design, abstraction levels, coupling, SOLID principles, scalability, performance, API contracts | sonnet | - |
 
-**Lead Mode**: Delegate (coordinates review, synthesizes at end)
-
-### Teammate: Security Reviewer
+### Spawn: Security Reviewer
 
 ```
-You are the **Security Reviewer** on a PR review team. Your sole focus is security.
+You are the Security Reviewer on a PR review team. Apply the /pw:security-review skill.
 
-## PR Context
-- PR Number: [PR_NUM]
-- PR Diff: [Full diff content]
-- PR Description: [PR description]
+Focus on: OWASP Top 10, authentication mechanisms, authorization checks, injection prevention
+(SQL, XSS, command), secrets management (no hardcoded credentials), data protection (encryption,
+PII handling, logging safety), and API security.
 
-## Your Review Scope
+For each finding provide: Severity (Critical/High/Medium/Low), Location (file:line), Issue,
+Attack vector, Recommendation.
 
-Apply the `/pw:security-review` skill checklist rigorously:
+After completing your findings, review the other reviewers' findings and cross-challenge where
+appropriate ("Is that really a security issue or an acceptable tradeoff?", "This finding is a
+false positive because...").
 
-### Authentication & Authorization
-- [ ] Authentication mechanisms are properly implemented
-- [ ] Authorization checks on all protected endpoints
-- [ ] Session management is secure
-- [ ] Token handling follows best practices
-
-### Input Validation & Injection Prevention
-- [ ] All user inputs validated and sanitized
-- [ ] SQL injection prevention (parameterized queries)
-- [ ] XSS prevention (output encoding)
-- [ ] Command injection prevention
-- [ ] Path traversal prevention
-
-### Data Protection & Secrets
-- [ ] No hardcoded secrets, API keys, or credentials
-- [ ] Sensitive data encrypted at rest and in transit
-- [ ] PII handled according to requirements
-- [ ] Logging does not expose sensitive data
-
-### OWASP Top 10
-- [ ] Broken access control
-- [ ] Cryptographic failures
-- [ ] Injection
-- [ ] Insecure design
-- [ ] Security misconfiguration
-- [ ] Vulnerable components
-- [ ] Authentication failures
-- [ ] Data integrity failures
-- [ ] Logging/monitoring failures
-- [ ] SSRF
-
-## Output Format
-For each finding, provide:
-- **Severity**: Critical / High / Medium / Low
-- **Location**: file:line
-- **Issue**: Description
-- **Attack vector**: How it could be exploited
-- **Recommendation**: How to fix it
-
-Provide your verdict: APPROVE / REQUEST_CHANGES / COMMENT
+Conclude with your verdict: APPROVE / REQUEST_CHANGES / COMMENT
 ```
 
-### Teammate: Quality Reviewer
+### Spawn: Quality & Consistency Reviewer
 
 ```
-You are the **Quality Reviewer** on a PR review team. Your sole focus is code quality.
+You are the Quality & Consistency Reviewer on a PR review team. Apply the /pw:code-quality skill.
 
-## PR Context
-- PR Number: [PR_NUM]
-- PR Diff: [Full diff content]
-- PR Description: [PR description]
+Focus on: code readability and maintainability, codebase pattern consistency (contradictions with
+existing implementation, coding style match, library/utility consistency), error handling, test
+coverage and quality, edge case handling, and hidden bugs (race conditions, N+1 queries, memory
+leaks, off-by-one errors, unhandled exceptions).
 
-## Your Review Scope
+For each finding provide: Severity (Critical/High/Medium/Low), Location (file:line), Issue,
+Evidence, Recommendation.
 
-Apply the `/pw:code-quality` skill checklist rigorously:
+After completing your findings, review the other reviewers' findings and cross-challenge where
+appropriate ("The quality concern overlaps with this architecture issue", "This finding is a
+false positive because...").
 
-### Code Quality
-- [ ] Logic is correct and handles edge cases
-- [ ] Code is readable and maintainable
-- [ ] Follows existing patterns in the codebase
-- [ ] No unnecessary complexity or dead code
-- [ ] Proper error handling
-
-### Codebase Consistency
-- [ ] No contradictions with existing implementation
-- [ ] Coding style matches existing codebase
-- [ ] Consistent use of libraries and utilities
-- [ ] File/folder structure follows conventions
-
-### Testing
-- [ ] Tests added for new functionality
-- [ ] Edge cases covered in tests
-- [ ] Test naming and structure follow conventions
-
-### Hidden Bugs
-- [ ] Race conditions in concurrent code
-- [ ] Memory/resource leaks
-- [ ] Off-by-one errors
-- [ ] Null pointer dereferences
-- [ ] Unhandled exceptions
-- [ ] N+1 query problems
-
-## Output Format
-For each finding, provide:
-- **Severity**: Critical / High / Medium / Low
-- **Location**: file:line
-- **Issue**: Description
-- **Evidence**: Why this is a problem
-- **Recommendation**: How to fix it
-
-Provide your verdict: APPROVE / REQUEST_CHANGES / COMMENT
+Conclude with your verdict: APPROVE / REQUEST_CHANGES / COMMENT
 ```
 
-### Teammate: Architecture Reviewer
+### Spawn: Architecture Reviewer
 
 ```
-You are the **Architecture Reviewer** on a PR review team. Your sole focus is design and architecture.
+You are the Architecture Reviewer on a PR review team.
 
-## PR Context
-- PR Number: [PR_NUM]
-- PR Diff: [Full diff content]
-- PR Description: [PR description]
+Focus on: abstraction levels (is this the right layer?), coupling and dependencies, SOLID
+principles, scalability considerations (10x/100x load), performance (query efficiency, caching,
+async operations), and API contract cleanliness (well-defined boundaries, error propagation).
 
-## Your Review Scope
+For each finding provide: Severity (Critical/High/Medium/Low), Location (file:line or
+architectural scope), Issue, Impact (long-term consequence), Recommendation.
 
-### Design & Architecture
-- [ ] Is this the right abstraction level?
-- [ ] Does this introduce unnecessary coupling?
-- [ ] Will this scale? (10x, 100x load)
-- [ ] Is there a simpler solution?
-- [ ] Does this follow SOLID principles?
+After completing your findings, review the other reviewers' findings and cross-challenge where
+appropriate ("The architecture concern is actually a security boundary issue", "This finding is
+a false positive because...").
 
-### Structural Concerns
-- [ ] Separation of concerns maintained
-- [ ] Dependencies flow in the right direction
-- [ ] API contracts are clean and well-defined
-- [ ] Error boundaries are properly placed
-
-### Maintainability
-- [ ] Will this confuse future developers?
-- [ ] Is the naming consistent with the rest of the codebase?
-- [ ] Are there similar implementations elsewhere that differ?
-- [ ] Is the approach documented where non-obvious?
-
-### Scalability & Performance
-- [ ] Database query efficiency
-- [ ] Caching considerations
-- [ ] Async operations where appropriate
-- [ ] Resource cleanup
-
-## Output Format
-For each finding, provide:
-- **Severity**: Critical / High / Medium / Low
-- **Location**: file:line (or architectural scope)
-- **Issue**: Description
-- **Impact**: Why this matters for the codebase long-term
-- **Recommendation**: Alternative approach or fix
-
-Provide your verdict: APPROVE / REQUEST_CHANGES / COMMENT
+Conclude with your verdict: APPROVE / REQUEST_CHANGES / COMMENT
 ```
 
 ---
 
-## Phase 3: Parallel Review
+## Coordination
 
-All three reviewers conduct their reviews independently and in parallel. Each focuses exclusively on their domain.
+All three reviewers work in parallel on the same PR diff. After completing their own domain
+review, each reviewer reads the others' findings and may challenge them directly. Challenged
+findings must be reconsidered by the original reviewer.
 
----
-
-## Phase 4: Cross-Challenge
-
-After all reviewers complete their initial findings:
-
-1. Each reviewer shares their findings with the team
-2. Reviewers may challenge each other's findings:
-   - "Is that really a security issue or an acceptable tradeoff?"
-   - "The quality concern overlaps with this architecture issue"
-   - "This finding is a false positive because..."
-3. Challenged findings are reconsidered by the original reviewer
-
----
-
-## Phase 5: Lead Integration
-
-The Lead (this agent) synthesizes all findings into a unified review.
-
-### Integration Process
-
-1. **Collect** all findings from the three reviewers
-2. **Deduplicate** overlapping findings (keep the most severe categorization)
-3. **Prioritize** by severity: Critical > High > Medium > Low
-4. **Determine verdict**:
+Wait for all reviewers to complete before synthesizing. The lead (this agent) then:
+1. Collects all findings from the three reviewers
+2. Deduplicates overlapping findings (keep the most severe categorization)
+3. Prioritizes by severity: Critical > High > Medium > Low
+4. Determines verdict:
    - Any Critical finding → **REQUEST_CHANGES** (mandatory)
    - Multiple High findings → **REQUEST_CHANGES**
    - Only Medium/Low findings → **APPROVE** with comments or **COMMENT**
    - No findings → **APPROVE**
-5. **Generate** unified review report
+5. Generates unified review report
 
 ---
 
@@ -293,7 +173,7 @@ The Lead (this agent) synthesizes all findings into a unified review.
 | Reviewer | Focus | Findings | Verdict |
 |----------|-------|----------|---------|
 | Security Reviewer | OWASP, auth, injection | N findings | APPROVE/REQUEST_CHANGES |
-| Quality Reviewer | Code quality, tests | N findings | APPROVE/REQUEST_CHANGES |
+| Quality & Consistency Reviewer | Code quality, consistency, tests | N findings | APPROVE/REQUEST_CHANGES |
 | Architecture Reviewer | Design, SOLID | N findings | APPROVE/REQUEST_CHANGES |
 
 ## Status: APPROVE | REQUEST_CHANGES | COMMENT
@@ -305,10 +185,10 @@ The Lead (this agent) synthesizes all findings into a unified review.
 |-------|----------|----------|---------------|----------------|
 | [Issue] | Critical/High | file:line | [How to exploit] | [Fix] |
 
-### Quality Findings
+### Quality & Consistency Findings
 | Issue | Severity | Location | Evidence | Recommendation |
 |-------|----------|----------|----------|----------------|
-| [Issue] | Critical/High | file:line | [Why it's a bug] | [Fix] |
+| [Issue] | Critical/High | file:line | [Why it's a problem] | [Fix] |
 
 ### Architecture Findings
 | Issue | Severity | Location | Impact | Recommendation |
@@ -336,25 +216,19 @@ The Lead (this agent) synthesizes all findings into a unified review.
 
 ---
 
-## Phase 6: Post Review to GitHub
+## Post Review to GitHub
 
-### Structured Findings for Inline Comments
-
-While generating the review report, internally track each finding that references a specific file and line as a structured inline comment. For each finding, record:
-- **path**: File path relative to the repository root
-- **line**: The line number in the new version of the file (must appear in the PR diff)
-- **body**: A concise description including severity and recommendation
-
-### Post Confirmation
+While generating the review report, internally track each finding that references a specific file
+and line as a structured inline comment, recording: path (relative to repo root), line (in the
+new version of the file, must appear in the PR diff), and body (severity + description +
+recommendation).
 
 **MANDATORY**: Ask the user whether to post the review to GitHub using the AskUserQuestion tool.
 
 Prompt: **"Post this review to GitHub PR?"**
 
-Explain what will be posted:
-1. PR Review with the full summary as body
-2. Inline comments on specific file locations
-3. Review event: APPROVE / REQUEST_CHANGES / COMMENT
+Explain what will be posted: full review summary as body, inline comments on specific file
+locations, and the review event (APPROVE / REQUEST_CHANGES / COMMENT).
 
 ### If the user confirms:
 
@@ -371,29 +245,14 @@ OWNER_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
 OWNER=$(echo "$OWNER_REPO" | cut -d'/' -f1)
 REPO=$(echo "$OWNER_REPO" | cut -d'/' -f2)
 
-# Construct JSON payload and post
-# Claude must dynamically build this JSON from actual review findings
-cat <<'REVIEW_JSON' | gh api \
+# Dynamically construct JSON payload from actual review findings and post
+# Use proper JSON escaping for body content; include inline comments for findings with file:line
+gh api \
   --method POST \
   -H "Accept: application/vnd.github+json" \
   "/repos/$OWNER/$REPO/pulls/$PR_NUM/reviews" \
-  --input -
-{
-  "body": "## Agent Team Review Summary\n\n...(full review body here)...",
-  "event": "REQUEST_CHANGES",
-  "comments": [
-    {
-      "path": "src/example.ts",
-      "line": 42,
-      "side": "RIGHT",
-      "body": "**[Security/Quality/Architecture - Severity]**: Description\n\nRecommendation"
-    }
-  ]
-}
-REVIEW_JSON
+  --input - <<< "$REVIEW_JSON_PAYLOAD"
 ```
-
-**Note**: The JSON above is illustrative. Claude must dynamically construct the actual payload from the review findings. Use proper JSON escaping for the body content.
 
 #### 3. Report result
 

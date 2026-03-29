@@ -35,7 +35,7 @@ echo "Agent Teams: ENABLED"
 
 ---
 
-## Phase 1: Feedback Acquisition
+## Feedback Acquisition
 
 ### From PR Number
 ```bash
@@ -64,114 +64,54 @@ If the input is text (not a PR number), parse it directly. Expect the format fro
 
 ---
 
-## Phase 2: File Grouping
+## Feedback Analysis
 
-### Grouping Rules
-1. **All findings targeting the same file** → MUST go to the same Fixer
-2. **Closely related files** (same directory/module) → prefer same Fixer
-3. **1-2 total files** → single Fixer (no team overhead)
-4. **3+ files** → group by directory/module, max 5 Fixers
+After acquiring all feedback, analyze and structure it:
 
-### Categorize Feedback
-
-For each finding, categorize:
-- **Critical** (must fix): Bugs, security issues, logic errors
-- **Required** (should fix): Style violations, missing tests
-- **Suggestions** (consider): Improvements, alternatives
-
-### Build File Ownership Manifest
-
-```
-Fixer-1: src/auth/login.ts, src/auth/types.ts
-  - [Critical] Fix SQL injection in login query (login.ts:42)
-  - [Required] Add input validation for email (login.ts:28)
-  - [Required] Export AuthResult type (types.ts:15)
-
-Fixer-2: src/api/routes.ts, src/api/handlers.ts
-  - [Critical] Fix missing authorization check (routes.ts:67)
-  - [Required] Add error handling for timeout (handlers.ts:89)
-```
+1. Categorize each finding:
+   - **Critical** (must fix): Bugs, security issues, logic errors
+   - **Required** (should fix): Style violations, missing tests, API contract issues
+   - **Suggestion** (consider): Improvements, alternative approaches
+2. Group by file — all findings for the same file belong to the same teammate.
+3. Related files in the same directory or module: prefer assigning to the same teammate.
 
 ---
 
-## Phase 3: Spawn Fixer Team
+## Team Decision
 
-### Team Structure (Dynamic)
+Based on the number of affected files:
 
-| Teammate | Model | Assigned Files | Findings Count |
-|----------|-------|----------------|----------------|
-| Fixer-1 | sonnet | [File group 1] | N |
-| Fixer-2 | sonnet | [File group 2] | N |
-| ... | sonnet | ... | ... |
-
-**Lead Mode**: Delegate
-
-### Fixer Spawn Prompt Template
-
-```
-You are a **Fixer** on a team addressing PR review feedback in parallel.
-
-## Your Assigned Files
-[List of files this Fixer owns]
-
-## Review Findings to Address
-
-### Critical (Must Fix)
-1. **[file:line]**: [Description of issue]
-   - Reviewer's recommendation: [recommendation]
-
-### Required (Should Fix)
-1. **[file:line]**: [Description of issue]
-   - Reviewer's recommendation: [recommendation]
-
-### Suggestions (Consider)
-1. **[file:line]**: [Description of suggestion]
-
-## Instructions
-
-For each finding:
-1. **Read** the relevant file and understand the current code
-2. **Understand** the reviewer's concern fully
-3. **Implement** the fix following existing code patterns
-4. **Verify** the fix addresses the reviewer's concern
-
-## File Safety Rules
-- You may ONLY modify files in your assigned list: [file list]
-- You may NOT modify these files (other Fixers' territory): [other files list]
-- Do NOT run `git commit` — the Lead will commit all changes
-- Do NOT run `git push`
-
-## Quality Standards
-- Follow existing code style and patterns
-- Ensure fixes don't introduce new issues
-- Handle edge cases mentioned in the review
-
-## Output
-Report for each finding:
-- Finding reference (file:line)
-- Status: Fixed / Partially Fixed / Deferred
-- What was changed and why
-- Any concerns about the fix
-```
+- **1-2 affected files**: Assign to a single teammate — skip team overhead.
+- **3+ affected files**: Create an agent team. Group files by directory or module. Cap at 5 teammates. Each finding becomes a separate task in the shared task list, targeting 5-6 tasks per teammate.
 
 ---
 
-## Phase 4: Parallel Fixes
+## Teammate Spawn Guidelines
 
-Each Fixer works independently on their assigned files:
-1. Reads each file to understand current code
-2. Implements fixes for all findings in their scope
-3. Reports what was changed
+Include the following in each teammate's spawn prompt:
 
-**File Safety**: Each Fixer is strictly scoped to their assigned files.
+- The list of files they are assigned and all findings for those files with `file:line` references.
+- The reviewer's recommendation for each finding.
+- The list of files they must NOT modify (other teammates' territory).
+- Explicit instruction: do NOT run `git commit` or `git push` — the lead handles all commits.
+- Instruction to follow existing code patterns and style.
 
 ---
 
-## Phase 5: Lead Verification
+## Coordination
 
-After all Fixers complete, the Lead verifies:
+- Teammates self-claim tasks from the shared task list to avoid duplicate work.
+- If a fix has cross-file implications, teammates message each other before making changes.
+- Lead waits for all teammates to complete before starting verification.
+- Lead verifies each fix directly addresses the original reviewer concern.
 
-### 1. Check File Scope Compliance
+---
+
+## Verification
+
+After all teammates complete:
+
+1. **Check file scope compliance** — confirm no files were changed outside assigned scope.
 
 ```bash
 echo "=== Checking file changes ==="
@@ -179,17 +119,10 @@ git diff --name-only
 echo ""
 echo "=== Checking for scope violations ==="
 # Lead compares changed files against the manifest
-# Any file changed that wasn't in any Fixer's scope is a violation
+# Any file changed that wasn't in any teammate's scope is a violation
 ```
 
-### 2. Verify Each Fix Addresses Its Finding
-
-The Lead reviews each Fixer's report and spot-checks:
-- Critical findings are properly addressed
-- Required findings are addressed
-- No regressions introduced
-
-### 3. Run Project Checks
+2. **Run project checks.**
 
 ```bash
 echo "=== Project Checks ==="
@@ -202,18 +135,13 @@ elif [ -f "pyproject.toml" ]; then
 fi
 ```
 
-### 4. Handle Failures
-
-If project checks fail:
-- Identify which Fixer's changes caused the failure
-- Instruct that Fixer to correct the issue
-- Re-run checks after correction
+3. **If failures**: identify the responsible teammate, have them fix the issue, then re-verify.
 
 ---
 
-## Phase 6: Commit and Push
+## Commit and Push
 
-After all verifications pass, the Lead commits and pushes.
+After all verifications pass, commit and push.
 
 ```bash
 git add .
@@ -236,9 +164,9 @@ git push
 
 ---
 
-## Phase 7: PR Comment
+## PR Comment
 
-Post a summary of fixes to the PR.
+Post a fix summary to the PR.
 
 ```bash
 PR_NUM=$(echo "$ARGUMENTS" | grep -oE '[0-9]+' | head -1)
@@ -268,42 +196,30 @@ fi
 ```markdown
 # Fix Report (Agent Teams)
 
-## Team
-| Fixer | Files | Findings Addressed |
-|-------|-------|--------------------|
-| Fixer-1 | [files] | N/N fixed |
-| Fixer-2 | [files] | N/N fixed |
+## Team Summary
+| Teammate | Files | Findings Addressed |
+|----------|-------|--------------------|
+| Fixer-1  | [files] | N/N fixed |
+| Fixer-2  | [files] | N/N fixed |
 
 ## Issues Addressed
-| Issue | Severity | Status | Changes Made |
-|-------|----------|--------|--------------|
-| [Issue 1] | Critical | Fixed | [Description] |
-| [Issue 2] | Required | Fixed | [Description] |
-| [Suggestion] | Low | Deferred | [Reason] |
+| Finding (file:line) | Severity | Status | Notes |
+|---------------------|----------|--------|-------|
+| [file:line]         | Critical | Fixed  | [What changed] |
+| [file:line]         | Required | Fixed  | [What changed] |
+| [file:line]         | Suggestion | Deferred | [Reason] |
 
 ## Files Changed
-- `path/to/file` - [What changed]
+- `path/to/file` — [What changed]
 
-## Verification
+## Verification Results
 - [ ] All critical findings fixed
 - [ ] All required findings fixed
+- [ ] No scope violations
 - [ ] Project checks pass
 - [ ] Changes committed and pushed
 - [ ] PR comment posted
 
-## Outstanding Items
-[Any items that couldn't be resolved or need clarification]
-
 ## Next Steps
 Ready for re-review: `/pw:at-rv [pr-number]` or `/pw:rv [pr-number]`
 ```
-
----
-
-## Handling Unclear Feedback
-
-If feedback is ambiguous:
-1. Document your interpretation
-2. Implement based on best understanding
-3. Flag in the PR comment explaining the approach
-4. Request clarification if critical

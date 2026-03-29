@@ -36,7 +36,7 @@ echo "Agent Teams: ENABLED"
 
 ---
 
-## Phase 1: Detect Conflicts
+## Detect Conflicts
 
 ### Fetch and Attempt Merge
 
@@ -80,95 +80,50 @@ Merge with the base branch completed cleanly. No resolution needed.
 
 ---
 
-## Phase 2: Analyze and Group Conflicts
+## Conflict Analysis and Team Decision
 
-If conflicts exist, the Lead analyzes them for team assignment.
+After identifying conflicting files, decide how to assign resolution work:
 
-### Grouping Strategy
-- **1-2 conflicting files** → Spawn 1 Resolver (no overhead from teaming)
-- **3+ conflicting files** → Group by directory/module, spawn 1 Resolver per group
+- **1-2 conflicting files**: Assign to a single teammate — team overhead is not justified at this scale.
+- **3+ conflicting files**: Create an agent team. Group files by directory or module (e.g., all files under `src/auth/` form one group), and assign each group to a separate teammate.
 
-### File Grouping Logic
-Group files by their parent directory or module:
-```
-Group 1 (src/auth/): src/auth/login.ts, src/auth/middleware.ts
-Group 2 (src/api/): src/api/routes.ts, src/api/handlers.ts
-Group 3 (tests/): tests/auth.test.ts, tests/api.test.ts
-```
+Add each conflicting file (or file group) as a task to the shared task list so teammates can self-claim their work.
 
 ---
 
-## Phase 3: Spawn Resolver Team
+## Teammate Spawn Guidelines
 
-### Team Structure (Dynamic)
+Include the following in each teammate's spawn prompt:
 
-| Teammate | Model | Assigned Files |
-|----------|-------|----------------|
-| Resolver-1 | sonnet | [Conflict file group 1] |
-| Resolver-2 | sonnet | [Conflict file group 2] |
-| ... | sonnet | ... |
-
-**Lead Mode**: Delegate
-
-### Resolver Spawn Prompt Template
-
-```
-You are a **Conflict Resolver** on a team resolving merge conflicts in parallel.
-
-## Your Assigned Files
-[List of conflicting files assigned to this Resolver]
-
-## Resolution Instructions
-
-For EACH conflicting file:
-
-1. **Read** the file to see conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`)
-2. **Understand** both versions:
-   - `<<<<<<< HEAD` (ours): Changes on the current branch
-   - `>>>>>>> origin/[base]` (theirs): Changes from the base branch
-3. **Use `explorer` subagent** to understand the purpose and context of the conflicting code
-4. **Choose resolution strategy**:
-   - **Keep Ours**: Our changes are correct, theirs should be discarded
-   - **Keep Theirs**: Base branch changes should take precedence
-   - **Combine Both**: Both changes are needed and can coexist
-   - **Rewrite**: Neither version is correct; write new code
-5. **Edit** the file to resolve conflicts (remove ALL conflict markers)
-6. **Stage** the resolved file: `git add [file]`
-
-## CRITICAL Rules
-- You may ONLY modify files in your assigned list
-- Do NOT modify any other files
-- Remove ALL conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) from your files
-- After resolving, run `git add` on each resolved file
-- Do NOT run `git commit` — the Lead will commit
-
-## Output
-Report for each file:
-- File path
-- Resolution strategy used
-- Brief explanation of the resolution
-```
+- The list of conflicting files assigned to this teammate
+- Resolution strategies available:
+  - **Keep Ours**: Current branch changes are correct; discard base branch changes
+  - **Keep Theirs**: Base branch changes should take precedence; discard current branch changes
+  - **Combine Both**: Both sets of changes are valid and can coexist
+  - **Rewrite**: Neither version is correct; write new code that satisfies both intents
+- For each file, clarify what "ours" and "theirs" means: `<<<<<<< HEAD` is the current branch; `>>>>>>> origin/[base]` is the base branch
+- Available tools include the `explorer` subagent for understanding code context before resolving
+- Rules:
+  - Only modify files in the assigned list
+  - Remove ALL conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) from every assigned file
+  - Run `git add` on each resolved file
+  - Do NOT run `git commit` — the lead will commit after verification
 
 ---
 
-## Phase 4: Parallel Resolution
+## Coordination
 
-Each Resolver works independently on their assigned conflict files.
-
-The Resolvers:
-1. Read each conflicting file
-2. Use `explorer` subagent to understand the code context
-3. Apply the appropriate resolution strategy
-4. Edit files to remove all conflict markers
-5. Stage resolved files with `git add`
+- Teammates self-claim conflict files (or file groups) from the shared task list before starting.
+- If two teammates are resolving conflicts in closely related files (e.g., a module and its test file), they should message each other to coordinate so their resolutions stay consistent.
+- The lead waits for all teammates to mark their tasks complete before proceeding to verification.
 
 ---
 
-## Phase 5: Lead Verification
+## Verification
 
-After all Resolvers complete, the Lead verifies:
+After all teammates complete, verify the resolution:
 
-### 1. Check All Conflict Markers Removed
+### Check All Conflict Markers Removed
 
 ```bash
 echo "=== Checking for remaining conflict markers ==="
@@ -183,7 +138,7 @@ else
 fi
 ```
 
-### 2. Verify All Files Staged
+### Check Unmerged Files
 
 ```bash
 echo "=== Checking unresolved files ==="
@@ -196,13 +151,7 @@ else
 fi
 ```
 
-### 3. Handle Remaining Issues
-If any files still have conflict markers or are unmerged:
-- Identify which Resolver's scope the file belongs to
-- Instruct that Resolver to re-resolve
-- Re-verify after correction
-
-### 4. Run Project Checks
+### Run Project Checks
 
 ```bash
 echo "=== Project Checks ==="
@@ -215,11 +164,13 @@ elif [ -f "pyproject.toml" ]; then
 fi
 ```
 
+If any issues remain after verification, identify which teammate owns the affected file and have them re-resolve it, then re-run verification.
+
 ---
 
-## Phase 6: Commit and Push
+## Commit and Push
 
-After all verifications pass, the Lead commits and pushes.
+After all verifications pass, commit and push.
 
 ```bash
 # Base branch detection (using shared script)
@@ -252,7 +203,7 @@ git push
 # Conflict Resolution Report
 
 ## Team
-| Resolver | Files | Strategy |
+| Teammate | Files | Strategy |
 |----------|-------|----------|
 | Resolver-1 | [files] | [strategies used] |
 | Resolver-2 | [files] | [strategies used] |
@@ -260,8 +211,8 @@ git push
 ## Files Resolved
 | File | Strategy | Notes |
 |------|----------|-------|
-| [file1] | Combined | Merged both changes |
-| [file2] | Keep ours | Our logic was correct |
+| [file1] | Combine Both | Merged changes from both branches |
+| [file2] | Keep Ours | Current branch logic was correct |
 
 ## Verification
 - [ ] All conflict markers removed
@@ -276,36 +227,4 @@ git push
 
 ## Next Steps
 PR is now mergeable. Run `/pw:merge [pr-number]`
-```
-
----
-
-## Resolution Strategies Reference
-
-### Strategy 1: Keep Ours
-When our changes are correct and theirs should be discarded.
-
-### Strategy 2: Keep Theirs
-When default branch changes should take precedence.
-
-### Strategy 3: Combine Both
-When both changes are needed and can coexist.
-
-### Strategy 4: Rewrite
-When neither version is correct and new code is needed.
-
----
-
-## Troubleshooting
-
-### Abort Merge
-If resolution becomes too complex:
-```bash
-git merge --abort
-```
-
-### Check Conflict Details
-```bash
-git diff --name-only --diff-filter=U
-git status
 ```

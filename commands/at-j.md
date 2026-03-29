@@ -34,30 +34,13 @@ echo "Agent Teams: ENABLED"
 
 ### ABSOLUTE PROHIBITIONS (NEVER VIOLATE)
 
-1. **NEVER modify files in the parent directory**
-   - The parent of the worktree directory is OFF-LIMITS
-   - Only work within the created worktree directory
+1. **NEVER modify files in the parent directory** — only work within the created worktree directory.
+2. **NEVER modify the default branch (main/master/develop)** — all work must be on a feature branch.
+3. **NEVER modify files outside the worktree** — any path not starting with your worktree path is forbidden.
+4. **NEVER delete or force-push existing branches** — only create new branches, never use `git push --force`.
+5. **NEVER delete the worktree before the PR is merged** — cleanup is handled by `/pw:wt-clean`.
 
-2. **NEVER modify the default branch (main/master/develop)**
-   - All work MUST be on a feature branch
-   - NEVER checkout or commit to the default branch
-
-3. **NEVER modify files outside the worktree**
-   - Your working directory is `worktrees/<job-name>/`
-   - Any path not starting with your worktree path is FORBIDDEN
-
-4. **NEVER delete or force-push existing branches**
-   - Only create new branches
-   - NEVER use `git push --force` on existing branches
-
-5. **NEVER delete the worktree before the PR is merged**
-   - Worktree cleanup is handled by `/pw:wt-clean`
-   - Only wt-clean can delete worktrees, and only after merge verification
-
-### Verification Before Any File Operation
-
-Before ANY file write/edit operation, verify the target path starts with your worktree directory.
-If you are about to modify a file outside `worktrees/<job-name>/`, STOP IMMEDIATELY.
+Before ANY file write/edit operation, verify the target path starts with your worktree directory. If you are about to modify a file outside `worktrees/<job-name>/`, STOP IMMEDIATELY.
 
 ---
 
@@ -286,185 +269,65 @@ echo "  TASK_DESCRIPTION=$TASK_DESCRIPTION"
 
 ---
 
-## Phase 2: Task Analysis and Decomposition
+## Task Analysis and Team Spawning
 
-### Load Metadata
+### Task Decomposition
 
-```bash
-# Load metadata from Phase 1
-if [ -z "$WORKTREE_PATH" ]; then
-  for meta in worktrees/*/.wtj-meta; do
-    [ -f "$meta" ] && source "$meta" && break
-  done
-fi
-[ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
-source "$WORKTREE_PATH/.wtj-meta"
-cd "$WORKTREE_PATH"
-echo "Working in: $(pwd)"
-echo "Branch: $(git branch --show-current)"
-```
+Explore the codebase to understand its structure and patterns before decomposing the work. Use an explorer subagent to find relevant files and identify existing conventions.
 
-### Read Project Configuration
+Decompose the task into file-isolated work items. Create **5-6 tasks per teammate** in the shared task list — not one monolithic task per teammate. Examples for a typical feature:
 
-```bash
-source "$WORKTREE_PATH/.wtj-meta"
-cd "$WORKTREE_PATH"
+- "explore patterns in auth/"
+- "implement login handler"
+- "add types for auth module"
+- "write tests for login"
+- "handle edge cases and errors"
+- "update exports"
 
-echo "=== Project Configuration ==="
-if [ -f "CLAUDE.md" ]; then
-  echo "--- CLAUDE.md ---"
-  head -100 CLAUDE.md
-fi
+Set task dependencies where needed (e.g., types task must complete before implementation task).
 
-if [ -f "README.md" ]; then
-  echo ""
-  echo "--- README.md (excerpt) ---"
-  head -50 README.md
-fi
-```
+**Input type handling**:
+- **@design-document**: Parse the at-design output directly. Extract file lists, task scopes, and success criteria from the document.
+- **Issue (#number)**: Fetch issue details via `gh issue view`, then decompose using the Lead's analysis.
+- **Text description**: Explore the codebase, then decompose based on the description.
 
-### Explore Codebase
+### File Ownership
 
-**MANDATORY**: Use explorer subagent to understand the codebase before decomposition.
+Each file belongs to exactly ONE teammate. No file appears in multiple teammates' scopes. Shared files (entry points, index files, barrel exports) are reserved for the Lead to handle after all teammates complete. Use 2-5 teammates maximum.
 
-```
-Use explorer subagent to:
-1. Understand the project structure
-2. Find files related to the task
-3. Identify existing patterns and conventions
-```
+### Teammate Spawn Guidelines
 
-### Determine Input Type
+Include the following in every teammate spawn prompt:
 
-- **@design-document input**: Parse the at-design output directly for task decomposition. Extract file lists, subtask scopes, and success criteria from the document.
-- **Issue input (#number)**: Fetch issue details, then decompose using Lead analysis.
-- **Text input**: Analyze the text, explore the codebase, then decompose.
+- **Worktree path and safety rules**: work only within the worktree, never run `git commit` or `git push`, never switch branches.
+- **File ownership**: the specific files this teammate may create or modify, and the files they must NOT touch.
+- **Task context**: the spec, issue description, or task description scoped to their work.
+- **Available tools**: explorer and analyzer subagents for codebase exploration; `/pw:code-quality` and `/pw:security-review` skills for quality checks.
 
-### Build File Ownership Manifest
+### Plan Approval
 
-Decompose the task into file-isolated subtasks. Create a manifest:
+Require plan approval before teammates begin implementation. Each teammate first proposes their approach (key decisions, API shapes, notable tradeoffs). The Lead reviews all proposals, resolves conflicts (e.g., shared type definitions), and approves before anyone writes code.
 
-```
-Implementer-1: src/auth/login.ts, src/auth/types.ts, tests/auth/login.test.ts
-  Scope: Implement authentication flow
+### Coordination
 
-Implementer-2: src/api/routes.ts, tests/api/routes.test.ts
-  Scope: Add API endpoints
-
-Integration (Lead): src/index.ts (after all Implementers complete)
-  Scope: Wire up new modules in entry point
-```
-
-**Rules**:
-- Each file belongs to exactly ONE Implementer
-- No file appears in multiple Implementer scopes
-- Shared files (entry points, index files) are reserved for Lead integration
-- 2-5 Implementers maximum
+- Let teammates **self-claim** remaining tasks from the shared task list as they finish earlier tasks.
+- Teammates can **message each other directly** to resolve API contracts or shared type questions — they do not need to route everything through the Lead.
+- **Wait for ALL teammates** to report completion before proceeding to verification.
+- The Lead handles integration files (entry points, barrel exports, wiring) only after all teammates finish.
 
 ---
 
-## Phase 3: Agent Team Parallel Implementation
+## Verification, Commit, and PR
 
-### Team Structure (Dynamic)
+### Verification
 
-| Teammate | Model | File Scope |
-|----------|-------|------------|
-| Implementer-1 | sonnet | [File group 1] |
-| Implementer-2 | sonnet | [File group 2] |
-| ... | sonnet | ... |
+Check all changed files against file ownership. Confirm no teammate modified files outside their assigned scope. The Lead then handles shared and integration files.
 
-**Lead Mode**: Delegate
-
-### Implementer Spawn Prompt Template
-
-```
-You are an **Implementer** on a parallel development team working in a git worktree.
-
-## Worktree
-Working directory: [WORKTREE_PATH]
-
-## Your Task
-[Specific implementation scope for this Implementer]
-
-## Files You Own (may create/modify)
-- [file1]
-- [file2]
-- [test file]
-
-## Files You Must NOT Modify
-- [other Implementer's files]
-- [shared files reserved for Lead]
-
-## Implementation Guidelines
-
-1. **Explore first**: Use `explorer` subagent to understand existing patterns
-2. **Follow existing code style**: Match naming, formatting, and idioms
-3. **Minimal changes**: Only modify what's necessary for your scope
-4. **Type safety**: Add type annotations where the project uses them
-5. **Error handling**: Handle errors appropriately
-6. **No dead code**: Don't leave commented-out code
-
-### Quality Standards
-- Follow `/pw:code-quality` standards
-- Follow `/pw:security-review` standards for sensitive code
-
-## CRITICAL Safety Rules
-- ONLY modify files in your "Files You Own" list
-- NEVER modify files outside the worktree: [WORKTREE_PATH]
-- NEVER run `git commit` or `git push` — the Lead handles all commits
-- NEVER switch branches
-
-## On Completion
-Report:
-1. List of files changed with descriptions
-2. Any concerns or decisions made
-3. Any integration points the Lead needs to handle
-```
-
-### Lead Coordination During Implementation
-
-The Lead:
-1. Spawns all Implementers with their scoped prompts
-2. Monitors for completion
-3. Does NOT implement anything during this phase (Delegate mode)
-
----
-
-## Phase 4: Verification (via /pw:precheck)
-
-### 4.1 File Scope Validation
+Create an interim commit:
 
 ```bash
 source "$WORKTREE_PATH/.wtj-meta"
 cd "$WORKTREE_PATH"
-
-echo "=== File Scope Validation ==="
-echo "Changed files:"
-git diff --name-only
-echo ""
-echo "New files:"
-git ls-files --others --exclude-standard
-```
-
-The Lead checks:
-- Every changed file belongs to exactly one Implementer's scope
-- No files outside the manifest were modified
-- If violations found → instruct the offending Implementer to revert
-
-### 4.2 Lead Handles Shared Files
-
-After all Implementers complete, the Lead:
-1. Processes shared/integration files (e.g., index.ts, exports)
-2. Wires up new modules created by Implementers
-3. Resolves any remaining integration points
-
-### 4.3 Create Interim Commit
-
-```bash
-source "$WORKTREE_PATH/.wtj-meta"
-cd "$WORKTREE_PATH"
-
-echo "=== Creating Interim Commit for Precheck ==="
 
 git add .
 if ! git diff --cached --quiet; then
@@ -475,38 +338,11 @@ else
 fi
 ```
 
-### 4.4 Run /pw:precheck
+Run `/pw:precheck HEAD` via the Skill tool. If issues are reported, fix them and re-run precheck until all phases pass.
 
-Use the Skill tool to invoke `/pw:precheck HEAD`. This runs comprehensive checks including:
-- Local checks (lint, format, type check, build)
-- Test verification
-- Code quality & codebase consistency review
-- Specification alignment check
-
-### 4.5 Fix Issues and Re-verify
-
-If `/pw:precheck` reports issues:
-1. Identify which Implementer's files are affected
-2. Instruct the relevant Implementer to fix their files
-3. For shared file issues, the Lead fixes directly
-4. Stage and amend: `git add . && git commit --amend --no-edit`
-5. Re-run `/pw:precheck HEAD` via the Skill tool
-6. Repeat until all precheck phases pass
-
----
-
-## Phase 5: Commit and Push
-
-### Final Safety Verification and Commit
+### Commit and Push
 
 ```bash
-# Load metadata from Phase 1
-if [ -z "$WORKTREE_PATH" ]; then
-  for meta in worktrees/*/.wtj-meta; do
-    [ -f "$meta" ] && source "$meta" && break
-  done
-fi
-[ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
 source "$WORKTREE_PATH/.wtj-meta"
 cd "$WORKTREE_PATH"
 
@@ -558,30 +394,17 @@ echo ""
 echo "Branch pushed successfully"
 ```
 
----
-
-## Phase 6: Create Pull Request
+### Create Pull Request
 
 ```bash
-# Load metadata from Phase 1
-if [ -z "$WORKTREE_PATH" ]; then
-  for meta in worktrees/*/.wtj-meta; do
-    [ -f "$meta" ] && source "$meta" && break
-  done
-fi
-[ -z "$WORKTREE_PATH" ] || [ ! -d "$WORKTREE_PATH" ] && echo "ERROR: Run Phase 1 first" && exit 1
 source "$WORKTREE_PATH/.wtj-meta"
 cd "$WORKTREE_PATH"
-
-# Variables are now loaded from metadata file:
-# - BRANCH_PREFIX, TASK_DESCRIPTION, ISSUE_NUM, etc.
 
 CLOSES_LINE=""
 if [ -n "$ISSUE_NUM" ]; then
   CLOSES_LINE="Closes #${ISSUE_NUM}"
 fi
 
-# Generate PR title from task description (variables from metadata)
 PR_TITLE="${BRANCH_PREFIX}: ${TASK_DESCRIPTION}"
 
 echo "=== Creating Pull Request ==="
@@ -595,9 +418,9 @@ Automated implementation by at-j (Agent Teams).
 
 ## Agent Team Summary
 
-| Implementer | Scope | Files |
-|------------|-------|-------|
-| [Implementer details filled by Lead] |
+| Teammate | Scope | Files |
+|----------|-------|-------|
+| [Teammate details filled by Lead] |
 
 ## Changes
 
@@ -623,82 +446,10 @@ echo ""
 echo "PR created successfully"
 ```
 
----
+### Error Handling
 
-## Output Report
-
-```markdown
-# Agent Team Worktree Job Report
-
-## Job Information
-- **Job Name**: [job-name]
-- **Branch**: [branch-name]
-- **Worktree Path**: worktrees/[job-name]/
-- **Base Branch**: [base-branch]
-
-## Task
-[Original task description or issue reference]
-
-## Agent Team Summary
-| Implementer | Scope | Files Changed |
-|------------|-------|---------------|
-| Implementer-1 | [scope] | [files] |
-| Implementer-2 | [scope] | [files] |
-| Lead (Integration) | [shared files] | [files] |
-
-## Implementation Summary
-[What was implemented]
-
-## Files Changed
-- `path/to/file1` - [Description]
-- `path/to/file2` - [Description]
-
-## Verification Results
-- [ ] File scope validation: PASS/FAIL
-- [ ] Lint: PASS/FAIL
-- [ ] Type Check: PASS/FAIL
-- [ ] Tests: PASS/FAIL
-- [ ] Build: PASS/FAIL
-
-## Pull Request
-- **PR URL**: [URL]
-- **PR Number**: #[number]
-- **Status**: Ready for Review
-
-## Cleanup Instructions
-
-After PR is merged, run:
-```bash
-/pw:wt-clean [job-name]
-```
-
-**WARNING**: Do NOT manually delete the worktree before merging!
-
-## Notes
-[Any additional notes, decisions made, or issues encountered]
-```
-
----
-
-## Error Handling
-
-If ANY error occurs:
-
-1. **DO NOT** attempt to fix by modifying files outside worktree
-2. **DO NOT** switch to base branch
-3. **DO NOT** delete the worktree
-4. Document the error clearly in the output
-5. Leave the worktree in its current state for manual inspection
-6. Report what was attempted and what failed
-
-```bash
-# On error, show diagnostic info
-echo "=== Error Diagnostic ==="
-echo "Working directory: $(pwd)"
-echo "Branch: $(git branch --show-current 2>/dev/null || echo 'unknown')"
-echo "Git status:"
-git status --short 2>/dev/null || echo "Not in git repo"
-echo ""
-echo "Recent commits:"
-git log --oneline -5 2>/dev/null || echo "No commits"
-```
+- Do NOT modify files outside the worktree.
+- Do NOT switch to the base branch.
+- Do NOT delete the worktree.
+- Document errors clearly and leave the worktree in its current state for inspection.
+- Report what was attempted and what failed.
