@@ -15,13 +15,12 @@ $ARGUMENTS
 Locate the parallel-workflow plugin scripts:
 ```bash
 # Find plugin directory (check common locations)
-if [ -d ".claude-paralell-dev-plugin/scripts" ]; then
-  PLUGIN_DIR=".claude-paralell-dev-plugin"
-elif [ -d "../.claude-paralell-dev-plugin/scripts" ]; then
-  PLUGIN_DIR="../.claude-paralell-dev-plugin"
-elif [ -n "$PW_PLUGIN_DIR" ]; then
-  PLUGIN_DIR="$PW_PLUGIN_DIR"
-else
+PLUGIN_DIR=""
+for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin "$HOME"/.claude/plugins/cache/claude-parallel-dev-plugin/pw/*; do
+  [ -d "$_d/scripts" ] && PLUGIN_DIR="$_d" && break
+done 2>/dev/null
+[ -n "${PW_PLUGIN_DIR:-}" ] && PLUGIN_DIR="$PW_PLUGIN_DIR"
+if [ -z "$PLUGIN_DIR" ]; then
   echo "Error: parallel-workflow plugin not found"
   echo "Set PW_PLUGIN_DIR environment variable or place plugin in .claude-paralell-dev-plugin/"
   exit 1

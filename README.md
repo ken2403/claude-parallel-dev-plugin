@@ -33,7 +33,17 @@ Example layout:
 └── claude-paralell-dev-plugin/   # This plugin
 ```
 
-### 2. Enable the Plugin in Claude Code
+### 2. Set the Environment Variable
+
+Add `PW_PLUGIN_DIR` to your shell profile so that plugin scripts (e.g. base branch detection) are always discoverable:
+
+```bash
+# Add to ~/.zshrc (or ~/.bashrc)
+echo 'export PW_PLUGIN_DIR="/path/to/any-directory/claude-paralell-dev-plugin"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+### 3. Enable the Plugin in Claude Code
 
 #### Method A: Register as Marketplace (Recommended)
 
@@ -56,7 +66,7 @@ cd your-project
 claude --plugin-dir /path/to/any-directory/claude-paralell-dev-plugin
 ```
 
-### 3. Place CLAUDE.md in Your Project (Recommended)
+### 4. Place CLAUDE.md in Your Project (Recommended)
 
 ```bash
 cp ../claude-paralell-dev-plugin/examples/CLAUDE.project-template.md ./CLAUDE.md
@@ -92,15 +102,15 @@ Use this when autonomously implementing independent tasks in an isolated environ
 | `/pw:design` | Create design and decompose tasks from spec | `#issue-number` / `@file-reference` / `"text"` |
 | `/pw:orchestrate` | Launch parallel workers | List of branch names |
 | `/pw:worker` | Execute worker task | Task description |
-| `/pw:wt-j` | Autonomous implementation in isolated worktree | `#issue-number` / `"task description"` `[--feature\|--fix]` |
+| `/pw:wt-j` | Autonomous implementation in isolated worktree (parallel for 3+ files) | `#issue-number` / `"task description"` `[--feature\|--fix]` |
 | `/pw:wt-clean` | Clean up wt-j environment | `job-name` / `--all` |
 | `/pw:status` | Check progress | (Optional) session name |
 | `/pw:precheck` | Pre-check before PR creation | Branch name or `HEAD` |
 | `/pw:rv` | Review PR (critical) | PR number |
-| `/pw:fix` | Fix review feedback | Feedback content |
+| `/pw:fix` | Fix review feedback (parallel for 3+ files) | Feedback content |
 | `/pw:merge` | Merge PR | PR number `[--skip]` |
 | `/pw:cleanup` | Clean up environment | List of branch names |
-| `/pw:resolve-conflicts` | Resolve conflicts | Branch name |
+| `/pw:resolve-conflicts` | Resolve conflicts (parallel for 3+ files) | Branch name |
 
 ### Examples
 
@@ -199,6 +209,30 @@ Terminal 3: /pw:wt-j "Refactor utils"
 /pw:wt-clean --all
 ```
 
+##### Worktree Job Internal Flow
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────────────────────────┐
+│  /pw:wt-j    │────▶│   Phase 2    │────▶│          Phase 3                 │
+│ (Setup)      │     │(Requirements)│     │    (Implementation)              │
+│ worktree +   │     │  explorer    │     │  ┌─────────────────────────┐     │
+│ branch       │     │  analyzer    │     │  │ 3+ files? → Parallel    │     │
+└──────────────┘     └──────────────┘     │  │  ┌───────┐ ┌───────┐   │     │
+                                          │  │  │si-impl│ │si-impl│   │     │
+                                          │  │  │  #1   │ │  #2   │   │     │
+                                          │  │  └───────┘ └───────┘   │     │
+                                          │  │ 1-2 files? → Direct    │     │
+                                          │  └─────────────────────────┘     │
+                                          │  Integration Review (Opus)       │
+                                          └───────────────┬──────────────────┘
+                                                          │
+                                                          ▼
+                                          ┌──────────────────────────────┐
+                                          │  Phase 4-6: Precheck →      │
+                                          │  Commit → Push → PR         │
+                                          └──────────────────────────────┘
+```
+
 ##### Worktree Job Features
 
 | Feature | Description |
@@ -207,6 +241,7 @@ Terminal 3: /pw:wt-j "Refactor utils"
 | **Safety** | Never modifies parent directory or main branch |
 | **Autonomous Execution** | Runs automatically through PR creation without approval |
 | **Concurrent Execution** | Can run multiple tasks simultaneously |
+| **Parallel Implementation** | For 3+ files, uses `simple-implementer` subagents in parallel |
 | **Branch Naming** | Specify prefix with `--feature` (default) or `--fix` |
 
 **Note**: Deleting worktrees before PRs are merged is prohibited. `wt-clean` only deletes branches that have been merged.
@@ -280,6 +315,7 @@ Terminal 3: /pw:wt-j "Refactor utils"
    ┌─────────────┐             │             ┌─────────────┐
    │  /pw:fix    │◄────────────┘             │ /pw:resolve │
    │(Fix Issues) │                           │ -conflicts  │
+   │ si-impl ×N  │                           │ si-impl ×N  │
    └─────────────┘                           └─────────────┘
                                │
                                ▼
@@ -305,15 +341,15 @@ Terminal 3: /pw:wt-j "Refactor utils"
 | `/pw:design` | `explorer` | `analyzer` |
 | `/pw:orchestrate` | - | `status-monitor` (background) |
 | `/pw:worker` | `explorer` | `analyzer` |
-| `/pw:wt-j` | `explorer` | `analyzer` |
+| `/pw:wt-j` | `explorer` | `analyzer`, `simple-implementer` (parallel, 3+ files) |
 | `/pw:wt-clean` | - | - |
 | `/pw:status` | - | - |
 | `/pw:precheck` | `explorer` | `analyzer` |
 | `/pw:rv` | - | `explorer`, `analyzer` |
-| `/pw:fix` | `explorer` | - |
+| `/pw:fix` | `explorer` | `simple-implementer` (parallel, 3+ files) |
 | `/pw:merge` | - | - |
 | `/pw:cleanup` | - | - |
-| `/pw:resolve-conflicts` | - | - |
+| `/pw:resolve-conflicts` | `explorer` | `simple-implementer` (parallel, 3+ files) |
 
 ### Command → Skill Dependencies
 
@@ -382,6 +418,7 @@ For small, focused code changes. Assesses task scope before implementation.
 - **Caution zone**: 200-500 lines (proceeds with warning)
 - **Rejects**: Over ~500 lines or architectural changes
 - **Usage**: `Use simple-implementer subagent to [small task description]`
+- **Parallel usage**: Used by `/pw:wt-j`, `/pw:fix`, and `/pw:resolve-conflicts` for parallel per-file execution when 3+ files are affected
 
 ## Skills
 

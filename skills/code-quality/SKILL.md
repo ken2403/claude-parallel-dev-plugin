@@ -1,112 +1,52 @@
 ---
 name: code-quality
-description: Code quality standards for reviewing code changes. Automatically provides quality checklist when reviewing PRs, implementing features, or discussing code quality.
+description: Code quality standards for reviewing code changes. Automatically provides quality checklist when reviewing PRs, implementing features, or discussing code quality. Use when user asks to "review code", "check quality", "improve code", "refactor", or runs /rv or /precheck commands.
 allowed-tools: Read, Grep, Glob
+metadata:
+    author: ken2403
+    version: 1.1.0
 ---
 
 # Code Quality Standards
 
 Apply these quality criteria when reviewing or writing code.
 
-## General Quality
+## Instructions
 
-### Readability
-- Code is self-documenting through clear naming
-- Complex logic has explanatory comments
-- Consistent formatting and style
-- Appropriate abstraction level
+### Step 1: Understand Existing Patterns
 
-### Maintainability
-- Functions are small and focused (single responsibility)
-- No code duplication (DRY principle)
-- Clear module boundaries
-- Easy to modify without breaking other parts
-
-### Simplicity
-- No over-engineering
-- No premature optimization
-- Straightforward solutions preferred
-- Minimal dependencies
-
-## Type Safety
-
-- All public functions have type annotations
-- No `Any` type unless absolutely necessary
-- Generic types properly constrained
-- Return types explicitly declared
-
-## Error Handling
-
-- Errors caught at appropriate level
-- Error messages are meaningful and actionable
-- No silent failures (swallowed exceptions)
-- Graceful degradation where appropriate
-- Resources properly cleaned up (finally/context managers)
-
-## Naming Conventions
-
-| Type | Convention | Example |
-|------|------------|---------|
-| Classes | PascalCase | `UserAuthentication` |
-| Functions | snake_case / camelCase | `get_user` / `getUser` |
-| Constants | UPPER_SNAKE | `MAX_RETRIES` |
-| Private | Leading underscore | `_internal_method` |
-
-## Code Smells to Avoid
-
-- **Long methods**: Break into smaller functions
-- **Deep nesting**: Flatten with early returns
-- **Magic numbers**: Use named constants
-- **God classes**: Split responsibilities
-- **Feature envy**: Move method to appropriate class
-- **Dead code**: Remove unused code
-
-## Performance
-
-### N+1 Query Prevention
-- No database queries inside loops
-- Use eager loading / preloading for related data
-- Batch queries when fetching multiple records
-
-Common patterns to avoid:
-```python
-# Bad - N+1 query
-for user in users:
-    posts = db.query(Post).filter(Post.user_id == user.id).all()
-
-# Good - Eager loading
-users = db.query(User).options(joinedload(User.posts)).all()
-```
-
-## Testing Requirements
-
-- Unit tests for business logic
-- Integration tests for APIs
-- Edge cases covered
-- Mocks used appropriately
-- Test names describe behavior
-
-## Documentation
-
-- Public APIs documented
-- Complex algorithms explained
-- Configuration options described
-- Examples provided for non-obvious usage
-
-## Coding Style Consistency
-
-**IMPORTANT**: New code must be consistent with existing codebase patterns.
-
-### Before Making Changes
-
-Use subagents to understand existing patterns:
+Before reviewing or writing code, explore the codebase to understand existing conventions.
 
 ```
 Use explorer subagent to find similar implementations in the codebase
 Use analyzer subagent to understand the coding patterns used in this project
 ```
 
-### Consistency Checks
+### Step 2: Apply Quality Criteria
+
+Evaluate code against these core principles:
+
+- **Readability**: Self-documenting through clear naming, complex logic has comments
+- **Maintainability**: Small focused functions (SRP), no duplication (DRY), clear module boundaries
+- **Simplicity**: No over-engineering, no premature optimization, minimal dependencies
+- **Error Handling**: Errors caught at appropriate level, meaningful messages, no silent failures, resources cleaned up
+- **Type Safety**: Public functions have type annotations, no unnecessary `Any` types
+
+For detailed checklists, consult `references/checklist.md`.
+
+### Step 3: Check for Code Smells
+
+Flag these common issues:
+
+- Long methods -> break into smaller functions
+- Deep nesting -> flatten with early returns
+- Magic numbers -> use named constants
+- God classes -> split responsibilities
+- Dead code -> remove unused code
+
+For naming conventions and style patterns, consult `references/patterns.md`.
+
+### Step 4: Verify Consistency
 
 | Aspect | Check |
 |--------|-------|
@@ -114,20 +54,10 @@ Use analyzer subagent to understand the coding patterns used in this project
 | Structure | Follow established file/directory organization |
 | Patterns | Use same design patterns as existing code |
 | Formatting | Match indentation, spacing, line breaks |
-| Comments | Follow existing comment style and density |
 | Imports | Match import ordering and grouping |
 | Error handling | Use same error handling patterns |
 
-### Workflow
-
-1. **Explore first**: Always use `explorer` subagent to find similar code
-2. **Analyze patterns**: Use `analyzer` subagent for complex architectural decisions
-3. **Match style**: Implement using the same patterns found in existing code
-4. **Verify consistency**: Compare your changes with surrounding code
-
-## Review Checklist
-
-When reviewing code, verify:
+### Step 5: Final Review Checklist
 
 - [ ] Logic is correct
 - [ ] Edge cases handled
@@ -137,5 +67,57 @@ When reviewing code, verify:
 - [ ] Tests adequate
 - [ ] Code is readable
 - [ ] No unnecessary complexity
-- [ ] **Consistent with existing codebase style**
-- [ ] **Follows established patterns (verified with subagent exploration)**
+- [ ] Consistent with existing codebase style
+- [ ] Follows established patterns (verified with subagent exploration)
+
+## Examples
+
+### Example 1: N+1 Query Detection
+
+When reviewing database access code, watch for queries inside loops:
+
+```python
+# Bad - N+1 query
+for user in users:
+    posts = db.query(Post).filter(Post.user_id == user.id).all()
+
+# Good - Eager loading
+users = db.query(User).options(joinedload(User.posts)).all()
+```
+
+### Example 2: Early Return for Deep Nesting
+
+```python
+# Bad - Deep nesting
+def process(data):
+    if data:
+        if data.is_valid():
+            if data.has_permission():
+                return do_work(data)
+
+# Good - Early returns
+def process(data):
+    if not data:
+        return None
+    if not data.is_valid():
+        raise ValueError("Invalid data")
+    if not data.has_permission():
+        raise PermissionError("Access denied")
+    return do_work(data)
+```
+
+## Common Issues
+
+### Skill Not Catching Issues
+
+If code quality problems are missed:
+1. Verify the codebase was explored first with subagents
+2. Consult the detailed checklist in `references/checklist.md`
+3. Check if the issue is language-specific
+
+### Inconsistent Style Feedback
+
+If style suggestions conflict with the existing codebase:
+1. Existing codebase patterns always take precedence
+2. Use `analyzer` subagent to confirm the established convention
+3. Only suggest style changes if the existing pattern is clearly problematic
