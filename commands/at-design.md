@@ -7,141 +7,75 @@ model: opus
 
 # Agent Team Design Phase
 
-Launch an agent team of three specialists to collaboratively discuss, critique, and validate a specification before decomposing it into parallel-executable subtasks.
+Launch an agent team to collaboratively discuss, critique, and validate a specification before decomposing it into parallel-executable tasks.
 
 ## Input
 $ARGUMENTS
 
-## Agent Teams Prerequisite Check
+## Prerequisites
 
 ```bash
-echo "=== Agent Teams Prerequisite Check ==="
 if [ "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-0}" != "1" ]; then
-  echo "ERROR: Agent Teams feature is not enabled."
-  echo ""
-  echo "To enable, add to your settings.json:"
-  echo '  { "env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" } }'
-  echo ""
-  echo "Or set the environment variable:"
-  echo "  export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1"
+  echo "ERROR: Agent Teams not enabled. Set CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 in settings.json"
   exit 1
 fi
 echo "Agent Teams: ENABLED"
 ```
 
-## Input Processing
+## Gather Context
 
-Determine input type and extract requirements:
+Determine the input type and collect all necessary context before creating the team.
 
-### 1. GitHub Issue Reference (#number)
-```bash
-gh issue view $1 --json title,body,labels,assignees
-```
+- **#issue-number**: Fetch via `gh issue view [number] --json title,body,labels,assignees`.
+- **@file-reference**: Read the referenced specification file.
+- **Direct text**: Use the specification as provided.
 
-### 2. File Reference (@path)
-Read the referenced specification file.
-
-### 3. Direct Text
-Parse the specification as provided.
-
-## Current Project Context
-
-- Repository: !`git remote get-url origin 2>/dev/null | sed 's/.*\///' | sed 's/\.git$//' || basename $(pwd)`
-- Branch: !`git branch --show-current`
-- Project structure: !`ls -la | head -15`
-
-## Base Branch Detection
+Collect repository context:
 
 ```bash
-# Plugin discovery + Base branch detection (canonical pattern from PR15)
-_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
-BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
-echo "Base branch: $BASE_BRANCH"
-```
-
----
-
-## Context Gathering
-
-Collect repository context before the team begins.
-
-```bash
-echo "=== Repository Context ==="
 echo "Remote: $(git remote get-url origin 2>/dev/null || echo 'local')"
-echo "Current branch: $(git branch --show-current)"
-echo ""
-echo "=== Project Structure ==="
-ls -la | head -20
-echo ""
-echo "=== Recent Commits ==="
-git log --oneline -10
+echo "Branch: $(git branch --show-current)"
+echo "Base branch: $(_PD=""; for _d in .claude-paralell-dev-plugin ../.claude-paralell-dev-plugin ../../.claude-paralell-dev-plugin; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"; "$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")"
+ls -la | head -15
+git log --oneline -5
 ```
 
-Parse the input ($ARGUMENTS) to produce a clear specification text shared with all teammates.
+## Create Agent Team
 
----
+Create an agent team to discuss this specification like a **scientific debate**. Each teammate actively tries to find weaknesses in the others' proposals and disprove assumptions. The goal is that only ideas that survive rigorous challenge make it into the final design.
 
-## Agent Team Configuration
+Adapt team composition to the spec's nature and complexity. Common useful perspectives:
 
-### Teammates
+- **Architecture** — propose technical design, file structure, and task decomposition
+- **Critical review** — challenge every decision, identify risks, propose concrete alternatives
+- **Codebase validation** — explore existing code deeply, verify feasibility and pattern consistency
 
-| Teammate | Model | Role |
-|----------|-------|------|
-| **Architect** | opus | Proposes technical design, file structure, and task decomposition based on deep codebase exploration |
-| **Critic** | opus | Challenges every design decision, finds weaknesses, proposes alternatives. Constructively critical, not obstructive. |
-| **Codebase Validator** | sonnet | Explores codebase deeply, validates feasibility and pattern consistency, identifies reusable components |
+A simple utility may only need two perspectives. A cross-cutting redesign benefits from all three or more.
 
-### Shared Task List
+### How the Team Should Work
 
-**Architect tasks:**
-1. Explore codebase structure and identify relevant patterns
-2. Propose architecture covering affected and new components
-3. Define file structure (files to create and modify)
-4. Decompose implementation into parallel subtasks with clear file ownership
-5. Draft full implementation plan
-6. Refine proposal based on Critic and Codebase Validator feedback
-
-**Critic tasks:**
-1. Review the Architect's initial architecture proposal
-2. Identify risks, weaknesses, and edge cases in the design
-3. Challenge proposed file boundaries and task independence claims
-4. Propose concrete alternatives for each identified issue
-5. Validate that the final revised plan adequately addresses all concerns
-
-**Codebase Validator tasks:**
-1. Explore modules relevant to the specification
-2. Check naming conventions and coding standards in affected areas
-3. Verify that proposed file boundaries are truly independent, with evidence
-4. Identify reusable utilities, helpers, or base classes
-5. Confirm integration points and flag areas needing special attention
-
-### Coordination
-
-- Teammates message each other directly for discussion and debate.
-- Architect shares the initial proposal with both Critic and Codebase Validator.
-- Critic and Codebase Validator share their findings with the Architect and each other.
+- Each teammate has 5-6 tasks in the shared task list.
+- Teammates message each other directly to debate. The architect shares proposals; others actively challenge them with evidence.
+- Teammates don't just flag weaknesses — they propose **concrete alternatives** for every criticism.
 - Use plan approval before finalizing the task decomposition.
-- Lead synthesizes once all tasks are complete, resolving any remaining disagreements and producing the final design document.
+- The lead synthesizes once all tasks complete, resolving remaining disagreements and producing the final design document.
+- Clean up the team after synthesis is complete.
 
----
+## Output
 
-## Output Format
-
-Generate the final design document in this format (compatible with at-j input):
+Generate the final design document in this format (compatible with `/pw:at-j` input):
 
 ```markdown
 # Design: [Feature/Task Name]
 
 ## Overview
-[Brief description of what will be implemented]
+[Brief description]
 
 ## Requirements Summary
 ### Must Have
 - [Requirement 1]
-- [Requirement 2]
-
 ### Nice to Have
-- [Optional requirement]
+- [Optional]
 
 ## Architecture
 
@@ -166,55 +100,35 @@ Generate the final design document in this format (compatible with at-j input):
 ## Task Decomposition
 
 ### Summary
-- **Total subtasks**: N
+- **Total tasks**: N
 - **Parallel execution**: Full / Partial / Sequential
-- **Estimated complexity**: Low / Medium / High
 
-### Subtasks
+### Tasks
 
-#### Subtask 1: [Name]
-- **Branch**: `feature/[descriptive-name]`
-- **Scope**: [Clear description of what to implement]
-- **Target files**:
-  - `path/to/file1`
-  - `path/to/file2`
-- **Do NOT modify**:
-  - `path/to/shared/` (other workers' territory)
-- **Success criteria**:
-  - [ ] [Criterion 1]
-  - [ ] [Criterion 2]
-  - [ ] Tests pass
-  - [ ] Lint/type check pass
-- **Dependencies**: None
-
-#### Subtask 2: [Name]
-...
+#### Task 1: [Name]
+- **Scope**: [Clear description]
+- **Target files**: `path/to/file1`, `path/to/file2`
+- **Do NOT modify**: `path/to/shared/` (other workers' territory)
+- **Success criteria**: [criteria]
+- **Dependencies**: None / Task N
 
 ### Execution Order
-Phase 1 (Parallel):
-  - Subtask 1
-  - Subtask 2
-Phase 2 (After Phase 1, if needed):
-  - Integration subtask
+Phase 1 (Parallel): Task 1, Task 2
+Phase 2 (After Phase 1): Integration task
 
 ## Risks and Mitigations
-
 | Risk | Severity | Mitigation |
 |------|----------|------------|
 | [Risk] | High/Medium/Low | [Mitigation] |
 
 ## Codebase Validation
-
-- **Existing patterns to follow**: [patterns found by Codebase Validator]
+- **Existing patterns to follow**: [patterns found in codebase exploration]
 - **Reusable components**: [utilities/helpers identified]
 - **Integration points**: [areas needing special attention]
 - **File independence verified**: Yes/No (with evidence)
 ```
 
----
-
 ## Next Steps
 
-After design and decomposition approval:
 - Run `/pw:at-j @design-document` to launch parallel implementation via Agent Teams
-- Or run `/pw:wt-j` for single-agent implementation of individual subtasks
+- Or run `/pw:wt-j` for single-agent implementation of individual tasks
