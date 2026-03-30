@@ -1,5 +1,11 @@
 # Vulnerability Patterns and Secure Alternatives
 
+## Contents
+- OWASP Top 10 Reference
+- Dangerous Code Patterns (Code Injection, Command Injection, SQL Injection, XSS, Path Traversal, Deserialization)
+- Secure Alternatives Quick Reference
+- Framework-Specific Notes (Django, Express/Node.js, Flask, React)
+
 ## OWASP Top 10 Reference
 
 1. **Broken Access Control** - Verify authorization on every request

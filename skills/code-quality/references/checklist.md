@@ -1,5 +1,14 @@
 # Code Quality Detailed Checklist
 
+## Contents
+- Readability
+- Maintainability
+- Type Safety
+- Error Handling
+- Performance
+- Testing Requirements
+- Documentation
+
 ## Readability
 
 - Code is self-documenting through clear naming
