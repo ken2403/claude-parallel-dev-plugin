@@ -101,6 +101,12 @@ Use this when autonomously implementing independent tasks in an isolated environ
 Issue/Task → at-design → at-j → at-rv → at-fix → at-resolve-conflicts → merge → wt-clean
 ```
 
+Or for quick in-place implementation without worktree:
+
+```
+Task → at-impl → (review changes) → commit
+```
+
 Uses Claude Code's experimental Agent Teams feature for multi-agent parallel execution. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
 
 ### Command List
@@ -123,6 +129,7 @@ Uses Claude Code's experimental Agent Teams feature for multi-agent parallel exe
 | `/pw:at-j` | Agent team implementation in isolated worktree | `#issue-number` / `"task description"` `[--feature\|--fix]` |
 | `/pw:at-rv` | Agent team parallel PR review (3 specialists) | PR number |
 | `/pw:at-fix` | Agent team parallel review feedback fixes | PR number |
+| `/pw:at-impl` | Agent team implementation in current directory | `#issue-number` / `@design-document` / `"task description"` |
 | `/pw:at-resolve-conflicts` | Agent team parallel conflict resolution | Branch name |
 
 ### Examples
