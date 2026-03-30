@@ -4,7 +4,7 @@ description: Security review checklist for code changes. Automatically activates
 allowed-tools: Read, Grep, Glob
 metadata:
     author: ken2403
-    version: 1.1.0
+    version: 1.2.0
 ---
 
 # Security Review Checklist
@@ -24,28 +24,14 @@ Scan the changed files for:
 - Cryptographic operations
 - Secrets / credentials
 
-### Step 2: Check Critical Security Controls
+### Step 2: Check Security Controls
 
-**Authentication**:
-- Authentication required for sensitive endpoints
-- Passwords hashed with secure algorithm (bcrypt, argon2)
-- Session tokens are cryptographically random with expiration
-
-**Authorization**:
-- Authorization checked before data access
-- Principle of least privilege applied
-- Ownership verified before operations
-
-**Input Validation**:
-- All user input validated on server-side
-- Input length limits enforced
-- Whitelist validation preferred over blacklist
-
-For the full detailed checklist, consult `references/checklist.md`.
+Review authentication, authorization, and input validation controls.
+For the detailed checklist, consult `references/checklist.md`.
 
 ### Step 3: Scan for Dangerous Patterns
 
-Flag these red flags immediately:
+Use Grep to search for these red-flag patterns in the codebase:
 
 ```
 eval(user_input)           # Code injection
@@ -55,6 +41,9 @@ f"SELECT * FROM {table}"   # SQL injection
 innerHTML = userData       # XSS
 password = "hardcoded"     # Hardcoded secret
 verify=False               # SSL verification disabled
+shell=True                 # Shell injection risk
+pickle.loads(              # Unsafe deserialization
+yaml.load(                 # Unsafe YAML loading
 ```
 
 For complete vulnerability patterns and secure alternatives, consult `references/vulnerabilities.md`.
@@ -67,7 +56,19 @@ For complete vulnerability patterns and secure alternatives, consult `references
 - PII handled according to regulations
 - API keys rotatable, different per environment
 
-### Step 5: Final Security Checklist
+### Step 5: Validate Findings
+
+For each flagged issue:
+1. Use Grep to check if the pattern is mitigated elsewhere (middleware, wrappers, framework protections)
+2. Check framework-level protections before reporting (e.g., Django ORM, React JSX auto-escaping)
+3. Verify the input source — internal/trusted sources may not need the same controls
+4. Classify severity:
+   - **Critical**: Remote code execution, authentication bypass, data breach
+   - **High**: SQL injection, XSS, privilege escalation
+   - **Medium**: Missing rate limiting, verbose error messages, weak encryption
+   - **Low**: Informational findings, minor configuration issues
+
+### Step 6: Final Security Checklist
 
 - [ ] No injection vulnerabilities (SQL, XSS, Command)
 - [ ] Authentication and authorization properly implemented
@@ -78,6 +79,14 @@ For complete vulnerability patterns and secure alternatives, consult `references
 - [ ] Rate limiting on public endpoints
 - [ ] CORS configured correctly
 - [ ] Dependencies free of known vulnerabilities
+
+## Report Format
+
+For each finding:
+- **Severity**: Critical / High / Medium / Low
+- **Location**: file:line
+- **Issue**: Brief description
+- **Suggestion**: Specific fix or secure alternative
 
 ## Examples
 
@@ -116,16 +125,7 @@ API_KEY = os.environ["API_KEY"]
 
 ## Common Issues
 
-### False Positives
-
-If the skill flags code that is actually safe:
-1. Check if the input source is trusted (internal, not user-facing)
-2. Verify if a framework-level protection is already in place
-3. Document the safety justification in a comment
-
-### Missing Context
-
 If security review seems incomplete:
-1. Use `Grep` to find all usages of the flagged pattern
+1. Use Grep to find all usages of the flagged pattern across the codebase
 2. Check framework-level middleware (auth, CSRF, etc.)
 3. Consult `references/vulnerabilities.md` for the full OWASP Top 10 mapping

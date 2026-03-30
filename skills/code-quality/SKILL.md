@@ -1,10 +1,10 @@
 ---
 name: code-quality
-description: Code quality standards for reviewing code changes. Automatically provides quality checklist when reviewing PRs, implementing features, or discussing code quality. Use when user asks to "review code", "check quality", "improve code", "refactor", or runs /rv or /precheck commands.
+description: Code quality standards for reviewing code changes. Activated when reviewing PRs, implementing features, or discussing code quality. Triggers on requests to "review code", "check quality", "improve code", or "refactor".
 allowed-tools: Read, Grep, Glob
 metadata:
     author: ken2403
-    version: 1.1.0
+    version: 2.0.0
 ---
 
 # Code Quality Standards
@@ -17,22 +17,15 @@ Apply these quality criteria when reviewing or writing code.
 
 Before reviewing or writing code, explore the codebase to understand existing conventions.
 
-```
-Use explorer subagent to find similar implementations in the codebase
-Use analyzer subagent to understand the coding patterns used in this project
-```
+- Use Glob to find files with similar patterns (e.g., `Glob("**/*Service.ts")` to find all service files).
+- Use Grep to search for usage of specific functions, types, or patterns across the codebase.
+- Use Read to examine key files and understand the established coding style, error handling approach, and module structure.
 
 ### Step 2: Apply Quality Criteria
 
-Evaluate code against these core principles:
+Evaluate against: readability, maintainability, simplicity, error handling, type safety.
 
-- **Readability**: Self-documenting through clear naming, complex logic has comments
-- **Maintainability**: Small focused functions (SRP), no duplication (DRY), clear module boundaries
-- **Simplicity**: No over-engineering, no premature optimization, minimal dependencies
-- **Error Handling**: Errors caught at appropriate level, meaningful messages, no silent failures, resources cleaned up
-- **Type Safety**: Public functions have type annotations, no unnecessary `Any` types
-
-For detailed checklists, consult `references/checklist.md`.
+For detailed criteria, consult `references/checklist.md`.
 
 ### Step 3: Check for Code Smells
 
@@ -68,7 +61,19 @@ For naming conventions and style patterns, consult `references/patterns.md`.
 - [ ] Code is readable
 - [ ] No unnecessary complexity
 - [ ] Consistent with existing codebase style
-- [ ] Follows established patterns (verified with subagent exploration)
+- [ ] Follows established patterns (verified with Grep/Glob exploration)
+
+### Step 6: Verify Findings Against Codebase
+
+After flagging an issue, use Grep to verify the pattern is consistent across the codebase before reporting. The existing codebase convention takes precedence over general best practices.
+
+## Report Format
+
+For each finding:
+- **Severity**: Critical / High / Medium / Low
+- **Location**: file:line
+- **Issue**: Brief description
+- **Suggestion**: Specific fix or improvement
 
 ## Examples
 
@@ -111,7 +116,7 @@ def process(data):
 ### Skill Not Catching Issues
 
 If code quality problems are missed:
-1. Verify the codebase was explored first with subagents
+1. Verify the codebase was explored first with Grep and Glob
 2. Consult the detailed checklist in `references/checklist.md`
 3. Check if the issue is language-specific
 
@@ -119,5 +124,5 @@ If code quality problems are missed:
 
 If style suggestions conflict with the existing codebase:
 1. Existing codebase patterns always take precedence
-2. Use `analyzer` subagent to confirm the established convention
+2. Use Grep to confirm the established convention
 3. Only suggest style changes if the existing pattern is clearly problematic
