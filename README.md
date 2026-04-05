@@ -378,7 +378,8 @@ Terminal 3: /pw:wt-j "Refactor utils"
 | `/pw:worker` | `code-quality`, `security-review` |
 | `/pw:wt-j` | `code-quality`, `security-review` |
 | `/pw:precheck` | `code-quality`, `security-review` |
-| `/pw:rv` | `code-quality`, `security-review` |
+| `/pw:rv` | `code-quality`, `security-review`, `reviewing-codebase-consistency` |
+| `/pw:at-rv` | `code-quality`, `security-review`, `reviewing-codebase-consistency` |
 | `/pw:fix` | `code-quality` |
 
 ### Command → Script Dependencies
@@ -403,6 +404,7 @@ Terminal 3: /pw:wt-j "Refactor utils"
 |-------|-------------------|---------|
 | `code-quality` | During code review, implementation | Readability, maintainability, type safety, coding style consistency |
 | `security-review` | During security-related changes | OWASP Top 10, authentication/authorization, input validation |
+| `reviewing-codebase-consistency` | During PR review | Change propagation tracing, cross-layer consistency, missed file detection beyond the diff |
 
 ## Subagent Details
 
