@@ -81,6 +81,10 @@ gh pr checks $1 2>/dev/null || echo "Cannot fetch CI status"
    - Data protection & secrets management
    - OWASP Top 10 vulnerabilities
 
+3. **Reviewing Codebase Consistency Skill** (`/pw:reviewing-codebase-consistency`):
+   - Codebase context building, change propagation tracing, cross-layer consistency
+   - Apply on every PR review
+
 Refer to the skill definitions for detailed checklists.
 
 ## Review Checklist Summary
