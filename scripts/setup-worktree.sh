@@ -98,8 +98,8 @@ if [ -n "$ISSUE_NUM" ]; then
   BRANCH_NAME="${BRANCH_PREFIX}/issue-${ISSUE_NUM}"
 else
   # Generate from description (kebab-case, max 40 chars)
-  JOB_NAME=$(echo "$INPUT_ARGS" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | cut -c1-40 | sed 's/^-//;s/-$//')
-  JOB_NAME="${JOB_NAME:-job}"
+  JOB_NAME=$(echo "$INPUT_ARGS" | LC_ALL=C tr '[:upper:]' '[:lower:]' | LC_ALL=C tr -cs '[:alnum:]' '-' | cut -c1-40 | sed 's/^-//;s/-$//')
+  JOB_NAME="${JOB_NAME:-job-$(date +%Y%m%d-%H%M%S)}"
   BRANCH_NAME="${BRANCH_PREFIX}/${JOB_NAME}"
 fi
 
