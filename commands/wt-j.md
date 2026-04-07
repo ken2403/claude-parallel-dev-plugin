@@ -17,7 +17,6 @@ $ARGUMENTS
 
 **Branch names MUST be in English.** If the task description contains non-ASCII characters (Japanese, etc.), translate it to a concise English slug (2-5 words, kebab-case) before passing to `setup-worktree.sh`. Keep the original description for commit messages and PR body.
 
-**Plan mode note**: This command runs autonomously in an isolated worktree. If plan mode is active, advise the user to exit plan mode first — worktree isolation makes plan mode redundant for this command.
 
 ## CRITICAL SAFETY RULES
 
