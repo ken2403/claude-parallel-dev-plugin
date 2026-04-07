@@ -12,6 +12,12 @@ Create an isolated git worktree, then create an agent team to implement the task
 ## Input
 $ARGUMENTS
 
+## Preprocessing
+
+**Branch names MUST be in English.** If the task description contains non-ASCII characters (Japanese, etc.), translate it to a concise English slug (2-5 words, kebab-case) before passing to `setup-worktree.sh`. Keep the original description for commit messages and PR body.
+
+**Plan mode note**: This command runs autonomously in an isolated worktree. If plan mode is active, advise the user to exit plan mode first — worktree isolation makes plan mode redundant for this command.
+
 ## Guardrails
 
 These rules apply to the **lead and all teammates** throughout the entire job. Violations are never acceptable, regardless of circumstances.
