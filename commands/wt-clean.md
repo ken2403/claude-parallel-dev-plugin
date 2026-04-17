@@ -2,7 +2,6 @@
 allowed-tools: Bash
 argument-hint: [job-name or --all]
 description: Clean up wt-j environments after PRs are merged
-model: haiku
 ---
 
 # Cleanup Worktree Job
@@ -17,6 +16,12 @@ $ARGUMENTS
 - **NEVER delete a worktree whose branch has NOT been merged**
 - If merge status cannot be confirmed, treat as NOT MERGED and abort
 - When in doubt, REFUSE to delete
+
+## Pre-cleanup Sync (automatic)
+
+Before any deletion decision, `clean.sh` fetches `origin/<base>` and fast-forwards the
+local default branch to match. This keeps local state in sync with remote so the user
+can verify merges with `git log` after the command finishes.
 
 ## Execute Cleanup
 
