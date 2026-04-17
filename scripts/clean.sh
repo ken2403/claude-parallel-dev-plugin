@@ -45,8 +45,39 @@ _PD="$(dirname "$SCRIPT_DIR")"
 BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
 echo "Base branch: $BASE_BRANCH"
 
-# Fetch latest from remote
-git fetch origin "$BASE_BRANCH" --quiet 2>/dev/null || true
+# ============================================================
+# Pre-cleanup sync: bring local <base> up to origin/<base> BEFORE
+# any deletion decision so the user can verify merges locally
+# (e.g. `git log main`) once the command finishes.
+# ============================================================
+echo ""
+echo "=== Syncing $BASE_BRANCH with origin ==="
+
+if ! git fetch origin "$BASE_BRANCH" --prune --quiet; then
+  echo "WARNING: git fetch origin $BASE_BRANCH failed."
+  echo "  Continuing, but local state may be stale."
+  echo "  Merge verification will still use 'gh pr' as the authoritative source."
+fi
+
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+if [ "$CURRENT_BRANCH" = "$BASE_BRANCH" ]; then
+  # On the base branch: use pull --ff-only to advance the working tree.
+  if git pull --ff-only origin "$BASE_BRANCH" --quiet; then
+    echo "Local $BASE_BRANCH fast-forwarded to origin/$BASE_BRANCH"
+  else
+    echo "WARNING: Local $BASE_BRANCH could not be fast-forwarded (diverged?)."
+    echo "  Continuing; 'gh pr' will still drive merge verification."
+  fi
+else
+  # On a feature/worktree branch: update the local base ref without checkout
+  # via the refspec form. Safe inside worktrees.
+  if git fetch origin "$BASE_BRANCH:$BASE_BRANCH" --quiet; then
+    echo "Local $BASE_BRANCH ref fast-forwarded to origin/$BASE_BRANCH"
+  else
+    echo "WARNING: Local $BASE_BRANCH ref could not be fast-forwarded (diverged?)."
+    echo "  Continuing; 'gh pr' will still drive merge verification."
+  fi
+fi
 
 WORKTREES_DIR="${GIT_ROOT}/worktrees"
 
@@ -253,29 +284,10 @@ if [ -d "$WORKTREES_DIR" ] && [ -z "$(ls -A "$WORKTREES_DIR")" ]; then
   echo "Removed empty worktrees directory"
 fi
 
-# Update default branch to latest
-if [ ${#CLEANED_JOBS[@]} -gt 0 ]; then
-  echo ""
-  echo "=== Updating Default Branch ==="
-  CURRENT_BRANCH=$(git branch --show-current)
-  if [ "$CURRENT_BRANCH" != "$BASE_BRANCH" ]; then
-    git checkout "$BASE_BRANCH" 2>/dev/null || true
-  fi
-  echo "Pulling latest $BASE_BRANCH..."
-  if git pull origin "$BASE_BRANCH" --ff-only 2>/dev/null; then
-    echo "Default branch updated successfully"
-  else
-    echo "Could not fast-forward, trying rebase..."
-    git pull origin "$BASE_BRANCH" --rebase 2>/dev/null || echo "Manual update may be needed"
-  fi
-fi
-
 echo ""
 echo "=== Cleanup Complete ==="
 echo "Cleaned: ${#CLEANED_JOBS[@]}"
 echo "Failed: ${#FAILED_JOBS[@]}"
 echo "Blocked (unmerged): ${#UNMERGED_JOBS[@]}"
 echo "Blocked (unknown):  ${#UNKNOWN_JOBS[@]}"
-if [ ${#CLEANED_JOBS[@]} -gt 0 ]; then
-  echo "Default branch: $BASE_BRANCH (updated)"
-fi
+echo "Default branch ($BASE_BRANCH) was synced with origin before cleanup."
