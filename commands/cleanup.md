@@ -2,7 +2,6 @@
 allowed-tools: Bash
 argument-hint: [branch1] [branch2] ... [--keep-branches] [--dry-run]
 description: Clean up parallel worker environments after all PRs are merged
-model: haiku
 ---
 
 # Cleanup Parallel Environments
@@ -63,14 +62,46 @@ This uses the same multi-method verification as `/pw:wt-clean`:
 All verification, teardown, and branch deletion are executed in a single block
 to ensure variable state (MERGED_BRANCHES, BLOCKED_BRANCHES) is preserved.
 
+Before any deletion decision, the block also fast-forwards the local default
+branch to `origin/<base>` so the user can verify merges with `git log` after
+the command finishes.
+
 ```bash
 #!/bin/bash
 set -e
 
-echo "=== Pre-cleanup Merge Verification ==="
+echo "=== Pre-cleanup Sync: $BASE_BRANCH with origin ==="
 
-# Ensure base branch is up to date
-git fetch origin "${BASE_BRANCH:-main}" --quiet 2>/dev/null || true
+# Fetch from origin (surface real errors — do not silently swallow)
+if ! git fetch origin "${BASE_BRANCH:-main}" --prune --quiet; then
+  echo "WARNING: git fetch origin ${BASE_BRANCH:-main} failed."
+  echo "  Continuing, but local state may be stale."
+  echo "  Merge verification will still use 'gh pr' as the authoritative source."
+fi
+
+# Fast-forward local <base> to origin/<base> BEFORE deletion decisions,
+# so `git log <base>` after this command shows the merged PR.
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+if [ "$CURRENT_BRANCH" = "${BASE_BRANCH:-main}" ]; then
+  # On base branch: advance working tree.
+  if git pull --ff-only origin "${BASE_BRANCH:-main}" --quiet; then
+    echo "Local ${BASE_BRANCH:-main} fast-forwarded to origin/${BASE_BRANCH:-main}"
+  else
+    echo "WARNING: Local ${BASE_BRANCH:-main} could not be fast-forwarded (diverged?)."
+    echo "  Continuing; 'gh pr' will still drive merge verification."
+  fi
+else
+  # On any other branch: update local ref without checkout (worktree-safe).
+  if git fetch origin "${BASE_BRANCH:-main}:${BASE_BRANCH:-main}" --quiet; then
+    echo "Local ${BASE_BRANCH:-main} ref fast-forwarded to origin/${BASE_BRANCH:-main}"
+  else
+    echo "WARNING: Local ${BASE_BRANCH:-main} ref could not be fast-forwarded (diverged?)."
+    echo "  Continuing; 'gh pr' will still drive merge verification."
+  fi
+fi
+
+echo ""
+echo "=== Pre-cleanup Merge Verification ==="
 
 # Parse arguments: extract branch names and flags
 BRANCHES=()
@@ -212,7 +243,7 @@ git worktree list 2>/dev/null || echo "Not in git repo"
 ## Post-cleanup
 
 After cleanup:
-1. Update base branch: `git checkout ${BASE_BRANCH} && git pull`
+1. Base branch is already synced with origin (done automatically by the pre-cleanup block).
 2. Ready for next task: `/pw:design [new-task]`
 
 ## Output Format
