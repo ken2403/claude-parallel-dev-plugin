@@ -2,6 +2,34 @@
 
 **Opus 4.8-native, massively-parallel autonomous feature development for Claude Code.**
 
+## Install
+
+In Claude Code, add this marketplace and install the plugin:
+
+```
+/plugin marketplace add ken2403/claude-paralell-dev-plugin
+/plugin install hv@claude-parallel-dev-plugin
+```
+
+(The marketplace's GitHub repo is `claude-paralell-dev-plugin`; its marketplace
+name is `claude-parallel-dev-plugin` — note the spelling differs.)
+
+**Try it locally without installing:**
+
+```
+claude --plugin-dir /path/to/claude-paralell-dev-plugin/hv
+```
+
+**Requirements:** Claude Code with background agents (`claude --bg`, `claude agents`),
+`git`, `gh` (PRs), `python3` (manifest validation); `jq` optional (richer
+`/hv:agent-status`). For hands-off runs, allow `git push` / `gh pr create` in
+settings (background agents auto-deny other prompts).
+
+**First command:** `/hv:plan-features "<what you want to build>"` — or, for a single
+feature, launch `claude --bg "/hv:build-feature <your task>"`.
+
+---
+
 `hv` designs and decomposes work, dispatches **one isolated background agent per
 feature**, drives each feature autonomously through implementation and **multi-pass
 adversarial verification** to a **right-sized PR**, and gives you review / merge /
