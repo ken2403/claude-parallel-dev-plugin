@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Grep, Glob, Bash, WebFetch
-argument-hint: [#issue-number | "specification text" | @file-reference]
+argument-hint: '[#issue-number | "specification text" | @file-reference]'
 description: Analyze requirements from GitHub Issue or specification, create implementation design, and decompose into parallel-executable subtasks
 model: opus
 ---

@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob
-argument-hint: [branch name]
+argument-hint: '[branch name]'
 description: Identify conflicting files and resolve in parallel via agent team
 model: opus
 ---

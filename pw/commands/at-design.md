@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Bash, Grep, Glob, WebFetch
-argument-hint: [#issue-number | "specification text" | @file-reference]
+argument-hint: '[#issue-number | "specification text" | @file-reference]'
 description: Launch agent team to discuss specs and decompose into tasks
 model: opus
 ---

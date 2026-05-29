@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Skill
-argument-hint: [task description or @design-document] [--feature|--fix]
+argument-hint: '[task description or @design-document] [--feature|--fix]'
 description: Create worktree and spawn agent team for parallel implementation
 model: opus
 ---

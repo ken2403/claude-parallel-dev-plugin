@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob
-argument-hint: [task description]
+argument-hint: '[task description]'
 description: Execute assigned task as a parallel worker following workspace rules
 model: opus
 ---

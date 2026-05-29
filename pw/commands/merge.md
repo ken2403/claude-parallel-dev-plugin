@@ -1,6 +1,6 @@
 ---
 allowed-tools: Bash
-argument-hint: [PR number] [--skip]
+argument-hint: '[PR number] [--skip]'
 description: Merge a reviewed PR after verification
 model: opus
 ---

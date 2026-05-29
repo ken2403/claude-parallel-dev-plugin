@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob
-argument-hint: [task description or @design-document or #issue-number]
+argument-hint: '[task description or @design-document or #issue-number]'
 description: Spawn agent team to implement a task in the current directory
 model: opus
 ---

@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Bash, Grep, Glob
-argument-hint: [PR number]
+argument-hint: '[PR number]'
 description: Review a pull request critically for quality, security, and correctness
 model: opus
 ---

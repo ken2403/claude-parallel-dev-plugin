@@ -10,9 +10,8 @@
   "plugins": [
     {
       "name": "pw",
-      "source": "./",
-      "description": "Parallel Workflow - Generic parallel development workflow for large-scale tasks",
-      "version": "1.0.0"
+      "source": "./pw",
+      "description": "Parallel Workflow - Generic parallel development workflow for large-scale tasks"
     },
     {
       "name": "hv",
