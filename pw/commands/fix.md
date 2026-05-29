@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob
-argument-hint: [review feedback or PR number]
+argument-hint: '[review feedback or PR number]'
 description: Address review feedback and update the PR using parallel subagents for 3+ files
 model: opus
 ---

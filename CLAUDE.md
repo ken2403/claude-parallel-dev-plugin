@@ -1,12 +1,16 @@
 # claude-parallel-dev-plugin
 
 A Claude Code **plugin marketplace** (`.claude-plugin/marketplace.json`) shipping two
-plugins for parallel development:
+plugins for parallel development. Each plugin is self-contained in its own
+directory with its own `.claude-plugin/plugin.json`; the root holds only
+marketplace-level files (`marketplace.json`, `README.md`, this file, `.gitignore`).
 
-- **`pw`** — original tmux/shell parallel-workflow plugin, at the repo root (`agents/`, `commands/`, `skills/`, `hooks/`, `scripts/`).
+- **`pw`** — original tmux/shell parallel-workflow plugin, in `pw/` (`pw/agents/`, `pw/commands/`, `pw/skills/`, `pw/hooks/`, `pw/scripts/`). See `pw/README.md`.
 - **`hv`** — Opus 4.8-native rewrite using background agents + worktree isolation, in `hv/`. See `hv/README.md`.
 
-Keep `pw` and `hv` independent; don't let edits to one leak into the other.
+Keep `pw` and `hv` independent; don't let edits to one leak into the other. To add
+a plugin, create a new top-level dir with its own `.claude-plugin/plugin.json` and
+add an entry (with its `source` path) to `marketplace.json`.
 
 ## hv layout
 
@@ -31,7 +35,7 @@ Keep `pw` and `hv` independent; don't let edits to one leak into the other.
 
 ## Validate before committing
 
-- `claude plugin validate ./hv` (must pass).
+- `claude plugin validate ./hv` (and `./pw` if you touched it) — must pass.
 - Skill `name:` ↔ directory and agent `name:` ↔ filename all match.
 - `bash -n hv/scripts/*.sh`; `python3 hv/scripts/validate_manifest.py <manifest>` for manifest changes.
 - Each `SKILL.md` body stays **under 500 lines** (push detail to `reference/`).

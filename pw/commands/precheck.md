@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Bash, Grep, Glob
-argument-hint: [branch name or 'HEAD']
+argument-hint: "[branch name or 'HEAD']"
 description: Pre-PR check for local verification, tests, code quality, and codebase consistency
 model: opus
 ---

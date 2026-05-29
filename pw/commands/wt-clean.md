@@ -1,6 +1,6 @@
 ---
 allowed-tools: Bash
-argument-hint: [job-name or --all]
+argument-hint: '[job-name or --all]'
 description: Clean up wt-j environments after PRs are merged
 ---
 

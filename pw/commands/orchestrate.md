@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Bash, Grep, Glob
-argument-hint: [branch1 branch2 ...] or [decomposition output]
+argument-hint: '[branch1 branch2 ...] or [decomposition output]'
 description: Start parallel workers and assign tasks based on decomposition
 model: opus
 ---

@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob
-argument-hint: [PR number or review feedback text]
+argument-hint: '[PR number or review feedback text]'
 description: Parse review feedback and spawn agent team for parallel fixes
 model: opus
 ---

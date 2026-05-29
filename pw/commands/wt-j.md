@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Skill
-argument-hint: [#issue-number or "task description"] [--feature|--fix]
+argument-hint: '[#issue-number or "task description"] [--feature|--fix]'
 description: Create isolated worktree and autonomously implement task until PR creation
 model: opus
 ---

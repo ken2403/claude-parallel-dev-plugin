@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Bash, Grep, Glob
-argument-hint: [PR number]
+argument-hint: '[PR number]'
 description: Spawn specialist reviewers for parallel critical PR review
 model: opus
 ---

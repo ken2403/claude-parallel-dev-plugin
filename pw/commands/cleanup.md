@@ -1,6 +1,6 @@
 ---
 allowed-tools: Bash
-argument-hint: [branch1] [branch2] ... [--keep-branches] [--dry-run]
+argument-hint: '[branch1] [branch2] ... [--keep-branches] [--dry-run]'
 description: Clean up parallel worker environments after all PRs are merged
 ---
 

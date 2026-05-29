@@ -1,6 +1,6 @@
 ---
 allowed-tools: Bash
-argument-hint: [optional: session-name or job-id]
+argument-hint: '[optional: session-name or job-id]'
 description: Check status of all parallel workers, PRs, and worktrees
 model: haiku
 ---

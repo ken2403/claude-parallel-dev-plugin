@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob
-argument-hint: [branch name]
+argument-hint: '[branch name]'
 description: Resolve merge conflicts with default branch using parallel subagents for 3+ files
 model: opus
 ---
