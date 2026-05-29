@@ -13,6 +13,13 @@
       "source": "./",
       "description": "Parallel Workflow - Generic parallel development workflow for large-scale tasks",
       "version": "1.0.0"
+    },
+    {
+      "name": "hv",
+      "source": "./hv",
+      "description": "Opus 4.8-native massively-parallel autonomous feature development with background agents and multi-pass adversarial verification",
+      "category": "workflow",
+      "tags": ["parallel", "autonomous", "background-agents", "opus-4-8"]
     }
   ]
 }

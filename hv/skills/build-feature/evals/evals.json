@@ -1,0 +1,41 @@
+{
+  "skill_name": "build-feature",
+  "notes": "Verifies that /hv:build-feature drives ONE feature from spec to a verified, right-sized change with evidence. Run in a scratch repo/worktree; grade on the produced diff, the verification report, and whether it stayed within scope. (Permissions: run with edits allowed; PR/push steps can be stubbed in a sandbox.)",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "{\"id\":\"slugify-util\",\"branch\":\"feat/slugify\",\"scope\":\"Add a pure slugify(text) helper that lowercases, trims, and replaces non-alphanumerics with single hyphens\",\"target_files\":[\"src/utils/slugify.ts\",\"src/utils/slugify.test.ts\"],\"do_not_touch\":[\"src/api/**\"],\"success_criteria\":[\"slugify('Hello, World!')==='hello-world'\",\"collapses repeated separators\",\"unit tests pass\"],\"risk\":\"low\",\"size_budget\":{\"max_files\":2,\"max_lines\":120},\"depends_on\":[]}",
+      "files": [],
+      "expected_behavior": [
+        "Implements only the two target_files; touches nothing under src/api/**",
+        "Writes tests covering the stated success_criteria including the repeated-separator edge case",
+        "Runs the test command and reports actual output as evidence (does not claim green without running)",
+        "Invokes adversarial verification proportional to the low risk (light pass), and reports a PASS verdict",
+        "Stays within the size_budget"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/hv:build-feature add input validation to the signup endpoint so empty or malformed emails are rejected with a 400. It's in src/api/routes/auth.ts. Keep it small.",
+      "files": [],
+      "expected_behavior": [
+        "Infers a spec from the plain-text task and states its assumptions (target file, success criteria)",
+        "Explores existing validation conventions before writing, and follows them rather than introducing a new pattern",
+        "Security-review concerns activate (this is user input on an auth path): validates server-side, does not trust client",
+        "Provides test/verification evidence and an adversarial-verification verdict before declaring done"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "{\"id\":\"jwt-auth\",\"branch\":\"feat/jwt\",\"scope\":\"Add JWT issuance and verification middleware\",\"target_files\":[\"src/auth/jwt.ts\",\"src/auth/middleware.ts\",\"src/auth/jwt.test.ts\"],\"do_not_touch\":[\"src/db/**\"],\"success_criteria\":[\"tokens signed and verified\",\"401 on invalid/expired\",\"secret read from env, never hardcoded\"],\"risk\":\"high\",\"size_budget\":{\"max_files\":3,\"max_lines\":200},\"depends_on\":[]}",
+      "files": [],
+      "expected_behavior": [
+        "Treats this as high-risk: runs the multi-lens, 3+-verifier adversarial pass plus completeness critic, not a light pass",
+        "Reads the signing secret from env and never hardcodes it (security-review must catch a hardcoded secret if introduced)",
+        "Handles expired/invalid tokens with 401 and tests those paths",
+        "If the change exceeds size_budget, notes it and keeps the PR focused rather than silently sprawling",
+        "Does not open a PR while checks are red"
+      ]
+    }
+  ]
+}
