@@ -71,14 +71,15 @@ auto-activating standards: `adversarial-verification`, `code-quality`,
 set `disable-model-invocation` so they run only when you call them explicitly,
 never by accidental auto-trigger.
 
-**Subagents**: `explorer` (read-only scout, Haiku/low effort), `analyzer`
-(architecture & risk, high effort), `implementer` (one file-disjoint slice),
-`verifier` (adversarial, refute-oriented).
+**Subagents**: `analyzer` (architecture & risk, high effort), `implementer`
+(one file-disjoint slice), `verifier` (adversarial, refute-oriented).
+Read-only codebase scouting uses Claude Code's built-in `Explore` agent rather
+than a bundled one.
 
 **Hook**: `PreToolUse(Edit|Write)` blocks edits to `.env`/secrets/keys.
 
 **Effort policy (Opus 4.8)**: orchestrator skills and the worker run at `xhigh`
-with adaptive thinking; explorers/verifiers run cheap (`low`/`medium`);
+with adaptive thinking; the verifier runs cheap (`medium`);
 implementers at `high`.
 
 ---

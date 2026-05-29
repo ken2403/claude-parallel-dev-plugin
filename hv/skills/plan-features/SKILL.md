@@ -34,9 +34,10 @@ subsystems, say so and treat each as its own design rather than forcing one.
 
 ## Step 2 — Understand the ground truth
 
-Dispatch `explorer` subagents (in parallel for breadth) to map the relevant
-code, conventions, and module boundaries. For anything risky or cross-cutting,
-add an `analyzer` to surface dependencies and blast radius. You decompose far
+Dispatch Claude Code's built-in `Explore` subagents (several in parallel for
+breadth) to map the relevant code, conventions, and module boundaries. For
+anything risky or cross-cutting, add an `analyzer` to surface dependencies and
+blast radius. You decompose far
 better when you know where the real seams in the codebase are.
 
 ## Step 3 — Design (you may propose a better solution)
@@ -67,6 +68,12 @@ Each feature MUST be:
    them run in separate worktrees without interfering.
 2. **Logically complete** — produces working, testable, independently mergeable code.
 3. **Clearly scoped** — unambiguous boundaries; a worker knows exactly what it owns.
+
+Give each feature a short kebab-case `id` and set its `branch` to `feat/<id>`.
+Keeping that one-to-one means the feature `id`, its `hv/<id>` background-agent
+name, its `.hv/specs/<id>.json` spec file, and its `feat/<id>` branch (and PR
+head) all share the same key — which is exactly how `/hv:agent-status` and
+`/hv:clean-agents` correlate a running agent with its PR and worktree.
 
 Avoid: arbitrary line-count splits, circular dependencies between features,
 over-granular decomposition (more than ~6 features is usually a smell). If two

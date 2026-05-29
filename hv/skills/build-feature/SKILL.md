@@ -55,9 +55,9 @@ git branch --show-current
 
 ## Phase 1 — Understand (required)
 
-Dispatch an `explorer` subagent to map the files and **existing conventions**
-relevant to the feature. For changes the spec marked risky, also dispatch an
-`analyzer` to assess blast radius and integration points. Do this before
+Dispatch Claude Code's built-in `Explore` subagent to map the files and
+**existing conventions** relevant to the feature. For changes the spec marked
+risky, also dispatch an `analyzer` to assess blast radius and integration points. Do this before
 writing any code — it is the cheapest way to avoid building the wrong thing or
 breaking a neighbor.
 

@@ -48,8 +48,11 @@ Look up session ids from the snapshot above (`claude agents --json`).
 
 ## Step 3 — Prune merged worktrees and branches
 
-Background-agent worktrees live under `.claude/worktrees/`. Remove only the ones
-tied to merged features:
+Background-agent worktrees live under `.claude/worktrees/` with **host-assigned
+directory names** (not `<id>`), so don't match them by folder name. Identify the
+right worktree by its **checked-out branch** instead — `git worktree list` shows
+each worktree's path and branch, and the branch (`feat/<id>`) is the merged PR's
+head. Remove only the ones whose branch belongs to a merged feature:
 
 ```bash
 # Never --force: a plain `remove` fails on uncommitted changes, which is the
