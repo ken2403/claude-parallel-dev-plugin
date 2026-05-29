@@ -53,13 +53,15 @@ is_branch_merged() {
   fi
 
   # --- Method 2: Check local git merge status ---
-  # Only works for non-squash merges; requires branch to exist locally
+  # Only works for non-squash merges; requires branch to exist locally.
+  # Note: `git branch` marks a branch checked out in another worktree with a
+  # leading `+`, so strip `[ *+]` (not just `[ *]`) before the exact-name match.
   if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-    if git -C "$repo_root" branch --merged "$base" 2>/dev/null | sed 's/^[ *]*//' | grep -Fqx "$branch"; then
+    if git -C "$repo_root" branch --merged "$base" 2>/dev/null | sed 's/^[ *+]*//' | grep -Fqx "$branch"; then
       echo "  Merge verified by: git branch --merged $base" >&2
       return 0
     fi
-    if git -C "$repo_root" branch --merged "origin/$base" 2>/dev/null | sed 's/^[ *]*//' | grep -Fqx "$branch"; then
+    if git -C "$repo_root" branch --merged "origin/$base" 2>/dev/null | sed 's/^[ *+]*//' | grep -Fqx "$branch"; then
       echo "  Merge verified by: git branch --merged origin/$base" >&2
       return 0
     fi
