@@ -11,8 +11,7 @@
     {
       "name": "pw",
       "source": "./pw",
-      "description": "Parallel Workflow - Generic parallel development workflow for large-scale tasks",
-      "version": "1.0.0"
+      "description": "Parallel Workflow - Generic parallel development workflow for large-scale tasks"
     },
     {
       "name": "hv",
