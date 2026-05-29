@@ -73,13 +73,13 @@ Chosen: **A**, with B and C as documented opt-in escalations.
 
 | Skill | Role |
 |---|---|
-| `/hv:design` | Intake issue/spec/text → read-only exploration → design doc (free to propose superior architecture, deviations flagged) → risk×independence decomposition into file-disjoint, PR-ready features with per-feature size budget. |
-| `/hv:launch` | For each feature, dispatch `claude --bg "/hv:worker <feature-json>"` with `--name`, `--model claude-opus-4-8`, `--permission-mode acceptEdits`. Native auto-worktree isolation ⇒ non-interfering. Records a run manifest. |
-| `/hv:status` | `claude agents --json` + `gh pr list` → per-feature table (working / PR-open / merged / error), triage suggestions. |
+| `/hv:plan-features` | Intake issue/spec/text → read-only exploration → design doc (free to propose superior architecture, deviations flagged) → risk×independence decomposition into file-disjoint, PR-ready features with per-feature size budget. |
+| `/hv:launch-agents` | For each feature, dispatch `claude --bg "/hv:build-feature <feature-json>"` with `--name`, `--model opus`, `--permission-mode acceptEdits`. Native auto-worktree isolation ⇒ non-interfering. Records a run manifest. |
+| `/hv:agent-status` | `claude agents --json` + `gh pr list` → per-feature table (working / PR-open / merged / error), triage suggestions. |
 
 ### Layer 1 — Feature Worker (runs inside each background agent, its own worktree)
 
-`/hv:worker <feature-json>` is the autonomous per-feature loop:
+`/hv:build-feature <feature-json>` is the autonomous per-feature loop:
 
 1. **Re-ground** — read CLAUDE.md + conventions in the worktree.
 2. **Implement (TDD)** — apply standards skills automatically. For multi-file features,
@@ -103,10 +103,10 @@ Chosen: **A**, with B and C as documented opt-in escalations.
 
 | Skill | Role |
 |---|---|
-| `/hv:review` | Adversarial PR review (correctness/security/consistency) on a PR number; `--comment` posts inline. |
-| `/hv:fix` | Parse review feedback, dispatch parallel fixes (worktree-isolated subagents for 3+ files), update PR. |
-| `/hv:merge` | Verify green + reviewed, then merge. |
-| `/hv:cleanup` | After merges: `claude rm` finished agents, prune merged worktrees/branches. |
+| `/hv:review-pr` | Adversarial PR review (correctness/security/consistency) on a PR number; `--comment` posts inline. |
+| `/hv:apply-feedback` | Parse review feedback, dispatch parallel fixes (worktree-isolated subagents for 3+ files), update PR. |
+| `/hv:merge-pr` | Verify green + reviewed, then merge. |
+| `/hv:clean-agents` | After merges: `claude rm` finished agents, prune merged worktrees/branches. |
 
 ### Subagents (`hv/agents/`)
 
@@ -148,7 +148,7 @@ shared tree are both simpler and safer.
   input/data migration/broad cross-cutting change). Low-risk **and** independent ⇒ larger PR
   allowed; high-risk **or** coupled ⇒ split smaller. Rubric lives in
   `skills/design/reference/sizing.md`.
-- **Design-time freedom**: `/hv:design` is explicitly allowed to propose a better
+- **Design-time freedom**: `/hv:plan-features` is explicitly allowed to propose a better
   architecture than the current code; deviations are recorded with rationale in the design
   doc so implementation + consistency review can honor them deliberately.
 

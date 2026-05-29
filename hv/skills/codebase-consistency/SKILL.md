@@ -1,12 +1,12 @@
 ---
 name: codebase-consistency
-description: Checks a change against the BROADER codebase beyond the diff — missed propagation (a renamed or changed entity not updated everywhere), stale references, inconsistent patterns, logic duplicated instead of reusing existing helpers, and docs/types/configs that drift from the change. Replicates the senior reviewer who holds the whole repo in their head. Use this whenever you implement or review a change, especially one touching a shared entity used across files. Auto-activates during /hv:worker and /hv:review.
+description: Checks a change against the BROADER codebase beyond the diff — missed propagation (a renamed or changed entity not updated everywhere), stale references, inconsistent patterns, logic duplicated instead of reusing existing helpers, and docs/types/configs that drift from the change. Replicates the senior reviewer who holds the whole repo in their head. Use this whenever you implement or review a change, especially one touching a shared entity used across files. Auto-activates during /hv:build-feature and /hv:review-pr.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
 # Codebase Consistency
 
-A senior reviewer carries the whole codebase in their head: reading a diff, they instantly know which *other* files should have changed too. A model only sees the diff. This skill rebuilds that mental map from the diff outward, so the change stays consistent with the repo — which is a core hv guarantee. Where the design deliberately deviates from an existing pattern, that is fine, but the deviation must be explicit and documented, never a silent inconsistency that looks like an oversight.
+A senior reviewer carries the whole codebase in their head: reading a diff, they instantly know which *other* files should have changed too. A model only sees the diff. This skill rebuilds that mental map from the diff outward, so the change stays consistent with the repo. Where the design deliberately deviates from an existing pattern, that is fine, but the deviation must be explicit and documented, never a silent inconsistency that looks like an oversight.
 
 Apply this both while implementing (so you propagate your own change) and while reviewing (so you catch what the author missed). The value scales with PR size and how cross-cutting the change is.
 

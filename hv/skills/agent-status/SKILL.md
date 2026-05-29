@@ -1,6 +1,6 @@
 ---
-name: status
-description: Show the live state of the hv — every background feature agent and its PR — in one table, with triage suggestions for anything stuck or failing. Use to check progress after /hv:launch, decide what to review/merge next, or find which feature errored.
+name: agent-status
+description: Show the live state of the parallel agent fleet — every background feature agent and its PR — in one table, with triage suggestions for anything stuck or failing. Use to check progress after /hv:launch-agents, decide what to review/merge next, or find which feature errored.
 argument-hint: '[optional name prefix, default "hv/"]'
 model: opus
 allowed-tools: Read, Bash, Grep, Glob
@@ -27,12 +27,12 @@ Classify each feature:
 
 - **working** — agent running, no PR yet.
 - **pr-open** — PR exists; note review decision + CI (`statusCheckRollup`).
-- **needs-review** — PR open, no review yet → suggest `/hv:review <pr>`.
-- **changes-requested / red CI** — suggest `/hv:fix <pr>`.
-- **approved + green** — suggest `/hv:merge <pr>`.
-- **merged** — done; candidate for `/hv:cleanup`.
+- **needs-review** — PR open, no review yet → suggest `/hv:review-pr <pr>`.
+- **changes-requested / red CI** — suggest `/hv:apply-feedback <pr>`.
+- **approved + green** — suggest `/hv:merge-pr <pr>`.
+- **merged** — done; candidate for `/hv:clean-agents`.
 - **error / stalled** — agent stopped without a PR, or idle unexpectedly. Inspect
-  with `claude logs <id>`; suggest relaunch via `/hv:launch <id>` or a manual look.
+  with `claude logs <id>`; suggest relaunch via `/hv:launch-agents <id>` or a manual look.
 
 ## Output
 

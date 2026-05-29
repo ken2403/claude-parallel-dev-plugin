@@ -24,48 +24,52 @@ hv maps each of those to a native platform capability:
 
 | Goal | How hv does it |
 |---|---|
-| Many features in parallel | one `claude --bg` agent per feature, dispatched by `/hv:launch` |
+| Many features in parallel | one `claude --bg` agent per feature, dispatched by `/hv:launch-agents` |
 | Fully independent / non-interfering | every background agent auto-isolates in its own `.claude/worktrees/` checkout |
 | Accuracy guaranteed | `adversarial-verification`: independent skeptics try to *refute* each change + a completeness critic, looping until it survives |
-| Autonomous → PR | `/hv:worker` runs understand → implement → verify → PR by itself |
-| Right-sized PRs | `/hv:design` sizes each feature by **risk × independence** |
+| Autonomous → PR | `/hv:build-feature` runs understand → implement → verify → PR by itself |
+| Right-sized PRs | `/hv:plan-features` sizes each feature by **risk × independence** |
 | Safe & consistent | auto-applied `security-review` + `codebase-consistency` skills; a hook blocks edits to secrets |
-| Better designs, not just patches | `/hv:design` may propose a superior architecture; deviations are explicit, never silent |
+| Better designs, not just patches | `/hv:plan-features` may propose a superior architecture; deviations are explicit, never silent |
 
 ---
 
 ## The flow
 
 ```
-/hv:design  →  /hv:launch  →  (agents run /hv:worker in parallel)  →  /hv:status
+/hv:plan-features  →  /hv:launch-agents  →  (agents run /hv:build-feature in parallel)  →  /hv:agent-status
                                                                               │
-                                            /hv:review → /hv:fix → /hv:merge → /hv:cleanup
+                                            /hv:review-pr → /hv:apply-feedback → /hv:merge-pr → /hv:clean-agents
 ```
 
-1. **`/hv:design <#issue | "spec" | @file>`** — explores the codebase, writes a
+1. **`/hv:plan-features <#issue | "spec" | @file>`** — explores the codebase, writes a
    design (free to propose a better architecture), and decomposes it into
    file-disjoint, risk-sized features. Outputs a JSON **feature manifest**.
-2. **`/hv:launch <manifest>`** — validates the manifest (no shared files, no
+2. **`/hv:launch-agents <manifest>`** — validates the manifest (no shared files, no
    dependency cycles), then dispatches one background agent per feature in
-   dependency waves. Each runs `/hv:worker`.
-3. **`/hv:worker <feature>`** *(runs inside each agent)* — lands on the feature
+   dependency waves. Each runs `/hv:build-feature`.
+3. **`/hv:build-feature <feature>`** *(runs inside each agent)* — lands on the feature
    branch, understands the code, implements (test-driven; fans out `implementer`
    subagents over disjoint slices for speed), **adversarially verifies**, runs the
    build, and opens a right-sized PR.
-4. **`/hv:status`** — one table of every agent + its PR, with triage suggestions.
-5. **`/hv:review <pr> [--comment]`** — independent adversarial review.
-6. **`/hv:fix <pr>`** — applies review feedback (parallel for 3+ files), updates PR.
-7. **`/hv:merge <pr>`** — merges only when approved + green + mergeable.
-8. **`/hv:cleanup`** — stops finished agents, prunes merged worktrees/branches
+4. **`/hv:agent-status`** — one table of every agent + its PR, with triage suggestions.
+5. **`/hv:review-pr <pr> [--comment]`** — independent adversarial review.
+6. **`/hv:apply-feedback <pr>`** — applies review feedback (parallel for 3+ files), updates PR.
+7. **`/hv:merge-pr <pr>`** — merges only when approved + green + mergeable.
+8. **`/hv:clean-agents`** — stops finished agents, prunes merged worktrees/branches
    (never touches unmerged work).
 
 ---
 
 ## Components
 
-**Skills** (`/hv:*`): `design`, `launch`, `worker`, `status`, `review`, `fix`,
-`merge`, `cleanup`, plus auto-activating standards: `adversarial-verification`,
-`code-quality`, `security-review`, `codebase-consistency`.
+**Skills** (`/hv:*`): `plan-features`, `launch-agents`, `build-feature`,
+`agent-status`, `review-pr`, `apply-feedback`, `merge-pr`, `clean-agents`, plus
+auto-activating standards: `adversarial-verification`, `code-quality`,
+`security-review`, `codebase-consistency`. The side-effecting skills
+(`launch-agents`, `build-feature`, `apply-feedback`, `merge-pr`, `clean-agents`)
+set `disable-model-invocation` so they run only when you call them explicitly,
+never by accidental auto-trigger.
 
 **Subagents**: `explorer` (read-only scout, Haiku/low effort), `analyzer`
 (architecture & risk, high effort), `implementer` (one file-disjoint slice),
@@ -82,12 +86,13 @@ implementers at `high`.
 ## Requirements
 
 - Claude Code with background agents / agent view (`claude --bg`, `claude agents`).
-- `git` (worktrees), `gh` (PRs), and ideally `jq` (richer `/hv:status`).
+- `git` (worktrees), `gh` (PRs), `python3` (manifest validation in
+  `/hv:launch-agents`), and ideally `jq` (richer `/hv:agent-status`).
 - **Permissions for hands-off runs:** background agents auto-accept edits with
   `--permission-mode acceptEdits` but auto-deny other prompts. For fully
   unattended `git push` / `gh pr create`, allow those in your settings, or accept
   `bypassPermissions` once interactively and relaunch with
-  `--dangerously-skip-permissions`. `/hv:launch` surfaces this.
+  `--dangerously-skip-permissions`. `/hv:launch-agents` surfaces this.
 
 ---
 

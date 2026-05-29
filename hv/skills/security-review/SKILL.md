@@ -1,12 +1,12 @@
 ---
 name: security-review
-description: Security review for code changes — thinks like an attacker about input validation, authz/authn, secrets, injection (SQL/command/path/template), unsafe deserialization, SSRF, crypto misuse, dependency risk, and logging of sensitive data. Use this whenever you implement or review anything touching auth, crypto, user input, secrets, API endpoints, file paths, or data handling, and when asked to "check security", "review for vulnerabilities", or "audit". Auto-activates during /hv:worker and /hv:review. Security must never regress in autonomous unattended runs — so treat it as non-negotiable, not optional.
+description: Security review for code changes — thinks like an attacker about input validation, authz/authn, secrets, injection (SQL/command/path/template), unsafe deserialization, SSRF, crypto misuse, dependency risk, and logging of sensitive data. Use this whenever you implement or review anything touching auth, crypto, user input, secrets, API endpoints, file paths, or data handling, and when asked to "check security", "review for vulnerabilities", or "audit". Auto-activates during /hv:build-feature and /hv:review-pr. Security must never regress in autonomous unattended runs — so treat it as non-negotiable, not optional.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
 # Security Review
 
-hv runs autonomously and merges work that adversarial review approved. The one thing review must never let through is a security regression, because no human is watching each run. So review the change the way an attacker reads it: assume every input is hostile, every boundary is probed, and every secret will leak if it can.
+When changes can merge with little or no human review, the one thing review must never let through is a security regression — because no one is watching each run. So review the change the way an attacker reads it: assume every input is hostile, every boundary is probed, and every secret will leak if it can.
 
 This applies when implementing (build it secure the first time) and when reviewing (a feature is not done if it opens a hole).
 

@@ -1,8 +1,9 @@
 ---
-name: fix
-description: Address review feedback on a hv (or any) PR and update it — parallelizing across files with implementer subagents when the feedback spans 3+ independent files. Use after /hv:review requests changes, or to act on human review comments and push the fixes back to the PR.
+name: apply-feedback
+description: Address review feedback on a PR (hv-managed or standalone) and update it — parallelizing across files with implementer subagents when the feedback spans 3+ independent files. Use after /hv:review-pr requests changes, or to act on human review comments and push the fixes back to the PR.
 argument-hint: <pr-number> [feedback text, if not pulling from the PR]
 model: opus
+disable-model-invocation: true
 effort: high
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 ---
@@ -25,7 +26,7 @@ gh pr view "$PR" --json headRefName,reviews,comments
 gh pr diff "$PR"
 ```
 
-Combine PR review comments, the latest `/hv:review` output, and any feedback
+Combine PR review comments, the latest `/hv:review-pr` output, and any feedback
 passed in the input. Check out the PR branch in this worktree:
 
 ```bash

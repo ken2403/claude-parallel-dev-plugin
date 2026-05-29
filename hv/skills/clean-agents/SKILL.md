@@ -1,8 +1,9 @@
 ---
-name: cleanup
+name: clean-agents
 description: Reclaim hv resources after features land — stop and remove finished background agents, and prune merged feature worktrees and branches. Use once a feature's PR is merged (or abandoned). Safe by default — it refuses to remove anything tied to an unmerged, still-open PR unless forced.
 argument-hint: '[feature ids / branches to clean, or "all-merged"]'
 model: opus
+disable-model-invocation: true
 allowed-tools: Read, Bash, Grep, Glob
 ---
 

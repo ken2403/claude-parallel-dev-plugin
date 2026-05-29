@@ -1,5 +1,5 @@
 ---
-name: review
+name: review-pr
 description: Critically review a hv (or any) PR for correctness, security, and codebase consistency, using adversarial verification rather than a rubber stamp. Use to review a feature's PR before merging, or whenever you want a high-confidence review of a pull request. Posts inline comments with --comment.
 argument-hint: <pr-number> [--comment]
 model: opus
@@ -68,4 +68,4 @@ gh pr review "$PR" --comment --body "<summary>"
 # inline: gh api ... or gh pr comment for line-specific notes
 ```
 
-Hand off: clean review → `/hv:merge <n>`; changes requested → `/hv:fix <n>`.
+Hand off: clean review → `/hv:merge-pr <n>`; changes requested → `/hv:apply-feedback <n>`.

@@ -12,10 +12,15 @@ trusted only after it survives refutation — that is what "accuracy guaranteed"
 means here.
 
 Use this on a completed-but-unshipped change (your own, or a PR under review).
+Because it dispatches subagents, run it from a top-level or worker context, not
+from inside a subagent (subagents cannot spawn their own subagents).
 
 ## The loop
 
-Run rounds until the change is clean or you hit the round cap (default **3**).
+Run rounds until the change is clean or you hit the round cap (default **3** —
+enough for a fix to surface a second-order problem and be re-checked; beyond
+that, diminishing returns usually mean the change needs rethinking, not more
+rounds).
 
 ### 1. Enumerate claims
 
@@ -34,9 +39,11 @@ an auth change needs all five.
 
 For each claim, dispatch a `verifier` subagent with a distinct lens, **in
 parallel** (one `Agent` message, multiple calls). Tell each one to *try to break
-the claim* and default to REFUTED when uncertain. For higher-stakes claims, use
-**≥3 verifiers** on the same claim with different lenses (e.g. correctness,
-edge-cases, security) and take a majority.
+the claim* and default to REFUTED when uncertain. For higher-stakes claims, put
+**3 or more verifiers** on the same claim with different lenses (e.g. correctness,
+edge-cases, security) and take a majority — an odd number breaks ties, and three
+distinct lenses is the smallest panel that catches failure modes a single
+reviewer is blind to. Scale the count up with the stakes.
 
 Why parallel + independent: redundancy catches what one reviewer rationalizes;
 diverse lenses catch failure modes a single lens is blind to.

@@ -1,8 +1,9 @@
 ---
-name: worker
-description: Autonomously implements ONE feature end-to-end — understand, implement, adversarially verify, and open a right-sized PR — inside an isolated worktree. This runs as the main loop of a hv background agent; /hv:launch dispatches it. Invoke directly only when you want to drive a single feature to a PR autonomously in the current session.
-argument-hint: <feature spec — JSON from /hv:design, or a plain-text task>
+name: build-feature
+description: Autonomously implements ONE feature end-to-end — understand, implement, adversarially verify, and open a right-sized PR — inside an isolated worktree. This runs as the main loop of a background feature agent; /hv:launch-agents dispatches it. Invoke directly only when you want to drive a single feature to a PR autonomously in the current session.
+argument-hint: <feature spec — JSON from /hv:plan-features, or a plain-text task>
 model: opus
+disable-model-invocation: true
 effort: xhigh
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent, WebFetch
 ---
@@ -18,7 +19,7 @@ you were launched here deliberately), so your work cannot interfere with any
 other feature. Drive it to a clean PR without hand-holding — but never claim a
 step passed without evidence.
 
-The assignment may be (a) a **path to a JSON spec file** (how `/hv:launch`
+The assignment may be (a) a **path to a JSON spec file** (how `/hv:launch-agents`
 invokes you — read the file first), (b) inline JSON, or (c) plain text. For JSON,
 honor its fields: `scope`, `target_files`, `do_not_touch`, `success_criteria`,
 `risk`, `size_budget`, `branch`. For plain text, infer them and state your
@@ -108,7 +109,7 @@ If checks fail, fix them. Do not open a PR on red.
 ## Phase 5 — Open the PR
 
 Confirm the diff respects `size_budget` (see the sizing rubric in
-`/hv:design`). If it grew well past budget, that is a signal the feature
+`/hv:plan-features`). If it grew well past budget, that is a signal the feature
 should have been split — note it in the PR body and keep the PR focused.
 
 ```bash

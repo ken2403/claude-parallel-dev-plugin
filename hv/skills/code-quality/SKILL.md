@@ -1,12 +1,12 @@
 ---
 name: code-quality
-description: Code quality standards for implementing and reviewing code. Use this whenever you write or change code, review a PR or diff, or someone asks to "review code", "check quality", "improve", or "refactor". Auto-activates during /hv:worker implementation and /hv:review so that quality is judged the same way it was built. Covers readability, naming, error handling, dead code, abstraction, tests, and matching existing style.
+description: Code quality standards for implementing and reviewing code. Use this whenever you write or change code, review a PR or diff, or someone asks to "review code", "check quality", "improve", or "refactor". Auto-activates during /hv:build-feature implementation and /hv:review-pr so that quality is judged the same way it was built. Covers readability, naming, error handling, dead code, abstraction, tests, and matching existing style.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
 # Code Quality
 
-Good code is code the next person can read, change, and trust. In hv, correctness is guaranteed by adversarial verification, not by hoping the author was careful — so quality is about everything verification does not catch: clarity, maintainability, and fitting the code that already exists. Apply this both when implementing (so the diff is right the first time) and when reviewing (so it is judged honestly).
+Good code is code the next person can read, change, and trust. Where correctness is established by tests and verification, quality is everything those do not catch: clarity, maintainability, and fitting the code that already exists. Apply this both when implementing (so the diff is right the first time) and when reviewing (so it is judged honestly).
 
 ## Ground yourself in the existing code first
 
@@ -44,7 +44,7 @@ If you are deliberately deviating from an existing pattern, that is allowed — 
 - No debug prints / leftover scaffolding from the implementation session.
 
 ### Tests
-- New behavior has tests; changed behavior has updated tests. The hv contract is that verification can confirm the claim — untested behavior cannot be confirmed.
+- New behavior has tests; changed behavior has updated tests. Verification can only confirm what tests exercise — untested behavior cannot be confirmed.
 - Tests cover the edge cases the code handles (empty, boundary, error paths), and follow the repo's existing test structure and naming.
 
 ## Common code smells

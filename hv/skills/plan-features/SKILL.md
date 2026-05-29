@@ -1,6 +1,6 @@
 ---
-name: design
-description: Turn a GitHub issue, spec file, or free-text request into a design and a decomposition into independent, right-sized, parallel-executable features for the hv. Use this first, before launching any parallel work. Free to propose a better architecture than the current code; sizes each feature by risk and independence. Outputs a feature manifest that /hv:launch consumes.
+name: plan-features
+description: Turn a GitHub issue, spec file, or free-text request into a design and a decomposition into independent, right-sized, parallel-executable features for a fleet of parallel agents. Use this first, before launching any parallel work. Free to propose a better architecture than the current code; sizes each feature by risk and independence. Outputs a feature manifest that /hv:launch-agents consumes.
 argument-hint: '[#issue-number | "spec text" | @path/to/spec.md]'
 model: opus
 effort: xhigh
@@ -82,7 +82,7 @@ smaller. Record the resulting `size_budget` and `risk` on each feature.
 
 ## Step 5 — Emit the feature manifest
 
-Output the manifest as a fenced ```json block (this is what `/hv:launch`
+Output the manifest as a fenced ```json block (this is what `/hv:launch-agents`
 consumes) followed by the human-readable design. Use this schema:
 
 ```json
@@ -106,5 +106,5 @@ consumes) followed by the human-readable design. Use this schema:
 ```
 
 Then present a short summary table (feature, risk, size, dependencies) and the
-recommended launch order. End by pointing the user to run **`/hv:launch`** with
+recommended launch order. End by pointing the user to run **`/hv:launch-agents`** with
 the manifest (or to review/edit the manifest first).

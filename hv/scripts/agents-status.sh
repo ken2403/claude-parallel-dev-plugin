@@ -3,7 +3,7 @@
 # Snapshot of hv background agents + their PRs, as machine-readable text.
 #
 # Joins `claude agents --json` (live background sessions) with `gh pr list`
-# (PR + CI state) so the /hv:status skill can build one table without
+# (PR + CI state) so the /hv:agent-status skill can build one table without
 # re-deriving either source. Degrades gracefully when a tool is missing.
 #
 # Usage: agents-status.sh [name-prefix]   # default prefix: "hv/"
