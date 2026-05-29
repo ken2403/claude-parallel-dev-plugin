@@ -1,0 +1,17 @@
+{
+  "_comment": "hive hooks: language-agnostic, cross-platform. The protected-file guard is the only blocking hook; everything else is advisory.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ["bash", "${CLAUDE_PLUGIN_ROOT}/scripts/guard-protected.sh"],
+            "statusMessage": "hive: checking file is not a secret"
+          }
+        ]
+      }
+    ]
+  }
+}
