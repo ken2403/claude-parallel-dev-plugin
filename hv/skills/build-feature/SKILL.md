@@ -1,7 +1,7 @@
 ---
 name: build-feature
-description: Autonomously implements ONE feature end-to-end — understand, implement, adversarially verify, and open a right-sized PR — inside an isolated worktree. This runs as the main loop of a background feature agent; /hv:launch-agents dispatches it. Invoke directly only when you want to drive a single feature to a PR autonomously in the current session.
-argument-hint: <feature spec — JSON from /hv:plan-features, or a plain-text task>
+description: Autonomously drives ONE feature end-to-end — understand, implement, review-and-fix, and open a right-sized PR — inside its own worktree. Runs as the main loop of a background feature agent (launched by /hv:launch-agents, or directly via `claude --bg "/hv:build-feature ..."` for a single feature). Accepts a spec-file path, inline JSON, a plain-text task, or `<spec> <featurename>`.
+argument-hint: '<spec-path | inline JSON | plain task | <spec> <featurename>>'
 model: opus
 disable-model-invocation: true
 effort: xhigh
@@ -13,18 +13,18 @@ allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent, WebFetch
 ## Assignment
 $ARGUMENTS
 
-You own this one feature from understanding to PR. You are running in an
-isolated worktree (a hv background agent moved here before its first edit, or
-you were launched here deliberately), so your work cannot interfere with any
-other feature. Drive it to a clean PR without hand-holding — but never claim a
-step passed without evidence.
+You own this one feature from understanding to PR. Drive it to a clean PR without
+hand-holding — but never claim a step passed without evidence.
 
-The assignment may be (a) a **path to a JSON spec file** (how `/hv:launch-agents`
-invokes you — read the file first), (b) inline JSON, or (c) plain text. For JSON,
-honor its fields: `scope`, `target_files`, `do_not_touch`, `success_criteria`,
-`risk`, `size_budget`, `branch`. For plain text, infer them and state your
-assumptions. If the assignment is a single path ending in `.json`, `Read` it to
-get the feature object.
+The assignment may be:
+- a **path to a JSON spec file** (how `/hv:launch-agents` invokes you — `Read` it first; it carries the feature object plus `epic_summary` and `shared_contracts`),
+- **inline JSON**,
+- **plain text** (a free-form task — infer the fields and state your assumptions), or
+- **`<spec> <featurename>`** (a spec/source to draw from plus a name for the feature).
+
+For JSON, honor: `scope`, `target_files`, `do_not_touch`, `success_criteria`,
+`risk`, `size_budget`, `branch`, and the whole-picture `epic_summary` /
+`shared_contracts`.
 
 ## Context (auto-injected)
 - Worktree: !`pwd`
@@ -33,36 +33,61 @@ get the feature object.
 - Base branch: !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-base-branch.sh" 2>/dev/null`
 - Project conventions: !`test -f CLAUDE.md && echo "CLAUDE.md present — read it before editing" || echo "no CLAUDE.md"`
 
-## Phase 0 — Land on the feature branch
+## Phase 0 — Isolation guard, then land on the feature branch
 
-You are in an isolated worktree, but its branch is whatever the host created
-(often `worktree-…`). Switch to the feature's intended branch so the PR is named
-correctly, creating it from the base branch if needed:
+You rely on **native background-agent isolation**: a `claude --bg` / agent-view
+session auto-moves into its own `.claude/worktrees/` checkout before its first
+write. You do **not** create a worktree yourself.
+
+First, confirm you are actually isolated — otherwise you would edit the user's
+working copy directly:
+
+```bash
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+case "$ROOT" in
+  */.claude/worktrees/*) ;;                    # isolated — good
+  *) echo "NOT ISOLATED"; ;;
+esac
+```
+
+If it prints `NOT ISOLATED` (you were run in a foreground session, or
+`worktree.bgIsolation:"none"` is set), **stop before editing** and tell the human
+to relaunch you as a background session — e.g. `claude --bg "/hv:build-feature <your task>"`
+or type it in the `claude agents` view — so isolation kicks in. Do not edit the
+working copy.
+
+Once isolated, switch to the feature's intended branch so the PR is named correctly:
 
 ```bash
 BR="<branch from spec, e.g. feat/auth-jwt>"
 if [ "$(git branch --show-current)" != "$BR" ]; then
-  if git rev-parse --verify "$BR" >/dev/null 2>&1; then
-    git checkout "$BR"          # branch exists — switch to it
-  else
-    git checkout -b "$BR"       # create from current (fresh) base
-  fi
+  git rev-parse --verify "$BR" >/dev/null 2>&1 && git checkout "$BR" || git checkout -b "$BR"
 fi
 git branch --show-current
 ```
 
 `git checkout` (not `git switch`) is used for portability across git versions.
 
-## Phase 1 — Understand (required)
+## Phase 1 — Understand the whole + your slice (required)
+
+First **restate the whole picture**: read `epic_summary` and `shared_contracts`
+from the spec and state, in a sentence or two, what the epic is and how your
+feature fits — so you build something that integrates, not just something that
+compiles.
 
 Dispatch Claude Code's built-in `Explore` subagent to map the files and
-**existing conventions** relevant to the feature. For changes the spec marked
-risky, also dispatch an `analyzer` to assess blast radius and integration points. Do this before
-writing any code — it is the cheapest way to avoid building the wrong thing or
-breaking a neighbor.
+**existing conventions** relevant to the feature (keeps search out of your main
+context). For changes the spec marked risky, also dispatch an `analyzer` for blast
+radius and integration points. Answer: which files change, which patterns to
+follow, which tests cover this area, what could break.
 
-Answer: which files must change, which patterns to follow, which tests cover
-this area, what could break.
+**Discrepancy gate**: check the spec against the *actual* existing code. If the
+plan conflicts with reality (a named file/function/contract doesn't exist or works
+differently, a `shared_contract` has drifted, the approach can't work as written)
+or is genuinely ambiguous, **pause and ask the human** — in a background session
+this surfaces as "Needs input". Don't guess past a real conflict. Once the human
+confirms (or you've stated a reasonable assumption for a minor gap), finalize and
+run to the end.
 
 ## Phase 2 — Implement (test-driven)
 
@@ -80,16 +105,31 @@ Stay inside `target_files`; never touch anything in `do_not_touch`. The
 automatically — follow them so the change is clean, safe, and consistent with
 the repo.
 
-## Phase 3 — Adversarially verify (the accuracy gate)
+## Phase 3 — Self review-and-fix loop (≤2 rounds, then PR no matter what)
 
-Invoke the **adversarial-verification** skill on the completed change. Do not
-skip this and do not soften it — it is the reason a hv feature can be trusted
-without a human babysitting it. Match rigor to the feature's risk level: an
-isolated low-risk change gets a light pass; anything risky gets the multi-lens,
-≥3-verifier treatment plus the completeness critic.
+Review your own change the same way `/hv:review-pr` reviews a PR — reuse **its
+hybrid judgment axis** (defined there; don't re-invent it), but applied to your
+**local diff** (`git diff`) since there's no PR yet:
 
-If verification returns FAIL, fix and re-verify. Only proceed once it returns
-PASS or PASS-WITH-NOTES with acceptable residual risk.
+- **Generic / mechanical → verifier subagents (parallel, keeps main clean)**: broad
+  correctness, style/quality, mechanical security patterns (injection/secrets),
+  missed call sites. Run **`adversarial-verification`** here as the accuracy core
+  (refute-oriented; scale verifier count to risk). Heavy diff-reading stays in the
+  subagents; they return verdicts, not dumps.
+- **Context-critical → you, in main**: compliance with `CLAUDE.md` and the repo's
+  security guide / conventions, security-critical judgment, and integration with
+  the `epic_summary` / `shared_contracts`. The axis: *does judging this need this
+  repo's specific guidance or the live context? → keep it in main; is it a generic
+  diff-only check? → delegate.*
+
+Fix what's found (1–2 files yourself; 3+ disjoint files via parallel `implementer`
+subagents), then re-review. **Cap at 2 rounds** — fan-out multiplies tokens and
+two rounds is enough to catch a fix's second-order break. Keep fan-out at this top
+level (subagents can't spawn subagents).
+
+After 2 rounds, **open the PR regardless** (Phase 5). If issues remain, open it as
+a **draft**, list the residual risk in the body, and ask the human to decide — a
+stalled-but-clean feature helps no one, and an honest draft beats silence.
 
 ## Phase 4 — Verify the build (evidence required)
 
@@ -104,7 +144,10 @@ elif [ -f Cargo.toml ]; then cargo test 2>&1
 else echo "No standard check found — verify the touched paths manually"; fi
 ```
 
-If checks fail, fix them. Do not open a PR on red.
+If checks fail, fix them. If they're still red after your fix attempts, don't open
+a *ready* PR — open a **draft** documenting the failure (Phase 5), so the work is
+visible and a human can step in. (A PR is always created; only its draft/ready
+state reflects whether checks are green.)
 
 ## Phase 5 — Open the PR
 
@@ -125,6 +168,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 EOF
 )"
 git push -u origin "$(git branch --show-current)"
+# Add --draft if checks are red or the review loop left unresolved issues.
 gh pr create --title "<type>: <summary>" --body "$(cat <<'EOF'
 ## Summary
 <what this PR does, in one or two sentences>
@@ -134,22 +178,31 @@ gh pr create --title "<type>: <summary>" --body "$(cat <<'EOF'
 
 ## Verification
 - <command run> → <result>
-- Adversarial verification: <PASS | PASS-WITH-NOTES + residual risk>
+- Self review (adversarial): <PASS | PASS-WITH-NOTES + residual risk>
 
 ## Notes
-<deviations from existing patterns + rationale, if any; size note if relevant>
+<deviations + rationale; size note if relevant; if draft: the unresolved issue and what the human should decide>
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
 )"
 ```
 
+Always create the PR — even on failure, open a **draft** with the blocker in the
+body. A half-finished silent run is worse than an honest draft.
+
+## Phase 6 — Wire auto-clean, then hand off
+
+So this feature reclaims itself when it lands, call **`/hv:watch-merges <pr>`** as
+your final step (registers the merge→clean trigger; returns immediately — no live
+session needed). If the repo already has a standing watcher (`/hv:watch-merges --repo`),
+this is already handled and you can skip it.
+
 ## Final report
 
 ```
-result: <feature name> — PR <url> opened (verification: PASS|PASS-WITH-NOTES)
+result: <feature name> — PR <url> opened (<ready|draft>, verification: PASS|PASS-WITH-NOTES|UNRESOLVED)
 ```
 
-Include files changed, the verification verdict, and any residual risk. If you
-were blocked and could not open a PR, say so plainly with the blocker — a
-half-finished silent PR is worse than an honest stop.
+Include files changed, the verdict, and any residual risk. A PR is always opened;
+if it's a draft, state the blocker and what the human should decide.

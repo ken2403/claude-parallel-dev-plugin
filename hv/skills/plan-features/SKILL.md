@@ -40,7 +40,25 @@ anything risky or cross-cutting, add an `analyzer` to surface dependencies and
 blast radius. You decompose far
 better when you know where the real seams in the codebase are.
 
-## Step 3 — Design (you may propose a better solution)
+## Step 3 — Clarify until unambiguous (gate)
+
+A plan that a fleet executes unattended must have **no open questions** — every
+ambiguity left here becomes a wrong feature built in parallel. Before designing,
+interrogate the human until the intent is fully pinned down. Ask **one topic at a
+time** (use AskUserQuestion, or plain questions; in a background session this
+surfaces as "Needs input" and waits for the human to answer).
+
+Drive out, at minimum:
+- requirements that are vague or could be read two ways,
+- missing or fuzzy success criteria (what does "done" mean, measurably?),
+- edge cases and error behavior,
+- non-functional constraints (performance, security, compatibility),
+- any intended deviation from existing patterns.
+
+Do not proceed to the design while a material ambiguity remains. If the human
+says "use your judgment", state the assumption explicitly and move on.
+
+## Step 4 — Design (you may propose a better solution)
 
 You are **not bound to mirror the existing code**. If a cleaner architecture
 serves the goal better, propose it — that is the point of designing rather than
@@ -57,9 +75,21 @@ Write the design:
 ## Architecture        — components, data flow, key decisions
 ## Deviations          — where this departs from current patterns + why (or "none")
 ## Risks & mitigations
+## Shared contracts     — interfaces/types/configs features depend on (the seams between features)
 ```
 
-## Step 4 — Decompose into independent features
+### Vet the design for security and quality (bake it in, don't bolt it on)
+
+Review the design through the `security-review` and `code-quality` lenses **now**,
+while it's cheap to change, and turn the findings into concrete, testable
+`success_criteria` on the affected features — so the standard is built in, not
+discovered at review. Examples: "secret read from env, never hardcoded", "all
+request input validated server-side", "authorization checks ownership (no IDOR)",
+"new behavior covered by tests including edge cases X/Y", "reuses existing helper
+Z rather than duplicating". A feature is not "done" until its security/quality
+criteria are met, so they belong in the plan.
+
+## Step 5 — Decompose into independent features
 
 Split the work into features that can each become **one PR, built in parallel**.
 Each feature MUST be:
@@ -87,15 +117,19 @@ Right-sizing keeps PRs fast to review and safe to merge. Read
 independent work may be a larger PR; high-risk or coupled work must be split
 smaller. Record the resulting `size_budget` and `risk` on each feature.
 
-## Step 5 — Emit the feature manifest
+## Step 6 — Emit the feature manifest
 
-Output the manifest as a fenced ```json block (this is what `/hv:launch-agents`
-consumes) followed by the human-readable design. Use this schema:
+The manifest carries both the **whole picture** (so every feature agent
+understands the epic and its own place in it) and the per-feature detail. Use this
+schema — top level holds the design summary + shared contracts; each feature holds
+its own slice:
 
 ```json
 {
   "epic": "<short name>",
   "base_branch": "<detected base>",
+  "epic_summary": "2-4 sentence summary of the whole epic: goal, the set of features and how they fit, and the shared contracts — embedded into every feature's spec so each agent sees the whole.",
+  "shared_contracts": ["src/auth/types.ts: AuthToken interface", "config key AUTH_SECRET"],
   "features": [
     {
       "id": "auth-jwt",
@@ -103,7 +137,7 @@ consumes) followed by the human-readable design. Use this schema:
       "scope": "Add JWT issuance + verification middleware",
       "target_files": ["src/auth/jwt.ts", "src/auth/middleware.ts"],
       "do_not_touch": ["src/db/**", "src/api/routes/**"],
-      "success_criteria": ["tokens signed/verified", "401 on invalid", "unit tests pass"],
+      "success_criteria": ["tokens signed/verified", "401 on invalid", "secret from env (not hardcoded)", "unit tests incl. expiry/tamper"],
       "risk": "high",
       "size_budget": { "max_files": 4, "max_lines": 250 },
       "depends_on": []
@@ -112,6 +146,18 @@ consumes) followed by the human-readable design. Use this schema:
 }
 ```
 
+`epic_summary` and `shared_contracts` are top-level (written once). `/hv:launch-agents`
+copies them into each per-feature spec file so a worker reads "the whole + my slice"
+without the rest of the manifest.
+
+**Persist it**: write the manifest to `<repo>/.hv/manifest.json` so `/hv:launch-agents`
+can consume it directly:
+
+```bash
+mkdir -p "$(git rev-parse --show-toplevel)/.hv"
+# write the JSON above to "$(git rev-parse --show-toplevel)/.hv/manifest.json"
+```
+
 Then present a short summary table (feature, risk, size, dependencies) and the
-recommended launch order. End by pointing the user to run **`/hv:launch-agents`** with
-the manifest (or to review/edit the manifest first).
+recommended launch order, and point the user to run **`/hv:launch-agents`** (review
+/edit `.hv/manifest.json` first if desired).

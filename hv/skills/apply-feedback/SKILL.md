@@ -52,9 +52,11 @@ apply here too — a fix must not introduce a new problem.
 ## Step 4 — Re-verify
 
 Run the relevant tests/lint/build and capture output. For anything that was a
-correctness or security comment, re-run the **adversarial-verification** skill on
-the fixed area — the whole point of feedback is that the original verification
-missed something, so verify the fix actually closes it.
+correctness or security comment, re-review the fixed area using **`/hv:review-pr`'s
+hybrid axis** (generic checks in subagents to keep main clean; repo-specific /
+context-critical judgment in main) plus **adversarial-verification** — the whole
+point of feedback is that the original review missed something, so verify the fix
+actually closes it rather than re-stating the same pass.
 
 ## Step 5 — Update the PR
 

@@ -37,44 +37,56 @@ hv maps each of those to a native platform capability:
 ## The flow
 
 ```
-/hv:plan-features  →  /hv:launch-agents  →  (agents run /hv:build-feature in parallel)  →  /hv:agent-status
+/hv:plan-features  →  /hv:launch-agents  →  (human launches one bg session per feature: /hv:build-feature)  →  /hv:agent-status
                                                                               │
-                                            /hv:review-pr → /hv:apply-feedback → /hv:merge-pr → /hv:clean-agents
+                          /hv:review-pr → /hv:apply-feedback → /hv:merge-pr → /hv:clean-agents  (auto via /hv:watch-merges)
 ```
 
-1. **`/hv:plan-features <#issue | "spec" | @file>`** — explores the codebase, writes a
-   design (free to propose a better architecture), and decomposes it into
-   file-disjoint, risk-sized features. Outputs a JSON **feature manifest**.
-2. **`/hv:launch-agents <manifest>`** — validates the manifest (no shared files, no
-   dependency cycles), then dispatches one background agent per feature in
-   dependency waves. Each runs `/hv:build-feature`.
-3. **`/hv:build-feature <feature>`** *(runs inside each agent)* — lands on the feature
-   branch, understands the code, implements (test-driven; fans out `implementer`
-   subagents over disjoint slices for speed), **adversarially verifies**, runs the
-   build, and opens a right-sized PR.
+1. **`/hv:plan-features <#issue | "spec" | @file>`** — asks clarifying questions until
+   nothing is ambiguous, vets the design for security & quality (baked into each
+   feature's success criteria), and decomposes into file-disjoint, risk-sized
+   features. Writes `.hv/manifest.json` with an `epic_summary` so every feature
+   sees the whole picture.
+2. **`/hv:launch-agents <manifest>`** — validates, writes a self-contained spec per
+   feature (feature + `epic_summary` + `shared_contracts`), and **emits ready-to-paste
+   `claude --bg` commands** in dependency waves. It does not spawn sessions itself.
+3. **`/hv:build-feature <spec | task>`** *(the main loop of each bg session)* — relies on
+   native worktree isolation, restates the whole picture, implements (fans out
+   `implementer` subagents over disjoint slices), runs a **≤2-round review-fix loop**
+   (review-pr's hybrid axis on the local diff), verifies the build, and **always opens
+   a PR** (draft if unresolved). Pauses for the human on plan/code discrepancy.
+   Short-form: launch it directly as a bg session for a one-off feature.
 4. **`/hv:agent-status`** — one table of every agent + its PR, with triage suggestions.
-5. **`/hv:review-pr <pr> [--comment]`** — independent adversarial review.
+5. **`/hv:review-pr <pr> [--comment]`** — independent review; generic lenses run in
+   subagents, repo-specific judgment (CLAUDE.md / security guide) stays in main.
 6. **`/hv:apply-feedback <pr>`** — applies review feedback (parallel for 3+ files), updates PR.
 7. **`/hv:merge-pr <pr>`** — merges only when approved + green + mergeable.
-8. **`/hv:clean-agents`** — stops finished agents, prunes merged worktrees/branches
-   (never touches unmerged work).
+8. **`/hv:clean-agents`** — delegates removal to the `janitor` subagent; never touches a
+   running agent or unmerged work.
+9. **`/hv:watch-merges <pr | --repo>`** — wires merge→clean automatically (Cloud Routine,
+   or `/loop` fallback). `build-feature` calls it after opening the PR.
 
 ---
 
 ## Components
 
 **Skills** (`/hv:*`): `plan-features`, `launch-agents`, `build-feature`,
-`agent-status`, `review-pr`, `apply-feedback`, `merge-pr`, `clean-agents`, plus
-auto-activating standards: `adversarial-verification`, `code-quality`,
-`security-review`, `codebase-consistency`. The side-effecting skills
-(`launch-agents`, `build-feature`, `apply-feedback`, `merge-pr`, `clean-agents`)
-set `disable-model-invocation` so they run only when you call them explicitly,
-never by accidental auto-trigger.
+`agent-status`, `review-pr`, `apply-feedback`, `merge-pr`, `clean-agents`,
+`watch-merges`, plus auto-activating standards: `adversarial-verification`,
+`code-quality`, `security-review`, `codebase-consistency`. The side-effecting
+skills (`launch-agents`, `build-feature`, `apply-feedback`, `merge-pr`,
+`clean-agents`, `watch-merges`) set `disable-model-invocation` so they run only
+when you call them explicitly, never by accidental auto-trigger.
 
 **Subagents**: `analyzer` (architecture & risk, high effort), `implementer`
-(one file-disjoint slice), `verifier` (adversarial, refute-oriented).
-Read-only codebase scouting uses Claude Code's built-in `Explore` agent rather
-than a bundled one.
+(one file-disjoint slice), `verifier` (adversarial, refute-oriented), `janitor`
+(guardrailed destructive cleanup — never touches a running agent). Read-only
+scouting uses Claude Code's built-in `Explore` agent rather than a bundled one.
+
+**Auto-clean on merge**: `/hv:watch-merges` wires a Cloud Routine (GitHub
+`is_merged` trigger → `/hv:clean-agents`, fires once per merge, low cost) or, as a
+fallback, a `/loop` poller (costs tokens while alive). Cleanup logic lives once in
+`janitor`; `clean-agents` and `watch-merges` both delegate to it.
 
 **Hook**: `PreToolUse(Edit|Write)` blocks edits to `.env`/secrets/keys.
 

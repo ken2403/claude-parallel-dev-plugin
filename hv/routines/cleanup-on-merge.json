@@ -1,0 +1,17 @@
+{
+  "_README": "Cloud Routine template for hv: auto-clean a feature when its PR merges. Fires once per merge (event-driven = low cost), runs on Anthropic infrastructure, needs no live session. Fill in <owner>/<repo>; the exact field names depend on your Claude Code / Cloud Routines version, so reconcile against the routine-creation UI/CLI before installing. The point that does not change: a GitHub pull_request trigger filtered to merged PRs runs the command `/hv:clean-agents <branch>`.",
+  "name": "hv: cleanup on PR merge",
+  "description": "When an hv feature PR is merged, reclaim its background agent, worktree, and branch via /hv:clean-agents.",
+  "trigger": {
+    "type": "github",
+    "event": "pull_request",
+    "repo": "<owner>/<repo>",
+    "filter": { "is_merged": true }
+  },
+  "command": "/hv:clean-agents {{pull_request.head.ref}}",
+  "notes": [
+    "Install once at the repo level and every merged hv PR cleans up automatically — no per-feature setup.",
+    "clean-agents delegates the destructive work to the janitor subagent, which re-checks that the agent is idle and the PR merged before removing anything.",
+    "{{pull_request.head.ref}} is the merged branch (feat/<id>); adjust the templating token to your routine engine's syntax."
+  ]
+}

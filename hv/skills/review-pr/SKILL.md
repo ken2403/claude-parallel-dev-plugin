@@ -28,13 +28,25 @@ gh pr diff "$PR"
 Read the diff fully. Pull the design intent from the PR body (and linked issue)
 so you review against what it was *supposed* to do, not just what it does.
 
-## Step 2 — Apply the standards
+## Step 2 — Apply the standards (hybrid: delegate generic, keep context-critical in main)
 
-The `code-quality`, `security-review`, and `codebase-consistency` skills activate
-here — use them as your lenses. Pay special attention to **consistency beyond the
-diff**: a change can be locally correct yet break the wider codebase (a renamed
-symbol not propagated, a contract other code relies on, duplicated logic that
-should reuse an existing helper).
+The `code-quality`, `security-review`, and `codebase-consistency` skills are your
+lenses. Split the work to stay both thorough and context-clean:
+
+- **Delegate to subagents** (generic, diff-only, parallelizable — keeps the heavy
+  reading out of your main context): broad correctness scan, style/quality review,
+  mechanical security-pattern checks (injection, hardcoded secrets), and hunting
+  missed call sites. Dispatch these in parallel; they return findings, not dumps.
+- **Keep in main** (judgment needs this repo's guidance or the live context):
+  compliance with `CLAUDE.md` and the repo's security guide / contributing rules,
+  security-critical decisions, architectural fit and design intent, and
+  **consistency beyond the diff** (a renamed symbol not propagated, a contract
+  other code relies on, logic that should reuse an existing helper).
+
+The axis: *does judging this correctly require this repo's specific guidance
+(CLAUDE.md / security guide) or the live conversation context? → main. Is it a
+generic check a fresh agent can do from the diff alone? → subagent.* Apply it
+flexibly per finding.
 
 ## Step 3 — Adversarially verify
 
