@@ -15,7 +15,7 @@ Locate the parallel-workflow plugin scripts:
 ```bash
 # Find plugin directory (check common locations)
 PLUGIN_DIR=""
-for _d in "${CLAUDE_PLUGIN_ROOT:-}" ./pw ../pw ../../pw "$HOME"/.claude/plugins/cache/claude-parallel-dev-plugin/pw/*; do
+for _d in "${PW_PLUGIN_DIR:-}" "${CLAUDE_PLUGIN_ROOT:-}" ./pw ../pw ../../pw "$HOME"/.claude/plugins/cache/claude-parallel-dev-plugin/pw/*; do
   [ -d "$_d/scripts" ] && PLUGIN_DIR="$_d" && break
 done 2>/dev/null
 [ -n "${PW_PLUGIN_DIR:-}" ] && PLUGIN_DIR="$PW_PLUGIN_DIR"
