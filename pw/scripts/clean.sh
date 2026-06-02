@@ -2,16 +2,27 @@
 # ==============================================================================
 # Worktree cleanup script for the pw plugin.
 #
-# Safely removes worktree environments created by /pw:wt-j after PRs are merged.
+# Scans EVERY linked worktree of the repository via `git worktree list` — pw's
+# own `worktrees/<job>` AND Claude Code's `.claude/worktrees/*` background-agent
+# worktrees — and removes the ones whose branch has been merged.
 #
 # Usage:
-#   scripts/clean.sh [job-name|--all]
+#   scripts/clean.sh [job-name | branch | path | --all]
+#     (no arg or --all) → consider every worktree
+#     (a name/branch/path) → only that one
 #
-# Safety: NEVER deletes a worktree whose branch has NOT been merged.
+# Safety:
+#   - NEVER deletes a worktree whose branch has NOT been merged.
+#   - NEVER deletes the main checkout or the worktree this script runs in.
+#   - NEVER uses `git worktree remove --force` — a worktree with uncommitted
+#     changes is skipped and reported, not destroyed.
+#   - `git branch -d` (not -D) — refuses to delete an unmerged branch.
+# Note: removing a .claude/worktrees/* worktree does not stop its background
+#   agent session; use the hv plugin's /hv:clean-agents for agent lifecycle.
 # ==============================================================================
 set -e
 
-echo "=== Worktree Job Cleanup ==="
+echo "=== Worktree Cleanup ==="
 
 INPUT_ARG="${1:-}"
 
@@ -36,10 +47,15 @@ fi
 cd "$GIT_ROOT"
 echo "Repository: $GIT_ROOT"
 
-# Locate plugin directory
+# Locate plugin directory. The script always sits in <plugin>/scripts/, so the
+# self-derived path is authoritative for sourcing sibling scripts. Honor an
+# explicit PW_PLUGIN_DIR only if it actually contains scripts/ — a stale value
+# (e.g. pointing at the repo root after pw moved under pw/) must not break us.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _PD="$(dirname "$SCRIPT_DIR")"
-[ -d "${PW_PLUGIN_DIR:-}/scripts" ] && _PD="$PW_PLUGIN_DIR"
+if [ -n "${PW_PLUGIN_DIR:-}" ] && [ -d "${PW_PLUGIN_DIR}/scripts" ]; then
+  _PD="$PW_PLUGIN_DIR"
+fi
 
 # Base branch detection
 BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
@@ -61,7 +77,6 @@ fi
 
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 if [ "$CURRENT_BRANCH" = "$BASE_BRANCH" ]; then
-  # On the base branch: use pull --ff-only to advance the working tree.
   if git pull --ff-only origin "$BASE_BRANCH" --quiet; then
     echo "Local $BASE_BRANCH fast-forwarded to origin/$BASE_BRANCH"
   else
@@ -69,169 +84,106 @@ if [ "$CURRENT_BRANCH" = "$BASE_BRANCH" ]; then
     echo "  Continuing; 'gh pr' will still drive merge verification."
   fi
 else
-  # On a feature/worktree branch: update the local base ref without checkout
-  # via the refspec form. Safe inside worktrees.
-  if git fetch origin "$BASE_BRANCH:$BASE_BRANCH" --quiet; then
+  if git fetch origin "$BASE_BRANCH:$BASE_BRANCH" --quiet 2>/dev/null; then
     echo "Local $BASE_BRANCH ref fast-forwarded to origin/$BASE_BRANCH"
   else
-    echo "WARNING: Local $BASE_BRANCH ref could not be fast-forwarded (diverged?)."
+    echo "WARNING: Local $BASE_BRANCH ref could not be fast-forwarded (checked out elsewhere or diverged)."
     echo "  Continuing; 'gh pr' will still drive merge verification."
   fi
 fi
 
-WORKTREES_DIR="${GIT_ROOT}/worktrees"
-
-if [ ! -d "$WORKTREES_DIR" ]; then
-  echo "No worktrees directory found at: $WORKTREES_DIR"
-  echo "Nothing to clean up."
-  exit 0
-fi
-
 # Parse arguments
 CLEANUP_ALL=false
-if [ "$INPUT_ARG" = "--all" ]; then
-  CLEANUP_ALL=true
-fi
+{ [ -z "$INPUT_ARG" ] || [ "$INPUT_ARG" = "--all" ]; } && CLEANUP_ALL=true
 
-echo ""
-echo "=== Scanning Worktrees ==="
-
-# Track results
-MERGED_JOBS=()
-UNMERGED_JOBS=()
-UNKNOWN_JOBS=()
-CLEANED_JOBS=()
-FAILED_JOBS=()
-
-# Source canonical merge verification
+# Source canonical merge verification (defines is_branch_merged)
 source "$_PD/scripts/merge-check.sh"
 
 # ============================================================
-# Resolve branch name from worktree metadata/git state.
-# Returns branch name via echo. Returns empty string if unknown.
-# NEVER guesses or fabricates branch names.
+# Worktrees we must NEVER remove: the main checkout, and the
+# worktree this script is currently running in.
 # ============================================================
-resolve_branch_name() {
-  local job_dir="$1"
-  local job_name="$2"
-  local result=""
+CURRENT_WT="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
+COMMON_GIT_DIR="$(git rev-parse --git-common-dir 2>/dev/null || echo "")"
+case "$COMMON_GIT_DIR" in
+  "") MAIN_WT="" ;;
+  /*) MAIN_WT="$(cd "$(dirname "$COMMON_GIT_DIR")" 2>/dev/null && pwd || echo "")" ;;
+  *)  MAIN_WT="$(cd "$GIT_ROOT/$(dirname "$COMMON_GIT_DIR")" 2>/dev/null && pwd || echo "")" ;;
+esac
 
-  # Method 1: Read from .wtj-meta metadata file (most reliable)
-  if [ -f "$job_dir/.wtj-meta" ]; then
-    result=$(grep "^BRANCH_NAME=" "$job_dir/.wtj-meta" | cut -d'"' -f2)
-    if [ -n "$result" ]; then
-      echo "$result"
-      return 0
-    fi
+echo ""
+echo "=== Scanning all worktrees (incl. .claude/worktrees/) ==="
+
+MERGED_JOBS=()     # entries: "<path>\t<branch>"
+UNMERGED_JOBS=()   # "<name>:<branch>"
+UNKNOWN_JOBS=()    # "<name>:<reason>"
+CLEANED_JOBS=()
+FAILED_JOBS=()
+
+while IFS=$'\t' read -r wt_path wt_branch; do
+  [ -z "$wt_path" ] && continue
+  name="$(basename "$wt_path")"
+
+  # Never touch the main checkout or the current worktree.
+  if [ -n "$MAIN_WT" ] && [ "$wt_path" = "$MAIN_WT" ]; then
+    continue
   fi
-
-  # Method 2: Get from git worktree directly
-  if [ -d "$job_dir/.git" ] || [ -f "$job_dir/.git" ]; then
-    result=$(git -C "$job_dir" branch --show-current 2>/dev/null || echo "")
-    if [ -n "$result" ]; then
-      echo "$result"
-      return 0
-    fi
-  fi
-
-  # Method 3: Check git worktree list for this path
-  local abs_job_dir=""
-  abs_job_dir=$(cd "$job_dir" 2>/dev/null && pwd || echo "$job_dir")
-  result=$(git worktree list --porcelain 2>/dev/null | grep -A2 "^worktree $abs_job_dir\$" | grep "^branch " | sed 's|^branch refs/heads/||')
-  if [ -n "$result" ]; then
-    echo "$result"
-    return 0
-  fi
-
-  # Method 4: Infer from job name — but ONLY if the branch actually exists
-  for prefix in feature fix; do
-    local test_branch="${prefix}/${job_name}"
-    if git show-ref --verify --quiet "refs/heads/$test_branch" 2>/dev/null; then
-      echo "$test_branch"
-      return 0
-    fi
-  done
-
-  # SAFETY: Do NOT guess. Return empty to signal "unknown".
-  echo ""
-  return 1
-}
-
-# Scan worktrees directory
-for job_dir in "$WORKTREES_DIR"/*/; do
-  if [ ! -d "$job_dir" ]; then
+  if [ "$wt_path" = "$CURRENT_WT" ]; then
+    echo ""
+    echo "--- $name --- skip: current worktree (cannot remove the one in use)"
     continue
   fi
 
-  job_name=$(basename "$job_dir")
-
-  # Skip if specific job requested and this isn't it
-  if [ "$CLEANUP_ALL" = false ] && [ -n "$INPUT_ARG" ] && [ "$job_name" != "$INPUT_ARG" ]; then
-    continue
+  # If a specific target was given, only act on the matching worktree.
+  if [ "$CLEANUP_ALL" = false ]; then
+    case "$INPUT_ARG" in
+      "$name"|"$wt_branch"|"$wt_path") ;;
+      *) continue ;;
+    esac
   fi
 
   echo ""
-  echo "--- Job: $job_name ---"
+  echo "--- $name ($wt_path) ---"
 
-  # Resolve branch name — NEVER guess
-  branch_name=$(resolve_branch_name "$job_dir" "$job_name")
-
-  if [ -z "$branch_name" ]; then
-    echo "Branch: UNKNOWN (could not determine)"
-    echo "  *** SAFETY BLOCK: Cannot determine branch name for '$job_name' ***"
-    echo "  *** Treating as NOT MERGED (safe default) ***"
-    echo "  To resolve: git -C $job_dir branch"
-    UNKNOWN_JOBS+=("$job_name:UNKNOWN")
+  if [ -z "$wt_branch" ] || [ "$wt_branch" = "DETACHED" ]; then
+    echo "Branch: UNKNOWN/detached"
+    echo "  *** SAFETY BLOCK: no branch to verify — treating as NOT MERGED ***"
+    UNKNOWN_JOBS+=("$name:detached")
     continue
   fi
 
-  echo "Branch: $branch_name"
-
-  # Check merge status
-  if is_branch_merged "$branch_name" "$BASE_BRANCH"; then
+  echo "Branch: $wt_branch"
+  if is_branch_merged "$wt_branch" "$BASE_BRANCH"; then
     echo "Status: MERGED into $BASE_BRANCH"
-    MERGED_JOBS+=("$job_name:$branch_name")
+    MERGED_JOBS+=("$wt_path"$'\t'"$wt_branch")
   else
     echo "Status: NOT MERGED"
-    echo "  *** ALERT: Branch '$branch_name' has NOT been merged! ***"
-    echo "  To resolve: merge the PR first, or abandon with git branch -D $branch_name"
-    UNMERGED_JOBS+=("$job_name:$branch_name")
+    echo "  *** ALERT: '$wt_branch' is not merged — will NOT be deleted ***"
+    UNMERGED_JOBS+=("$name:$wt_branch")
   fi
-done
+done < <(git worktree list --porcelain 2>/dev/null | awk '
+  /^worktree /{ if (have) print path "\t" branch; path=substr($0,10); branch="DETACHED"; have=1 }
+  /^branch /{ branch=$2; sub(/^refs\/heads\//,"",branch) }
+  END{ if (have) print path "\t" branch }
+')
 
 echo ""
 echo "=== Summary ==="
 echo "Merged (safe to delete): ${#MERGED_JOBS[@]}"
 echo "Not merged (BLOCKED):    ${#UNMERGED_JOBS[@]}"
-echo "Unknown (BLOCKED):       ${#UNKNOWN_JOBS[@]}"
+echo "Unknown/detached (BLOCKED): ${#UNKNOWN_JOBS[@]}"
 
-BLOCKED_COUNT=$(( ${#UNMERGED_JOBS[@]} + ${#UNKNOWN_JOBS[@]} ))
-
-# Report blocked worktrees
-if [ $BLOCKED_COUNT -gt 0 ]; then
+if [ ${#UNMERGED_JOBS[@]} -gt 0 ]; then
   echo ""
-  echo "*** BLOCKED WORKTREES ***"
-  if [ ${#UNMERGED_JOBS[@]} -gt 0 ]; then
-    echo "Not merged:"
-    for item in "${UNMERGED_JOBS[@]}"; do
-      echo "  - ${item%%:*} (${item##*:})"
-    done
-  fi
-  if [ ${#UNKNOWN_JOBS[@]} -gt 0 ]; then
-    echo "Unknown branch:"
-    for item in "${UNKNOWN_JOBS[@]}"; do
-      echo "  - ${item%%:*}"
-    done
-  fi
+  echo "*** BLOCKED (not merged) — left untouched ***"
+  for item in "${UNMERGED_JOBS[@]}"; do echo "  - ${item%%:*} (${item##*:})"; done
+fi
+if [ ${#UNKNOWN_JOBS[@]} -gt 0 ]; then
   echo ""
-  echo "These worktrees will NOT be deleted."
-
-  if [ "$CLEANUP_ALL" = false ] && [ -n "$INPUT_ARG" ] && [ "$INPUT_ARG" != "--all" ]; then
-    exit 1
-  fi
+  echo "*** BLOCKED (unknown branch) — left untouched ***"
+  for item in "${UNKNOWN_JOBS[@]}"; do echo "  - ${item%%:*}"; done
 fi
 
-# Clean up merged jobs
 if [ ${#MERGED_JOBS[@]} -eq 0 ]; then
   echo ""
   echo "No merged worktrees to clean up."
@@ -240,54 +192,43 @@ fi
 
 echo ""
 echo "=== Cleaning Merged Worktrees ==="
-
 for item in "${MERGED_JOBS[@]}"; do
-  job="${item%%:*}"
-  branch="${item##*:}"
-  job_path="${WORKTREES_DIR}/${job}"
+  wt_path="${item%%$'\t'*}"
+  branch="${item##*$'\t'}"
+  name="$(basename "$wt_path")"
 
   echo ""
-  echo "Cleaning: $job"
+  echo "Cleaning: $name ($wt_path)"
 
-  # Remove worktree
-  if git worktree remove "$job_path" 2>/dev/null; then
+  # NEVER --force: a plain remove fails on uncommitted changes, which is the
+  # signal to inspect — not to destroy.
+  if git worktree remove "$wt_path" 2>/dev/null; then
     echo "  Worktree removed"
-  elif git worktree remove --force "$job_path" 2>/dev/null; then
-    echo "  Worktree force removed"
   else
-    echo "  Failed to remove worktree"
-    FAILED_JOBS+=("$job")
+    echo "  SKIP: uncommitted changes or locked — inspect and remove manually (no --force)"
+    FAILED_JOBS+=("$name")
     continue
   fi
 
-  # Delete local branch if it exists
   if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
     if git branch -d "$branch" 2>/dev/null; then
-      echo "  Local branch deleted"
+      echo "  Local branch '$branch' deleted"
     else
-      echo "  Could not delete local branch (may need -D)"
+      echo "  Local branch '$branch' kept (not fully merged locally)"
     fi
   else
     echo "  Local branch already gone"
   fi
 
-  CLEANED_JOBS+=("$job")
+  CLEANED_JOBS+=("$name")
 done
 
-# Prune worktree references
 git worktree prune 2>/dev/null || true
-
-# Remove empty worktrees directory
-if [ -d "$WORKTREES_DIR" ] && [ -z "$(ls -A "$WORKTREES_DIR")" ]; then
-  rmdir "$WORKTREES_DIR"
-  echo ""
-  echo "Removed empty worktrees directory"
-fi
 
 echo ""
 echo "=== Cleanup Complete ==="
 echo "Cleaned: ${#CLEANED_JOBS[@]}"
-echo "Failed: ${#FAILED_JOBS[@]}"
-echo "Blocked (unmerged): ${#UNMERGED_JOBS[@]}"
-echo "Blocked (unknown):  ${#UNKNOWN_JOBS[@]}"
+echo "Skipped (uncommitted/locked): ${#FAILED_JOBS[@]}"
+echo "Blocked (not merged): ${#UNMERGED_JOBS[@]}"
+echo "Blocked (unknown):    ${#UNKNOWN_JOBS[@]}"
 echo "Default branch ($BASE_BRANCH) was synced with origin before cleanup."
