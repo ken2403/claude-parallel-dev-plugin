@@ -81,6 +81,16 @@ context). For changes the spec marked risky, also dispatch an `analyzer` for bla
 radius and integration points. Answer: which files change, which patterns to
 follow, which tests cover this area, what could break.
 
+**Ambiguity sweep**: before building, scan your slice for vagueness the spec left
+open — requirements readable two ways, success criteria that aren't measurable,
+unstated edge cases / error behavior, and non-functional constraints (performance,
+security, compatibility). This is the lighter, self-resolving counterpart to
+`/hv:plan-features`' clarify gate: resolve each gap from the existing code and
+conventions and **record the assumption in one line** (it carries into the PR
+body's Notes), rather than interrogating the human. Escalate — via the same
+pause-and-ask as the discrepancy gate below — only for a *material* ambiguity you
+genuinely can't settle from the code.
+
 **Discrepancy gate**: check the spec against the *actual* existing code. If the
 plan conflicts with reality (a named file/function/contract doesn't exist or works
 differently, a `shared_contract` has drifted, the approach can't work as written)
