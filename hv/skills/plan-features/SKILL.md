@@ -38,9 +38,9 @@ subsystems, say so and treat each as its own design rather than forcing one.
 ## Step 2 — Understand the ground truth
 
 Dispatch Claude Code's built-in `Explore` subagents (several in parallel for
-breadth) to map the relevant code, conventions, and module boundaries. For
-anything risky or cross-cutting, add an `analyzer` to surface dependencies and
-blast radius. You decompose far
+breadth) to map the relevant code, conventions, module boundaries, and any docs
+the repo keeps in step with the code. For anything risky or cross-cutting, add an
+`analyzer` to surface dependencies and blast radius. You decompose far
 better when you know where the real seams in the codebase are.
 
 ## Step 3 — Clarify until unambiguous (gate)
@@ -89,8 +89,12 @@ while it's cheap to change, and turn the findings into concrete, testable
 discovered at review. Examples: "secret read from env, never hardcoded", "all
 request input validated server-side", "authorization checks ownership (no IDOR)",
 "new behavior covered by tests including edge cases X/Y", "reuses existing helper
-Z rather than duplicating". A feature is not "done" until its security/quality
-criteria are met, so they belong in the plan.
+Z rather than duplicating", "docs the repo keeps in step with code (READMEs,
+reference docs, doc comments) updated to match, in the repo's own style". A
+feature is not "done" until its security/quality criteria are met, so they belong
+in the plan. Where a feature changes documented behavior, list the synced doc
+files in that one feature's `target_files` so the doc update ships with it and
+stays file-disjoint.
 
 ## Step 5 — Decide: one PR, or decompose?
 
