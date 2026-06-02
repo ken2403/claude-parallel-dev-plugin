@@ -30,7 +30,7 @@ echo "Agent Teams: ENABLED"
 
 ```bash
 echo "=== Conflict Detection ==="
-_PD=""; for _d in "${PW_PLUGIN_DIR:-}" "${CLAUDE_PLUGIN_ROOT:-}" ./pw ../pw ../../pw; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+_PD=""; for _d in "${PW_PLUGIN_DIR:-}" "${CLAUDE_PLUGIN_ROOT:-}" ./pw ../pw ../../pw; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -d "${PW_PLUGIN_DIR:-}/scripts" ] && _PD="$PW_PLUGIN_DIR"
 DEFAULT_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
 echo "Base branch: $DEFAULT_BRANCH"
 git fetch origin "$DEFAULT_BRANCH"
@@ -121,7 +121,7 @@ fi
 5. Commit and push:
 
 ```bash
-_PD=""; for _d in "${PW_PLUGIN_DIR:-}" "${CLAUDE_PLUGIN_ROOT:-}" ./pw ../pw ../../pw; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+_PD=""; for _d in "${PW_PLUGIN_DIR:-}" "${CLAUDE_PLUGIN_ROOT:-}" ./pw ../pw ../../pw; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -d "${PW_PLUGIN_DIR:-}/scripts" ] && _PD="$PW_PLUGIN_DIR"
 DEFAULT_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
 
 git commit -m "$(cat <<EOF

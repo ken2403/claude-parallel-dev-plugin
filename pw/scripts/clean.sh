@@ -39,7 +39,7 @@ echo "Repository: $GIT_ROOT"
 # Locate plugin directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _PD="$(dirname "$SCRIPT_DIR")"
-[ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"
+[ -d "${PW_PLUGIN_DIR:-}/scripts" ] && _PD="$PW_PLUGIN_DIR"
 
 # Base branch detection
 BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")

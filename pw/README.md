@@ -35,13 +35,18 @@ Example layout:
 
 ### 2. Set the Environment Variable
 
-Add `PW_PLUGIN_DIR` to your shell profile so that plugin scripts (e.g. base branch detection) are always discoverable:
+Add `PW_PLUGIN_DIR` to your shell profile so that plugin scripts (e.g. base branch detection) are always discoverable. It must point at the directory that **contains `scripts/`** — i.e. the `pw/` subdirectory of the repo, **not** the repo root:
 
 ```bash
 # Add to ~/.zshrc (or ~/.bashrc)
-echo 'export PW_PLUGIN_DIR="/path/to/any-directory/claude-paralell-dev-plugin"' >> ~/.zshrc
+# Note the trailing /pw — the scripts live in <repo>/pw/scripts, not <repo>/scripts.
+echo 'export PW_PLUGIN_DIR="/path/to/any-directory/claude-paralell-dev-plugin/pw"' >> ~/.zshrc
 source ~/.zshrc
 ```
+
+This variable is optional — the commands auto-detect the plugin when it is installed
+normally — but if you do set it, a value that does not contain `scripts/` is ignored
+(the commands fall back to auto-detection) rather than breaking.
 
 ### 3. Enable the Plugin in Claude Code
 

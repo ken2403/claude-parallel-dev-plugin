@@ -26,7 +26,7 @@ PLUGIN_DIR=""
 for _d in "${PW_PLUGIN_DIR:-}" "${CLAUDE_PLUGIN_ROOT:-}" ./pw ../pw ../../pw "$HOME"/.claude/plugins/cache/claude-parallel-dev-plugin/pw/*; do
   [ -d "$_d/scripts" ] && PLUGIN_DIR="$_d" && break
 done 2>/dev/null
-[ -n "${PW_PLUGIN_DIR:-}" ] && PLUGIN_DIR="$PW_PLUGIN_DIR"
+[ -d "${PW_PLUGIN_DIR:-}/scripts" ] && PLUGIN_DIR="$PW_PLUGIN_DIR"
 if [ -z "$PLUGIN_DIR" ]; then
   echo "Error: parallel-workflow plugin not found"
   echo "Set PW_PLUGIN_DIR environment variable or install the pw plugin, or set PW_PLUGIN_DIR / CLAUDE_PLUGIN_ROOT"
