@@ -1,6 +1,6 @@
 ---
 name: plan-features
-description: Turn a GitHub issue, spec file, or free-text request into a design and a decomposition into independent, right-sized, parallel-executable features for a fleet of parallel agents. Use this first, before launching any parallel work. Free to propose a better architecture than the current code; sizes each feature by risk and independence. Outputs a feature manifest that /hv:launch-agents consumes.
+description: Turn a GitHub issue, spec file, or free-text request into a design and the right-sized plan to build it. Judges the epic's total weight and decides whether to keep it as a single PR (small/cohesive work) or decompose it into independent, parallel-executable features for a fleet of agents (large work or separable risky cores) — it does not split by default. Use this first, before launching any work. Free to propose a better architecture than the current code; sizes by risk and independence. Outputs a feature manifest (one or more features) that /hv:launch-agents consumes.
 argument-hint: '[#issue-number | "spec text" | @path/to/spec.md]'
 model: opus
 effort: xhigh
@@ -12,10 +12,13 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, Agent
 ## Input
 $ARGUMENTS
 
-You produce two things: a **design** (what to build and why) and a
-**decomposition** (a set of independent features the hv can build in
-parallel). Get these right and the rest of the pipeline runs unattended; get
-them wrong and you waste a fleet of agents.
+You produce two things: a **design** (what to build and why) and a **build plan**
+— a manifest of one or more features. You decide which: a small, cohesive epic
+stays a **single feature (one PR)**; a large epic, or one with separable risky
+cores, is **decomposed into independent features the hv builds in parallel**. Get
+these right and the rest of the pipeline runs unattended; get them wrong — by
+splitting trivial work into a fleet, or by cramming a sprawling change into one
+PR — and you waste effort either way.
 
 ## Context (auto-injected)
 - Repo: !`basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null`
@@ -89,7 +92,52 @@ request input validated server-side", "authorization checks ownership (no IDOR)"
 Z rather than duplicating". A feature is not "done" until its security/quality
 criteria are met, so they belong in the plan.
 
-## Step 5 — Decompose into independent features
+## Step 5 — Decide: one PR, or decompose?
+
+**Parallel decomposition is a tool, not the default.** It pays off when the epic
+is genuinely large or contains separable risky cores; it is pure overhead — extra
+branches, specs, PRs, reviews, and merge coordination — when the work fits in a
+single reviewable PR. Splitting a small epic into a fleet is as much a smell as
+cramming a huge one into a single PR. Judge the **total weight first**, then choose.
+
+### Step 5a — Weigh the whole epic, then choose a path
+
+Estimate the size of the *entire* change (apply `reference/sizing.md` to the epic
+as a whole) and pick:
+
+- **Single PR (one feature).** Choose this when the whole epic comfortably fits one
+  right-sized, reviewable PR: it is cohesive (one logical change), low-to-medium
+  risk, and a reviewer could hold all of it in their head at once. Roughly: the
+  total lands within a single feature's `size_budget` for its risk level (e.g.
+  low-risk ≲ ~8 files / ~400 lines), with no independent high-risk core worth
+  isolating and no natural seam that would make two PRs clearly easier to review
+  than one. **This is the right answer for small epics** — emit a manifest with a
+  **single feature** covering the whole scope. Do not invent extra features to
+  "fill a fleet."
+- **Decompose (multiple parallel features).** Choose this only when the epic is too
+  large for one reviewable PR, OR it contains a high-risk core worth isolating into
+  its own small PR, OR it has genuinely independent parts (file-disjoint, separable
+  seams) that benefit from running in parallel. Then continue to Step 5b.
+
+State the decision and the one-line reason ("single PR — cohesive, low-risk, ~3
+files" / "decompose — auth core is high-risk and the UI is independent") before
+emitting the manifest. When borderline, prefer the **single PR**: one slightly-large
+cohesive PR beats two coordinated half-PRs.
+
+**The borderline tie-breaker never overrides risk.** It applies only to
+low-to-medium-risk work. A high-risk core, a schema/data-migration or other
+contract change, or a broad cross-cutting refactor is **decomposed (isolate the
+risky core) no matter how cohesive it feels** — score risk via `reference/sizing.md`
+first, and remember `cohesive` ≠ `independent`: a change can be one logical idea
+*and* have a large blast radius (a column rename is both), which is exactly the case
+that must not be crammed into one PR.
+
+A single-feature manifest is a **first-class outcome** — it flows through the rest
+of the pipeline unchanged (`/hv:launch-agents` emits one launch command; or, for a
+small cohesive change, the human can skip the fleet and run `/hv:build-feature`
+directly on the one spec).
+
+### Step 5b — Decompose into independent features (only when Step 5a chose to split)
 
 Split the work into features that can each become **one PR, built in parallel**.
 Each feature MUST be:
@@ -106,7 +154,8 @@ head) all share the same key — which is exactly how `/hv:agent-status` and
 `/hv:clean-agents` correlate a running agent with its PR and worktree.
 
 Avoid: arbitrary line-count splits, circular dependencies between features,
-over-granular decomposition (more than ~6 features is usually a smell). If two
+over-granular decomposition (more than ~6 features is usually a smell — and so is
+splitting a small epic that Step 5a should have kept as one PR). If two
 candidate features must touch the same file, either merge them or sequence them
 (`depends_on`).
 
@@ -161,3 +210,10 @@ mkdir -p "$(git rev-parse --show-toplevel)/.hv"
 Then present a short summary table (feature, risk, size, dependencies) and the
 recommended launch order, and point the user to run **`/hv:launch-agents`** (review
 /edit `.hv/manifest.json` first if desired).
+
+**Single-feature plans:** when Step 5a chose one PR, the manifest still has exactly
+one feature and the same path holds — but skip the launch-order talk and tell the
+user the lighter-weight options: either run **`/hv:launch-agents`** (one background
+agent → one PR, tracked by `/hv:agent-status`), or, since there is nothing to run in
+parallel, just build it directly with **`/hv:build-feature .hv/specs/<id>.json`**
+(after `/hv:launch-agents` has written the spec) or in this session.
