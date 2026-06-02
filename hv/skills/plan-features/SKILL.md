@@ -124,6 +124,14 @@ files" / "decompose — auth core is high-risk and the UI is independent") befor
 emitting the manifest. When borderline, prefer the **single PR**: one slightly-large
 cohesive PR beats two coordinated half-PRs.
 
+**The borderline tie-breaker never overrides risk.** It applies only to
+low-to-medium-risk work. A high-risk core, a schema/data-migration or other
+contract change, or a broad cross-cutting refactor is **decomposed (isolate the
+risky core) no matter how cohesive it feels** — score risk via `reference/sizing.md`
+first, and remember `cohesive` ≠ `independent`: a change can be one logical idea
+*and* have a large blast radius (a column rename is both), which is exactly the case
+that must not be crammed into one PR.
+
 A single-feature manifest is a **first-class outcome** — it flows through the rest
 of the pipeline unchanged (`/hv:launch-agents` emits one launch command; or, for a
 small cohesive change, the human can skip the fleet and run `/hv:build-feature`
