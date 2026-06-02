@@ -29,16 +29,31 @@ FACTOR=2          # backoff multiplier (>=1; fractional allowed)
 CAP=600           # max sleep between polls, seconds (10 min)
 MAX_HOURS=24      # give up after this many hours still-open
 
+# A flag must be followed by a value; otherwise `shift 2` would overshoot and
+# crash under `set -e` before we could report it.
+need_val() { [ "$1" -ge 2 ] || { echo "ERROR missing value for $2"; exit 4; }; }
+
 while [ $# -gt 0 ]; do
   case "$1" in
-    --repo)    REPO="${2:-}"; shift 2 ;;
-    --initial) INITIAL="${2:-}"; shift 2 ;;
-    --factor)  FACTOR="${2:-}"; shift 2 ;;
-    --cap)     CAP="${2:-}"; shift 2 ;;
-    --max)     MAX_HOURS="${2:-}"; shift 2 ;;
+    --repo)    need_val $# "$1"; REPO="$2"; shift 2 ;;
+    --initial) need_val $# "$1"; INITIAL="$2"; shift 2 ;;
+    --factor)  need_val $# "$1"; FACTOR="$2"; shift 2 ;;
+    --cap)     need_val $# "$1"; CAP="$2"; shift 2 ;;
+    --max)     need_val $# "$1"; MAX_HOURS="$2"; shift 2 ;;
     *) echo "ERROR unknown argument: $1"; exit 4 ;;
   esac
 done
+
+# Validate numeric flags up front so bad input yields a clean ERROR (exit 4)
+# rather than a mid-run crash (a non-numeric value would trip `set -u` in the
+# `$(( ))` arithmetic, or `sleep`, with no status token emitted). INITIAL, CAP
+# and MAX_HOURS are non-negative integers; FACTOR may be fractional (e.g. 1.5).
+is_uint() { case "$1" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
+is_num()  { case "$1" in ''|*[!0-9.]*|*.*.*) return 1 ;; *) return 0 ;; esac; }
+is_uint "$INITIAL"   || { echo "ERROR --initial must be a non-negative integer (got '$INITIAL')"; exit 4; }
+is_uint "$CAP"       || { echo "ERROR --cap must be a non-negative integer (got '$CAP')"; exit 4; }
+is_uint "$MAX_HOURS" || { echo "ERROR --max must be a non-negative integer (got '$MAX_HOURS')"; exit 4; }
+is_num  "$FACTOR"    || { echo "ERROR --factor must be numeric (got '$FACTOR')"; exit 4; }
 
 command -v gh >/dev/null 2>&1 || { echo "ERROR gh CLI not found on PATH"; exit 4; }
 

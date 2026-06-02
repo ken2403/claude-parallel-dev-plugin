@@ -1,7 +1,7 @@
 ---
 name: watch-merges
 description: Watch one feature's PR in the background and auto-clean its agent, worktree, and branch once it merges. Use after a feature's PR is open to wire hands-off cleanup on merge (typically called by /hv:build-feature as its final step). It polls GitHub with exponential backoff and only triggers cleanup — the actual removal is done by /hv:clean-agents.
-argument-hint: '<pr-number | branch> [--initial S] [--cap S] [--max H]'
+argument-hint: '<pr-number | branch> [--initial S] [--factor N] [--cap S] [--max H]'
 model: opus
 disable-model-invocation: true
 allowed-tools: Read, Bash, Grep, Glob
