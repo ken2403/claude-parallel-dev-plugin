@@ -124,7 +124,7 @@ Print the launch plan table:
 ```
 Then tell the user: watch with **`/hv:agent-status`**; review with **`/hv:review-pr <pr>`**,
 fix with **`/hv:apply-feedback`**, merge with **`/hv:merge-pr`**; reclaim merged
-features with **`/hv:clean-agents`** (or wire it once via **`/hv:watch-merges --repo`**).
+features with **`/hv:clean-agents`** (or auto-clean each PR on merge via **`/hv:watch-merges <pr>`**).
 If the overview shows finished/merged leftovers, suggest cleaning them now.
 
 result: prepared <n> features in <w> wave(s); launch commands emitted for the human to run.

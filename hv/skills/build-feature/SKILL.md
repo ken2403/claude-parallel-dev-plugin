@@ -204,9 +204,9 @@ body. A half-finished silent run is worse than an honest draft.
 ## Phase 6 — Wire auto-clean, then hand off
 
 So this feature reclaims itself when it lands, call **`/hv:watch-merges <pr>`** as
-your final step (registers the merge→clean trigger; returns immediately — no live
-session needed). If the repo already has a standing watcher (`/hv:watch-merges --repo`),
-this is already handled and you can skip it.
+your final step. It watches the PR in the background (exponential backoff) and runs
+`/hv:clean-agents` once it merges; if the PR is later closed unmerged or stays open
+past `--max`, it cleans nothing and just reports.
 
 ## Final report
 

@@ -1,7 +1,7 @@
 ---
 name: watch-merges
-description: Arrange for hv feature cleanup to run automatically when a PR is merged — by installing a Cloud Routine (GitHub merge trigger) or, as a fallback, an in-session /loop poll. Use after a feature's PR is open to wire up hands-off cleanup, or once at the repo level so every hv feature auto-cleans on merge. It only triggers cleanup; the actual removal is done by /hv:clean-agents.
-argument-hint: '[<pr-number | branch> | --repo (standing) | --loop [interval]]'
+description: Watch one feature's PR in the background and auto-clean its agent, worktree, and branch once it merges. Use after a feature's PR is open to wire hands-off cleanup on merge (typically called by /hv:build-feature as its final step). It polls GitHub with exponential backoff and only triggers cleanup — the actual removal is done by /hv:clean-agents.
+argument-hint: '<pr-number | branch> [--initial S] [--factor N] [--cap S] [--max H]'
 model: opus
 disable-model-invocation: true
 allowed-tools: Read, Bash, Grep, Glob
@@ -9,59 +9,54 @@ allowed-tools: Read, Bash, Grep, Glob
 
 # Watch merges → auto-clean
 
-This skill is a **thin trigger**. It owns no cleanup logic: when a merge is
-detected it runs **`/hv:clean-agents`**, which delegates the actual removal to the
-`janitor` subagent. That keeps the merge→clean→reclaim chain in one line and the
-guardrails in one place.
+A **thin watcher**. It polls one PR until it merges, then runs
+**`/hv:clean-agents`**, which delegates the actual removal to the `janitor`
+subagent. All cleanup guardrails live there — this skill never deletes anything
+itself.
 
 ## Input
 $ARGUMENTS
 
-- `<pr|branch>` — watch one feature's PR (typically called by `/hv:build-feature`
-  as its final step, right after opening the PR).
-- `--repo` — install a **standing** repo-level watcher so *every* hv PR auto-cleans
-  on merge (set up once; nothing to do per feature thereafter).
-- `--loop [interval]` — use the in-session poller instead of a Routine.
+`<pr|branch>` — the feature PR to watch (typically passed by `/hv:build-feature`
+as its final step, right after opening the PR). Optional tuning:
+`--initial S` (first poll gap, default 30s), `--factor N` (backoff multiplier,
+default 2), `--cap S` (max gap, default 600s), `--max H` (give up after H hours,
+default 24).
 
-## Mode A — Cloud Routine (recommended, low cost, durable)
+## Step 1 — Launch the background watcher
 
-A Cloud Routine with a GitHub `pull_request` trigger filtered to `is_merged: true`
-fires **once per merge**, on Anthropic infrastructure, with no session kept alive —
-the cheapest and most reliable option. Its command is `/hv:clean-agents <branch>`.
-
-Use the bundled template at `${CLAUDE_PLUGIN_ROOT}/routines/cleanup-on-merge.json`.
+Poll the PR in the **background** so no live session is tied to the wait. The
+bundled script backs off exponentially — quick polls right after the PR opens,
+when a merge is most likely imminent, widening to `--cap` for the long tail —
+and stops on merge, close, or the `--max` deadline:
 
 ```bash
-# Show the template the routine should use (fill in repo + branch filter):
-cat "${CLAUDE_PLUGIN_ROOT}/routines/cleanup-on-merge.json"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/watch-merge.sh" <pr|branch>
 ```
 
-If a CLI/API to create routines programmatically is available in this version,
-register it directly. **If not, do not fake it** — print the template plus the
-exact steps for the user to add the routine once (repo, `is_merged:true` filter,
-command `/hv:clean-agents <branch>`), and tell them that after that one-time setup
-every merged hv PR cleans up automatically. Never resort to spawning a nested
-`claude` session to emulate this.
+Run it with **Bash's background mode** so it keeps polling across turns and
+re-invokes you when it exits. Its final stdout line is one of:
 
-## Mode B — `/loop` fallback (no cloud setup; costs tokens while alive)
+- `MERGED <branch>`          → go to Step 2 and clean.
+- `CLOSED_UNMERGED <branch>` → the PR was closed without merging; **clean
+  nothing** (never destroy unmerged work) — just report it.
+- `TIMEOUT <branch>`         → still open after `--max`; report that it's still
+  open and suggest re-running `/hv:watch-merges <pr>` (or cleaning manually once
+  it lands).
+- `ERROR <message>`          → bad target or `gh` not authenticated; surface it.
 
-When Cloud Routines aren't available, poll from a live session:
+## Step 2 — On merge, hand off to clean-agents
+
+When (and only when) the watcher reports `MERGED`, run:
 
 ```
-/loop 10m check merged hv PRs and clean them
+/hv:clean-agents <branch>
 ```
-
-On each tick the loop should: `gh pr list --state merged --json headRefName` →
-for any newly-merged hv branch not yet cleaned, run `/hv:clean-agents <branch>`.
-
-State the cost honestly to the user: a poll consumes tokens **every tick** and
-needs a session to stay alive (7-day `/loop` limit), so prefer Mode A for anything
-long-running. Pick a coarse interval (≥5m).
 
 ## Guardrail
 
-Whichever mode, cleanup only ever runs through `/hv:clean-agents` → `janitor`,
-which **re-checks that the agent is not still running and the PR is merged** before
-removing anything. This skill never deletes resources itself.
+Cleanup only ever runs through `/hv:clean-agents` → `janitor`, which **re-checks
+that the agent is not still running and the PR is merged** before removing
+anything. This skill watches and triggers; it never deletes resources itself.
 
-result: wired merge→clean for <pr|branch|repo> via <Routine|loop>.
+result: watched <pr|branch> → <merged: cleaned | closed-unmerged: skipped | timeout: still open>.
