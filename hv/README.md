@@ -91,8 +91,8 @@ hv maps each of those to a native platform capability:
 7. **`/hv:merge-pr <pr>`** — merges only when approved + green + mergeable.
 8. **`/hv:clean-agents`** — delegates removal to the `janitor` subagent; never touches a
    running agent or unmerged work.
-9. **`/hv:watch-merges <pr | --repo>`** — wires merge→clean automatically (Cloud Routine,
-   or `/loop` fallback). `build-feature` calls it after opening the PR.
+9. **`/hv:watch-merges <pr>`** — polls the PR in the background (exponential backoff)
+   and runs `/hv:clean-agents` once it merges. `build-feature` calls it after opening the PR.
 
 ---
 
@@ -111,9 +111,9 @@ when you call them explicitly, never by accidental auto-trigger.
 (guardrailed destructive cleanup — never touches a running agent). Read-only
 scouting uses Claude Code's built-in `Explore` agent rather than a bundled one.
 
-**Auto-clean on merge**: `/hv:watch-merges` wires a Cloud Routine (GitHub
-`is_merged` trigger → `/hv:clean-agents`, fires once per merge, low cost) or, as a
-fallback, a `/loop` poller (costs tokens while alive). Cleanup logic lives once in
+**Auto-clean on merge**: `/hv:watch-merges` polls the PR in the background with
+exponential backoff and, once it merges, runs `/hv:clean-agents` — skipping a PR
+that was closed unmerged and giving up after `--max`. Cleanup logic lives once in
 `janitor`; `clean-agents` and `watch-merges` both delegate to it.
 
 **Hook**: `PreToolUse(Edit|Write)` blocks edits to `.env`/secrets/keys.

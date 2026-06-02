@@ -18,7 +18,7 @@ add an entry (with its `source` path) to `marketplace.json`.
 - `hv/skills/<name>/SKILL.md` — skills (also the slash commands `/hv:<name>`). `reference/` holds progressively-disclosed detail.
 - `hv/agents/<name>.md` — subagents (`analyzer`, `implementer`, `verifier`, `janitor`).
 - `hv/scripts/*.sh`, `hv/scripts/validate_manifest.py` — self-contained helpers.
-- `hv/hooks.json` — PreToolUse secret-file guard. `hv/routines/` — Cloud Routine templates.
+- `hv/hooks.json` — PreToolUse secret-file guard.
 
 ## Authoring rules (learned the hard way)
 
