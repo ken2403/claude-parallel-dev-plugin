@@ -35,7 +35,7 @@ Collect repository context:
 ```bash
 echo "Remote: $(git remote get-url origin 2>/dev/null || echo 'local')"
 echo "Branch: $(git branch --show-current)"
-echo "Base branch: $(_PD=""; for _d in "${PW_PLUGIN_DIR:-}" "${CLAUDE_PLUGIN_ROOT:-}" ./pw ../pw ../../pw; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -n "${PW_PLUGIN_DIR:-}" ] && _PD="$PW_PLUGIN_DIR"; "$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")"
+echo "Base branch: $(_PD=""; for _d in "${PW_PLUGIN_DIR:-}" "${CLAUDE_PLUGIN_ROOT:-}" ./pw ../pw ../../pw; do [ -d "$_d/scripts" ] && _PD="$_d" && break; done 2>/dev/null; [ -d "${PW_PLUGIN_DIR:-}/scripts" ] && _PD="$PW_PLUGIN_DIR"; "$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")"
 ls -la | head -15
 git log --oneline -5
 ```

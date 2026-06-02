@@ -39,7 +39,7 @@ PLUGIN_DIR=""
 for d in "${PW_PLUGIN_DIR:-}" "${CLAUDE_PLUGIN_ROOT:-}" ./pw ../pw ../../pw "$HOME"/.claude/plugins/cache/claude-parallel-dev-plugin/pw/*; do
   [ -d "$d/scripts" ] && PLUGIN_DIR="$d" && break
 done 2>/dev/null
-[ -n "${PW_PLUGIN_DIR:-}" ] && PLUGIN_DIR="$PW_PLUGIN_DIR"
+[ -d "${PW_PLUGIN_DIR:-}/scripts" ] && PLUGIN_DIR="$PW_PLUGIN_DIR"
 
 # Base branch detection (using shared script)
 BASE_BRANCH=$("${PLUGIN_DIR}/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
@@ -262,7 +262,7 @@ PLUGIN_DIR=""
 for _d in "${PW_PLUGIN_DIR:-}" "${CLAUDE_PLUGIN_ROOT:-}" ./pw ../pw ../../pw "$HOME"/.claude/plugins/cache/claude-parallel-dev-plugin/pw/*; do
   [ -d "$_d/scripts" ] && PLUGIN_DIR="$_d" && break
 done 2>/dev/null
-[ -n "${PW_PLUGIN_DIR:-}" ] && PLUGIN_DIR="$PW_PLUGIN_DIR"
+[ -d "${PW_PLUGIN_DIR:-}/scripts" ] && PLUGIN_DIR="$PW_PLUGIN_DIR"
 
 "${PLUGIN_DIR}/scripts/spinup.sh" feature/xxx feature/yyy feature/zzz
 ```
