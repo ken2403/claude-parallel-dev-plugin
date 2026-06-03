@@ -115,6 +115,11 @@ Stay inside `target_files`; never touch anything in `do_not_touch`. The
 automatically — follow them so the change is clean, safe, and consistent with
 the repo.
 
+When the change alters behavior, interfaces, or config the repo keeps documented
+in step with the code (READMEs, reference docs, doc comments), update those docs
+too — in the repo's own doc style, and within `target_files` — since a feature
+whose docs lie about it isn't done.
+
 ## Phase 3 — Self review-and-fix loop (≤2 rounds, then PR no matter what)
 
 Review your own change the same way `/hv:review-pr` reviews a PR — reuse **its
