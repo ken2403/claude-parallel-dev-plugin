@@ -128,7 +128,9 @@ hybrid judgment axis** (defined there; don't re-invent it), but applied to your
 
 - **Generic / mechanical → verifier subagents (parallel, keeps main clean)**: broad
   correctness, style/quality, mechanical security patterns (injection/secrets),
-  missed call sites. Run **`adversarial-verification`** here as the accuracy core
+  missed call sites, and **code↔docs drift** (behavior/interface/config changes in
+  the diff reflected in READMEs, reference docs, and doc comments — see the Phase 2
+  doc rule). Run **`adversarial-verification`** here as the accuracy core
   (refute-oriented; scale verifier count to risk). Heavy diff-reading stays in the
   subagents; they return verdicts, not dumps.
 - **Context-critical → you, in main**: compliance with `CLAUDE.md` and the repo's
