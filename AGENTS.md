@@ -93,4 +93,4 @@ tool scans only its own skills.
 - `claude plugin validate ./ca/claude` — must pass.
 - Codex skill frontmatter: allowed keys only, `name` == folder, `description` ≤1024 with no `<>`. If PyYAML is available, run `~/.codex/skills/.system/skill-creator/scripts/quick_validate.py ca/codex/skills/ca-implement-plan`.
 - `bash -n ca/**/*.sh ca/install.sh`; `python3 -m py_compile` every bundled `*.py`; `ca/install.sh --dry-run`.
-- No README inside any skill folder; no stray `cx` identifiers.
+- No README inside any skill folder; no leftover identifiers from the previous working name.

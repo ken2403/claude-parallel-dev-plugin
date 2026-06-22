@@ -77,4 +77,4 @@ a `blocking: true` finding gates the PR; missing/malformed output is treated as 
 - `CODEX_BIN` — path to `codex` if it is not on `PATH` (e.g. a version-manager shim).
 - `CLAUDE_BIN` — path to `claude` for the host-side review call.
 - `CODEX_HOME` — where the Codex skill installs (default `~/.codex`).
-- `CX_BASE` — base branch for the worktree (default `main`).
+- `CA_BASE` — base branch for the worktree (default `main`).

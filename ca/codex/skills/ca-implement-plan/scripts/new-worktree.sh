@@ -6,7 +6,7 @@ PLAN="${1:?usage: new-worktree.sh <plan.md>}"
 [ -f "$PLAN" ] || { echo "plan not found: $PLAN" >&2; exit 1; }
 
 ROOT="$(git -C "$(dirname "$PLAN")" rev-parse --show-toplevel 2>/dev/null || git rev-parse --show-toplevel)"
-BASE="${CX_BASE:-main}"
+BASE="${CA_BASE:-main}"
 ID="$(basename "$PLAN" .md)"
 WT="$ROOT/../.ca-worktrees/$(basename "$ROOT")/$ID"
 BR="ca/$ID"

@@ -13,13 +13,14 @@ while [ $# -gt 0 ]; do case "$1" in
 [ -n "$PLAN" ] && [ -n "$DIFF" ] && [ -n "$OUT" ] || {
   echo "usage: claude-review.sh --plan P --diff D --worktree W --round N --out O" >&2; exit 2; }
 
-export CX_OUT="$OUT"
-# Prefer the /ca:review-diff plugin skill; fall back to an inline review prompt if absent.
+export CA_OUT="$OUT"
+# Invoke the /ca:review-diff plugin skill; it writes the JSON to CA_OUT (also passed explicitly).
 PROMPT="/ca:review-diff
 plan=$PLAN
 diff=$DIFF
 worktree=$WT
 round=$ROUND
+out=$OUT
 Review the diff against the plan for correctness, security, and codebase consistency.
 Use web search if a claim needs external grounding. Mark a finding blocking:true only for
 must-fix issues. Write a single ca_claude_review.v1 JSON object to: $OUT"
