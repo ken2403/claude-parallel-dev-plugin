@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
-# Call the host-side Claude reviewer and return a validated ca_claude_review.v1 JSON.
-# Runs OUTSIDE Codex's sandbox (the Codex skill invokes it via the shell tool), so Claude
-# has its own network/web-search. Fail-closed: malformed output -> exit 1 (treat as blocked).
+# Call the Claude reviewer (claude -p /ca:review-diff) and return a validated ca_claude_review.v1 JSON.
+#
+# NETWORK REQUIRED: `claude -p` reaches the Anthropic API. Codex's default sandbox
+# (`-s workspace-write`) BLOCKS network, so when this runs inside a sandboxed Codex
+# session the call fails and no review is produced. Run it where network is allowed:
+#   - launch Codex for ca work with network permitted for this command (approval/profile), or
+#   - run this script in a normal host terminal between rounds and point the loop at $OUT.
+# Fail-closed: if no valid review is produced, exit 1 (the loop treats it as blocked) and
+# print an actionable reason — never silently pass.
 set -euo pipefail
 
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
@@ -13,6 +19,11 @@ while [ $# -gt 0 ]; do case "$1" in
 [ -n "$PLAN" ] && [ -n "$DIFF" ] && [ -n "$OUT" ] || {
   echo "usage: claude-review.sh --plan P --diff D --worktree W --round N --out O" >&2; exit 2; }
 
+command -v "$CLAUDE_BIN" >/dev/null 2>&1 || {
+  echo "claude-review: '$CLAUDE_BIN' not found on PATH. Set CLAUDE_BIN or install Claude Code." >&2
+  exit 1; }
+
+rm -f "$OUT"          # ensure a stale file from a prior round can't masquerade as this review
 export CA_OUT="$OUT"
 # Invoke the /ca:review-diff plugin skill; it writes the JSON to CA_OUT (also passed explicitly).
 PROMPT="/ca:review-diff
@@ -25,10 +36,19 @@ Review the diff against the plan for correctness, security, and codebase consist
 Use web search if a claim needs external grounding. Mark a finding blocking:true only for
 must-fix issues. Write a single ca_claude_review.v1 JSON object to: $OUT"
 
-"$CLAUDE_BIN" -p "$PROMPT" >/dev/null 2>>"${OUT%.json}.stderr" || true
+ERR="${OUT%.json}.stderr"
+"$CLAUDE_BIN" -p "$PROMPT" >/dev/null 2>>"$ERR" || true
 
-# Validate (stdlib only). Missing/malformed -> blocked.
-python3 - "$OUT" <<'PY' || { echo "review missing/invalid -> blocked" >&2; exit 1; }
+if [ ! -s "$OUT" ]; then
+  echo "claude-review: no review file was produced at $OUT." >&2
+  echo "  Most likely the Anthropic API was unreachable (Codex sandbox blocks network)." >&2
+  echo "  Run this review step where network is allowed (see the header of this script)." >&2
+  echo "  claude stderr: ${ERR}" >&2
+  exit 1
+fi
+
+# Validate (stdlib only, self-contained). Malformed -> blocked.
+python3 - "$OUT" <<'PY' || { echo "claude-review: output failed schema validation -> treat as blocked" >&2; exit 1; }
 import json, sys
 try:
     d = json.load(open(sys.argv[1]))

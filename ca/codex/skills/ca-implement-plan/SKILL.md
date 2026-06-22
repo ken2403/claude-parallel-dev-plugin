@@ -79,18 +79,28 @@ Hard rules while implementing:
    git -C "$ROOT" add -A
    git -C "$ROOT" diff --cached > "$RUN/round-$RUND.diff"
    ```
-3. Call the external Claude reviewer. This bundled script shells out to `claude` on the host (Claude
-   has its own web search) and writes a validated JSON verdict. It exits non-zero if the output is
-   missing or malformed — treat that as a blocking result:
+3. Call the Claude reviewer. This bundled script runs `claude -p /ca:review-diff` and writes a
+   validated JSON verdict.
+
+   **NETWORK REQUIRED — important.** `claude -p` reaches the Anthropic API, but Codex's default
+   sandbox (`-s workspace-write`) blocks network, so this call fails inside a normal sandboxed
+   session and produces no review. Make network available for it in one of two ways, and tell the
+   human which you are using:
+   - the human launched Codex for ca with network permitted (approval/profile) for this command; or
+   - the human runs this one command in a separate host terminal and you continue once the JSON exists.
 
    ```bash
    bash "$SKILL_DIR/scripts/claude-review.sh" \
      --plan "$RUN/plan.md" --diff "$RUN/round-$RUND.diff" --worktree "$ROOT" \
      --round "$RUND" --out "$RUN/review-round-$RUND.json"
    ```
+
+   The script fails loudly (non-zero) with an actionable reason if no valid review is produced — if
+   it reports the API was unreachable, **STOP and ASK** the human to run the review step where
+   network is allowed; do not treat an unreachable reviewer as a real "blocked" verdict.
 4. Read `review-round-$RUND.json`. Its shape is documented in `references/review-contract.md`
-   (`verdict`, plus `findings` where each has `blocking: true` or `false`). On a missing or invalid
-   file, treat it as blocked and **ASK** the human.
+   (`verdict`, plus `findings` where each has `blocking: true` or `false`). On a malformed file,
+   treat it as blocked and **ASK** the human.
 
 ## Step 4 — Address feedback and loop
 

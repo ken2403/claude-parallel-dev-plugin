@@ -14,7 +14,6 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"            # .../ca
 SKILL_SRC="$HERE/codex/skills/ca-implement-plan"
-CONTRACT_SRC="$HERE/claude/skills/review-diff/references/review-contract.md"
 DEST_ROOT="${CODEX_HOME:-$HOME/.codex}/skills"
 DEST="$DEST_ROOT/ca-implement-plan"
 
@@ -31,10 +30,8 @@ while [ $# -gt 0 ]; do case "$1" in
 if [ "$do_codex" = 1 ]; then
   echo "[ca] Codex skill: $SKILL_SRC -> $DEST"
   if [ "$dry" = 1 ]; then
-    echo "[ca] (dry-run) would sync contract + copy skill"
+    echo "[ca] (dry-run) would copy skill (no source files are modified)"
   else
-    # keep the bundled contract in sync with the canonical Claude-side copy
-    [ -f "$CONTRACT_SRC" ] && cp "$CONTRACT_SRC" "$SKILL_SRC/references/review-contract.md"
     if [ -e "$DEST" ] && [ "$force" = 0 ]; then
       echo "[ca] $DEST already exists; pass --force to overwrite." >&2; exit 1
     fi

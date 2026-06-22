@@ -43,10 +43,11 @@ Write a single object conforming to `references/review-contract.md`:
 
 ## Step 4 — Validate before returning (required)
 
-Run the bundled validator and fix your output until it passes:
+Run the bundled validator and fix your output until it passes. Resolve the script from the plugin
+root (the working directory when this skill runs is the user's project, not this skill folder):
 
 ```bash
-python3 scripts/validate-review.py "$CA_OUT"
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/review-diff/scripts/validate-review.py" "$CA_OUT"
 ```
 
 It prints the verdict and exits 0 on success; on a non-zero exit, correct the JSON (the loop treats missing/malformed output as `blocked`).

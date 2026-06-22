@@ -16,8 +16,14 @@ Human merges ─▶ worktree + branch cleaned up
 ```
 
 The implementing Codex session keeps continuous memory across rounds; state also lives in files
-(`plan.md`, `round-N.diff`, `review-round-N.json`) so the loop is reproducible. Claude review runs
-on the host (it has web search); Codex stays sandboxed (`-s workspace-write`, no network/no `gh`).
+(`plan.md`, `round-N.diff`, `review-round-N.json`) so the loop is reproducible. Codex stays
+sandboxed for implementation (`-s workspace-write`, no `gh`).
+
+> **Network note for the review step.** The review calls `claude -p`, which needs the Anthropic
+> API. Codex's default `-s workspace-write` sandbox **blocks network**, so the review must run where
+> network is allowed: launch Codex for ca with network permitted for that command (approval/profile),
+> or run `claude-review.sh` in a host terminal between rounds. `claude-review.sh` fails loudly with
+> guidance if the API is unreachable, so an unreachable reviewer is never mistaken for a real verdict.
 
 ## Layout
 
