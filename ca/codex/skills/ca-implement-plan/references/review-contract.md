@@ -1,11 +1,11 @@
-# Claude review contract (cx_claude_review.v1)
+# Claude review contract (ca_claude_review.v1)
 
 The Claude reviewer returns a single JSON object to `--out`. The loop reads `verdict` and the
 `blocking` flag on each finding. Treat any missing/malformed output as `verdict: "blocked"`.
 
 ```json
 {
-  "schema_version": "cx_claude_review.v1",
+  "schema_version": "ca_claude_review.v1",
   "round": 1,
   "verdict": "approve | request_changes | blocked",
   "summary": "one-paragraph verdict",

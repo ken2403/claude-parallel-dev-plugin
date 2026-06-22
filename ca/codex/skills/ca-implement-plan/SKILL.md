@@ -1,12 +1,12 @@
 ---
-name: cx-implement-plan
-description: Implement a saved implementation-plan markdown file task-by-task inside an isolated git worktree, then loop with an external Claude reviewer that checks the plan against the diff, address blocking feedback over a few rounds, and open a PR that includes a summary of the Claude/Codex exchange. Use when the user points at a plan file under docs/superpowers/plans or any task-by-task plan and says things like "implement this plan", "build the plan at this path", "run the cx loop on this plan", or "have Claude review what you built". The human stays in control and is asked to confirm at key decision points and before any cleanup.
+name: ca-implement-plan
+description: Implement a saved implementation-plan markdown file task-by-task inside an isolated git worktree, then loop with an external Claude reviewer that checks the plan against the diff, address blocking feedback over a few rounds, and open a PR that includes a summary of the Claude/Codex exchange. Use when the user points at a plan file under docs/superpowers/plans or any task-by-task plan and says things like "implement this plan", "build the plan at this path", "run the ca loop on this plan", or "have Claude review what you built". The human stays in control and is asked to confirm at key decision points and before any cleanup.
 license: MIT
 metadata:
   short-description: Build a plan with Claude review rounds
 ---
 
-# cx-implement-plan
+# ca-implement-plan
 
 Build a saved implementation plan task-by-task in an isolated worktree, get it reviewed by an
 external Claude reviewer between rounds, address blocking feedback, and open a PR — with the human
@@ -20,12 +20,12 @@ present. Pause for the human at every point marked **ASK**.
 Resolve the skill's own bundled scripts from its install dir:
 
 ```bash
-SKILL_DIR="${CODEX_HOME:-$HOME/.codex}/skills/cx-implement-plan"
+SKILL_DIR="${CODEX_HOME:-$HOME/.codex}/skills/ca-implement-plan"
 ```
 
 ## Step 0 — Confirm isolation (never skip)
 
-Run only inside a dedicated worktree on a `cx/` branch, never on the default branch or the shared checkout.
+Run only inside a dedicated worktree on a `ca/` branch, never on the default branch or the shared checkout.
 
 ```bash
 ROOT="$(git rev-parse --show-toplevel)"
@@ -33,22 +33,22 @@ BR="$(git -C "$ROOT" rev-parse --abbrev-ref HEAD)"
 echo "root=$ROOT branch=$BR"
 ```
 
-If `BR` is `main` or `master`, or the tree is not a `cx/` worktree, **STOP** and tell the human to
+If `BR` is `main` or `master`, or the tree is not a `ca/` worktree, **STOP** and tell the human to
 launch from an isolated worktree first:
 
 ```bash
 bash "$SKILL_DIR/scripts/new-worktree.sh" "$PLAN"
-# then run codex inside the printed worktree path and invoke $cx-implement-plan again
+# then run codex inside the printed worktree path and invoke $ca-implement-plan again
 ```
 
-Proceed only once on a `cx/<plan-id>` branch in its own worktree.
+Proceed only once on a `ca/<plan-id>` branch in its own worktree.
 
 ## Step 1 — Read and anchor the plan
 
-1. Read `PLAN` in full. Ensure a copy and checksum exist at `$ROOT/.cx/runs/<plan-id>/`:
+1. Read `PLAN` in full. Ensure a copy and checksum exist at `$ROOT/.ca/runs/<plan-id>/`:
 
    ```bash
-   ID="$(basename "$PLAN" .md)"; RUN="$ROOT/.cx/runs/$ID"; mkdir -p "$RUN"
+   ID="$(basename "$PLAN" .md)"; RUN="$ROOT/.ca/runs/$ID"; mkdir -p "$RUN"
    cp "$PLAN" "$RUN/plan.md"; shasum -a 256 "$PLAN" | awk '{print $1}' > "$RUN/plan.sha256"
    ```
 2. Restate the goal and the ordered task list in two or three sentences. Note each task's test command.

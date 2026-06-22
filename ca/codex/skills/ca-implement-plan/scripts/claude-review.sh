@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Call the host-side Claude reviewer and return a validated cx_claude_review.v1 JSON.
+# Call the host-side Claude reviewer and return a validated ca_claude_review.v1 JSON.
 # Runs OUTSIDE Codex's sandbox (the Codex skill invokes it via the shell tool), so Claude
 # has its own network/web-search. Fail-closed: malformed output -> exit 1 (treat as blocked).
 set -euo pipefail
@@ -14,15 +14,15 @@ while [ $# -gt 0 ]; do case "$1" in
   echo "usage: claude-review.sh --plan P --diff D --worktree W --round N --out O" >&2; exit 2; }
 
 export CX_OUT="$OUT"
-# Prefer the /cx:review-diff plugin skill; fall back to an inline review prompt if absent.
-PROMPT="/cx:review-diff
+# Prefer the /ca:review-diff plugin skill; fall back to an inline review prompt if absent.
+PROMPT="/ca:review-diff
 plan=$PLAN
 diff=$DIFF
 worktree=$WT
 round=$ROUND
 Review the diff against the plan for correctness, security, and codebase consistency.
 Use web search if a claim needs external grounding. Mark a finding blocking:true only for
-must-fix issues. Write a single cx_claude_review.v1 JSON object to: $OUT"
+must-fix issues. Write a single ca_claude_review.v1 JSON object to: $OUT"
 
 "$CLAUDE_BIN" -p "$PROMPT" >/dev/null 2>>"${OUT%.json}.stderr" || true
 
