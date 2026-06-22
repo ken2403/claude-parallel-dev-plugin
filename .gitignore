@@ -4,3 +4,6 @@
 # Python bytecode
 __pycache__/
 *.pyc
+
+# ca worktrees
+.claude/ca/

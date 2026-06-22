@@ -45,10 +45,11 @@ Proceed only once on a `ca/<plan-id>` branch in its own worktree.
 
 ## Step 1 — Read and anchor the plan
 
-1. Read `PLAN` in full. Ensure a copy and checksum exist at `$ROOT/.ca/runs/<plan-id>/`:
+1. Read `PLAN` in full. `PLAN` must be the **original** plan file (e.g. `docs/superpowers/plans/<id>.md`), not a staged copy named `plan.md` — the id is derived from its basename, and a copy named `plan.md` would collapse the id to `plan`. Ensure a copy and checksum exist at `$ROOT/.ca/runs/<id>/`:
 
    ```bash
    ID="$(basename "$PLAN" .md)"; RUN="$ROOT/.ca/runs/$ID"; mkdir -p "$RUN"
+   [ "$ID" = plan ] && echo "WARN: id is 'plan' — pass the original plan path, not a staged copy" >&2
    cp "$PLAN" "$RUN/plan.md"; shasum -a 256 "$PLAN" | awk '{print $1}' > "$RUN/plan.sha256"
    ```
 2. Restate the goal and the ordered task list in two or three sentences. Note each task's test command.
