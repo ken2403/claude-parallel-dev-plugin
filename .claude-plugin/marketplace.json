@@ -19,6 +19,13 @@
       "description": "Opus 4.8-native massively-parallel autonomous feature development with background agents and multi-pass adversarial verification",
       "category": "workflow",
       "tags": ["parallel", "autonomous", "background-agents", "opus-4-8"]
+    },
+    {
+      "name": "ca",
+      "source": "./ca/claude",
+      "description": "Cooperate Agents — Claude×Codex loop (plan & review side): draft a plan sparring with Codex, then review the Codex-built diff against it",
+      "category": "workflow",
+      "tags": ["codex", "cross-tool", "worktree", "code-review"]
     }
   ]
 }
