@@ -1,0 +1,20 @@
+{
+  "name": "claude-parallel-dev-plugin",
+  "interface": {
+    "displayName": "Cooperate Agents"
+  },
+  "plugins": [
+    {
+      "name": "ca",
+      "source": {
+        "source": "local",
+        "path": "../../ca/codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

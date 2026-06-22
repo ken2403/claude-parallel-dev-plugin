@@ -1,2 +1,9 @@
 # hv: launch-time feature spec files
 .hv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# ca worktrees
+.claude/ca/

@@ -1,0 +1,17 @@
+{
+  "name": "ca",
+  "version": "0.1.0",
+  "description": "Codex side of the ca loop: implement a saved plan in an isolated worktree with Claude review rounds, then open a PR.",
+  "license": "MIT",
+  "keywords": ["codex", "claude", "worktree", "code-review", "plan", "cross-tool"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ca (Codex side)",
+    "shortDescription": "Build a plan with Claude review rounds",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Use $ca-implement-plan to build a saved plan with Claude review rounds."
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "ca",
+  "displayName": "Ca",
+  "description": "Claude side of the ca loop: draft an implementation plan (sparring with Codex), and review a Codex-built worktree diff against that plan, emitting a structured verdict the Codex loop consumes.",
+  "version": "0.1.0",
+  "author": {
+    "name": "ken2403"
+  },
+  "homepage": "https://github.com/ken2403/claude-paralell-dev-plugin",
+  "repository": "https://github.com/ken2403/claude-paralell-dev-plugin",
+  "keywords": [
+    "codex",
+    "claude",
+    "worktree",
+    "code-review",
+    "plan",
+    "cross-tool"
+  ],
+  "license": "MIT"
+}
