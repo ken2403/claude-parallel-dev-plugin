@@ -15,7 +15,7 @@ present. Pause for the human at every point marked **ASK**.
 ## Inputs
 
 - `PLAN` — absolute path to the plan markdown file. Ask the human if it was not provided.
-- `MAX_ROUNDS` — optional cap on Claude review rounds before forcing a stop. Default 3.
+- `MAX_ROUNDS` — optional cap on Claude review rounds before forcing a stop. Default 2.
 
 Resolve the skill's own bundled scripts from its install dir:
 
@@ -98,8 +98,9 @@ Hard rules while implementing:
 - Otherwise address every blocking finding. For a finding you judge incorrect, do not silently skip
   it — record your disagreement to surface in the PR summary, and **ASK** the human if it is material.
 - Re-run the affected tests, increment the round, regenerate the diff, and call Claude again (Step 3).
-- Stop when approved, when the round count reaches `MAX_ROUNDS`, or when two consecutive rounds
-  produce an identical diff. On a forced stop, **ASK** the human whether to open a draft PR or keep going.
+- Stop when approved, when the round count reaches `MAX_ROUNDS` (default 2 — the initial review plus
+  at most two fix rounds), or when two consecutive rounds produce an identical diff. On a forced stop,
+  **ASK** the human whether to open a draft PR or keep going.
 
 This is one continuous session, so prior rounds are already in context — still re-read the latest
 review JSON and diff so decisions rest on the current files, not memory alone.
