@@ -45,16 +45,20 @@ Write a single object conforming to `references/review-contract.md`:
 - `findings[]`: each with `id`, `blocking`, `severity` (`blocker|major|minor`), `title`, and where known `file`, `line`, `evidence`, `recommended_fix`.
 - Include `round` (echo the input) and a one-paragraph `summary`.
 
-## Step 4 — Validate before returning (required)
+## Step 4 — Self-check the JSON before returning
 
-Run the bundled validator and fix your output until it passes. Resolve the script from the plugin
-root (the working directory when this skill runs is the user's project, not this skill folder):
+Your output is the contract. Before returning, re-read the object you wrote and confirm it matches
+`references/review-contract.md`: required keys present, `verdict` in the enum, every finding has a
+boolean `blocking`. The caller (`claude-review.sh`) validates the file authoritatively and treats
+anything missing/malformed as `blocked`, so a non-conforming object wastes a round.
+
+Optionally, if `CLAUDE_PLUGIN_ROOT` is set, you can run the bundled validator for a fast check:
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/skills/review-diff/scripts/validate-review.py" "$CA_OUT"
 ```
 
-It prints the verdict and exits 0 on success; on a non-zero exit, correct the JSON (the loop treats missing/malformed output as `blocked`).
+It prints the verdict and exits 0 on success; on a non-zero exit, fix the JSON.
 
 ## References
 

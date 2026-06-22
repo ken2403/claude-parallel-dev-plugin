@@ -83,12 +83,15 @@ Hard rules while implementing:
 3. Call the Claude reviewer. This bundled script runs `claude -p /ca:review-diff` and writes a
    validated JSON verdict.
 
-   **NETWORK REQUIRED — important.** `claude -p` reaches the Anthropic API, but Codex's default
-   sandbox (`-s workspace-write`) blocks network, so this call fails inside a normal sandboxed
-   session and produces no review. Make network available for it in one of two ways, and tell the
-   human which you are using:
-   - the human launched Codex for ca with network permitted (approval/profile) for this command; or
-   - the human runs this one command in a separate host terminal and you continue once the JSON exists.
+   **TWO PRECONDITIONS — important.** Both must hold or no review is produced:
+   - **Skill resolvable:** `claude -p /ca:review-diff` only works if the ca *Claude* plugin is
+     installed in the user's Claude config, or `CA_CLAUDE_PLUGIN_DIR` points at the `ca/claude` dir
+     (the script then passes `--plugin-dir`). If neither, the skill won't load.
+   - **Network:** `claude -p` reaches the Anthropic API, but Codex's default `-s workspace-write`
+     sandbox blocks network, so the call fails inside a normal sandboxed session. Provide network
+     by launching Codex with it permitted for this command, or run the command in a host terminal.
+
+   Tell the human which arrangement you are relying on before running it.
 
    ```bash
    bash "$SKILL_DIR/scripts/claude-review.sh" \

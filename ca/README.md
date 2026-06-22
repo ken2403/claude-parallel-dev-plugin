@@ -78,9 +78,19 @@ a `blocking: true` finding gates the PR; missing/malformed output is treated as 
 (fail-closed). The contract lives in each skill's
 `references/review-contract.md`, validated by `validate-review.py`.
 
+## Both plugins are required
+
+The loop only works with **both** sides installed: the Codex skill implements, and it calls the
+Claude plugin's `/ca:review-diff` (via `claude -p`) to review. Installing only one side makes every
+review round fail. `bash ca/install.sh` with no flags handles the Codex install and prints/checks
+the Claude side. If you cannot install the Claude plugin globally, set `CA_CLAUDE_PLUGIN_DIR` so the
+review call can load it with `--plugin-dir`.
+
 ## Environment overrides
 
 - `CODEX_BIN` — path to `codex` if it is not on `PATH` (e.g. a version-manager shim).
-- `CLAUDE_BIN` — path to `claude` for the host-side review call.
+- `CLAUDE_BIN` — path to `claude` for the review call.
+- `CA_CLAUDE_PLUGIN_DIR` — path to the `ca/claude` plugin dir; lets `claude-review.sh` load
+  `/ca:review-diff` via `--plugin-dir` when the Claude plugin isn't installed globally.
 - `CODEX_HOME` — where the Codex skill installs (default `~/.codex`).
 - `CA_BASE` — base branch for the worktree (default `main`).
