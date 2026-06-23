@@ -5,7 +5,7 @@ plugins for parallel development. Each plugin is self-contained in its own
 directory with its own `.claude-plugin/plugin.json`; the root holds only
 marketplace-level files (`marketplace.json`, `README.md`, this file, `.gitignore`).
 
-- **`pw`** — original tmux/shell parallel-workflow plugin, in `pw/` (`pw/agents/`, `pw/commands/`, `pw/skills/`, `pw/hooks/`, `pw/scripts/`). See `pw/README.md`.
+- **`sa`** — "Simple Agents": command-free skills + subagents for fast single-feature work (digest plan → approve → worktree → implement → PR → review cycle), in `sa/`. See `sa/README.md`.
 - **`hv`** — Opus 4.8-native rewrite using background agents + worktree isolation, in `hv/`. See `hv/README.md`.
 - **`ca`** — "Cooperate Agents": a Claude×Codex loop shipped as two co-located plugins (`ca/claude/`, `ca/codex/`). See `ca/README.md`.
 
@@ -26,6 +26,15 @@ entry (with its `source` path) to the relevant marketplace.
 - `hv/scripts/*.sh`, `hv/scripts/validate_manifest.py` — self-contained helpers.
 - `hv/hooks.json` — PreToolUse secret-file guard.
 
+## sa layout
+
+- `sa/.claude-plugin/plugin.json` — the only file in `sa/.claude-plugin/`.
+- `sa/skills/<name>/SKILL.md` — skills (also the slash commands `/sa:<name>`): `simple-feature`, `review-pr`, `apply-feedback`, `clean-worktrees`, and `code-review`. **Scripts are skill-local** under `sa/skills/<name>/scripts/`, referenced via `${CLAUDE_SKILL_DIR}` (aliased to `CLAUDE_SKILL_SA_DIR` in skill bodies); detail lives in `references/`. Shared helpers (`detect-base-branch.sh`, `merge-check.sh`) are duplicated byte-identically into each skill that needs them.
+- `sa/agents/<name>.md` — subagents (`implementer` opus·effort medium, `verifier` opus·effort high). No `janitor`/`analyzer` — sa stays light.
+- `sa/hooks/{hooks.json,guard-protected.sh}` — PreToolUse secret-file guard (only plugin-level script, referenced via `${CLAUDE_PLUGIN_ROOT}`).
+- **Model/effort**: all Opus, graded — `simple-feature` medium, `review-pr` high, `apply-feedback` medium, `implementer` medium, `verifier` high, `clean-worktrees` **haiku**, `code-review` omits both (standards skill).
+- **Worktrees**: created explicitly by `simple-feature/scripts/new-worktree.sh` under `.claude/worktrees/sa/<slug>` (vs hv's background auto-isolation). `simple-feature` **stops at PR**; the review cycle (`review-pr`/`apply-feedback`) is on-demand. `code-review` is the single standards skill (quality/security/consistency) auto-activating during both implement and review.
+
 ## Authoring rules (learned the hard way)
 
 - **Identity by name field**: a skill's `name:` MUST equal its directory; an agent's `name:` MUST equal its filename. Validation and references break otherwise.
@@ -41,9 +50,9 @@ entry (with its `source` path) to the relevant marketplace.
 
 ## Validate before committing
 
-- `claude plugin validate ./hv` (and `./pw`, `./ca/claude` if you touched them) — must pass.
+- `claude plugin validate ./hv` (and `./sa`, `./ca/claude` if you touched them) — must pass.
 - Skill `name:` ↔ directory and agent `name:` ↔ filename all match.
-- `bash -n hv/scripts/*.sh`; `python3 hv/scripts/validate_manifest.py <manifest>` for manifest changes.
+- `bash -n hv/scripts/*.sh sa/skills/*/scripts/*.sh sa/hooks/*.sh`; `python3 hv/scripts/validate_manifest.py <manifest>` for manifest changes.
 - Each `SKILL.md` body stays **under 500 lines** (push detail to `reference/`).
 
 ## Git

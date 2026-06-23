@@ -7,3 +7,6 @@ __pycache__/
 
 # ca worktrees
 .claude/ca/
+
+# sa worktrees (and Claude Code native worktrees)
+.claude/worktrees/
