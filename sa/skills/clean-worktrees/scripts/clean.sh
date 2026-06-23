@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Worktree cleanup script for the pw plugin.
+# Worktree cleanup script for the sa plugin.
 #
-# Scans EVERY linked worktree of the repository via `git worktree list` — pw's
-# own `worktrees/<job>` AND Claude Code's `.claude/worktrees/*` background-agent
-# worktrees — and removes the ones whose branch has been merged.
+# Scans linked worktrees via `git worktree list` and removes the ones that are
+# BOTH (a) created by sa — i.e. living under `.claude/worktrees/sa/` — AND
+# (b) on a branch that has been merged. Native background-agent worktrees and
+# any other worktree outside `.claude/worktrees/sa/` are never touched.
 #
 # Usage:
-#   scripts/clean.sh [job-name | branch | path | --all]
-#     (no arg or --all) → consider every worktree
+#   scripts/clean.sh [branch | path | all-merged | --all]
+#     (no arg / all-merged / --all) → consider every sa worktree
 #     (a name/branch/path) → only that one
 #
 # Safety:
+#   - Only ever considers worktrees under `.claude/worktrees/sa/`.
 #   - NEVER deletes a worktree whose branch has NOT been merged.
 #   - NEVER deletes the main checkout or the worktree this script runs in.
 #   - NEVER uses `git worktree remove --force` — a worktree with uncommitted
 #     changes is skipped and reported, not destroyed.
 #   - `git branch -d` (not -D) — refuses to delete an unmerged branch.
-# Note: removing a .claude/worktrees/* worktree does not stop its background
-#   agent session; use the hv plugin's /hv:clean-agents for agent lifecycle.
 # ==============================================================================
 set -e
 
@@ -47,18 +47,14 @@ fi
 cd "$GIT_ROOT"
 echo "Repository: $GIT_ROOT"
 
-# Locate plugin directory. The script always sits in <plugin>/scripts/, so the
-# self-derived path is authoritative for sourcing sibling scripts. Honor an
-# explicit PW_PLUGIN_DIR only if it actually contains scripts/ — a stale value
-# (e.g. pointing at the repo root after pw moved under pw/) must not break us.
+# Helper scripts are co-located in this skill's own scripts/ dir (self-contained).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_PD="$(dirname "$SCRIPT_DIR")"
-if [ -n "${PW_PLUGIN_DIR:-}" ] && [ -d "${PW_PLUGIN_DIR}/scripts" ]; then
-  _PD="$PW_PLUGIN_DIR"
-fi
+
+# Only sa's own worktrees are eligible for removal.
+SA_WT_PREFIX="$GIT_ROOT/.claude/worktrees/sa/"
 
 # Base branch detection
-BASE_BRANCH=$("$_PD/scripts/detect-base-branch.sh" 2>/dev/null || echo "main")
+BASE_BRANCH=$("$SCRIPT_DIR/detect-base-branch.sh" 2>/dev/null || echo "main")
 echo "Base branch: $BASE_BRANCH"
 
 # ============================================================
@@ -94,10 +90,10 @@ fi
 
 # Parse arguments
 CLEANUP_ALL=false
-{ [ -z "$INPUT_ARG" ] || [ "$INPUT_ARG" = "--all" ]; } && CLEANUP_ALL=true
+{ [ -z "$INPUT_ARG" ] || [ "$INPUT_ARG" = "--all" ] || [ "$INPUT_ARG" = "all-merged" ]; } && CLEANUP_ALL=true
 
 # Source canonical merge verification (defines is_branch_merged)
-source "$_PD/scripts/merge-check.sh"
+source "$SCRIPT_DIR/merge-check.sh"
 
 # ============================================================
 # Worktrees we must NEVER remove: the main checkout, and the
@@ -112,7 +108,7 @@ case "$COMMON_GIT_DIR" in
 esac
 
 echo ""
-echo "=== Scanning all worktrees (incl. .claude/worktrees/) ==="
+echo "=== Scanning sa worktrees under .claude/worktrees/sa/ ==="
 
 MERGED_JOBS=()     # entries: "<path>\t<branch>"
 UNMERGED_JOBS=()   # "<name>:<branch>"
@@ -123,6 +119,12 @@ FAILED_JOBS=()
 while IFS=$'\t' read -r wt_path wt_branch; do
   [ -z "$wt_path" ] && continue
   name="$(basename "$wt_path")"
+
+  # Only ever consider sa's own worktrees, under .claude/worktrees/sa/.
+  case "$wt_path/" in
+    "$SA_WT_PREFIX"*) ;;
+    *) continue ;;
+  esac
 
   # Never touch the main checkout or the current worktree.
   if [ -n "$MAIN_WT" ] && [ "$wt_path" = "$MAIN_WT" ]; then

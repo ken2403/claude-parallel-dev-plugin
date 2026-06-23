@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Canonical merge verification for the pw plugin.
+# Canonical merge verification for the sa plugin.
 #
 # This is the SINGLE SOURCE OF TRUTH for branch merge verification logic.
 # All commands and scripts should use this implementation.
