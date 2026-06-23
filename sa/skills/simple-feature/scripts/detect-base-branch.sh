@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Canonical base branch detection for the pw plugin.
+# Canonical base branch detection for the sa plugin.
 #
 # This is the SINGLE SOURCE OF TRUTH for base branch detection logic.
-# All commands and scripts should use this implementation.
+# sa skills that need a base branch use (a byte-identical copy of) this script.
 #
 # Usage (standalone):
 #   BASE_BRANCH=$(path/to/detect-base-branch.sh [repo-root])
