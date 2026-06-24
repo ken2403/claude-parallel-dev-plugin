@@ -37,9 +37,10 @@ comes from one shared standards skill and an on-demand review guardrail.
             -> run tests -> open PR -> STOP
 
 (2) on demand:
-      /sa:review-pr <pr>          independent review (opus/high + `verifier` subagents)
-        -> /sa:apply-feedback <pr>   fix + push
-          -> merge -> /sa:clean-worktrees   reclaim merged worktrees + branches
+      /sa:review-pr <pr>             independent review (opus/high + `verifier` subagents)
+        -> /sa:apply-feedback <pr>      fix + push
+      /sa:resolve-conflicts <pr>     merge base + resolve conflicts (isolated) + push
+        -> merge -> /sa:clean-worktrees   reclaim merged worktrees + branches
 ```
 
 `simple-feature` deliberately **stops at PR creation** for speed; reviewing is a separate,
@@ -51,6 +52,8 @@ explicit step.
 - `simple-feature` — plan -> approve -> worktree -> implement -> PR (opus, effort medium).
 - `review-pr` — independent correctness/security/consistency review (opus, effort high).
 - `apply-feedback` — turn review feedback into committed fixes (opus, effort medium).
+- `resolve-conflicts` — merge the base branch and resolve conflicts in an isolated
+  worktree, verify, and push (opus, effort high).
 - `clean-worktrees` — reclaim merged sa worktrees + branches, safely (haiku).
 - `code-review` — the single source of engineering standards (quality, security,
   consistency); **auto-activates** during both implementation and review.
