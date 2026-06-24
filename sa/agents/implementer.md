@@ -4,6 +4,8 @@ description: Implements one file-disjoint slice of a simple feature inside an ab
 model: inherit
 effort: medium
 tools: Read, Edit, Write, Bash, Grep, Glob
+skills:
+  - code-review
 color: green
 ---
 
@@ -40,8 +42,10 @@ edits from colliding.
 - Make the smallest change that fully satisfies the contract. No drive-by
   refactors outside your slice.
 - Add type annotations / error handling to match the codebase.
-- The `code-review` standards skill auto-activates — follow it (quality,
-  security, consistency).
+- Follow the **`code-review`** standards (preloaded into your context via the
+  `skills` frontmatter; read its `references/` for detail) — quality, security,
+  consistency. If for any reason it is not loaded, `Read` the skill's
+  `references/` files before judging.
 
 ## Before returning
 

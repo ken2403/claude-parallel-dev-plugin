@@ -1,11 +1,11 @@
 ---
 name: simple-feature
-description: Take a plan — a file path or plain-text task — and drive ONE simple feature to an open PR fast. Digests the plan, inspects the codebase, asks you only when genuinely unsure, gets your approval, then creates an isolated worktree, implements with subagents, verifies the build, and opens a PR. Stops at PR for speed; run /sa:review-pr separately to review. Use for small-to-medium implementation tasks. Invoke explicitly with /sa:simple-feature.
+description: Takes a plan — a file path or plain-text task — and drives ONE simple feature to an open PR fast. Digests the plan, inspects the codebase, asks only when genuinely unsure, gets approval, then creates an isolated worktree, implements with subagents, verifies the build, and opens a PR. Stops at PR for speed; run /sa:review-pr separately to review. Use for small-to-medium implementation tasks. Invoke explicitly with /sa:simple-feature.
 argument-hint: '<plan-file-path | natural-language task>'
 model: opus
 disable-model-invocation: true
 effort: medium
-allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent, AskUserQuestion, WebFetch
+allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent, AskUserQuestion
 ---
 
 # Simple feature
@@ -66,10 +66,15 @@ echo "Implementing in: $WORKTREE_PATH on $BRANCH"
 `new-worktree.sh` prints `WORKTREE_PATH=...` and `BRANCH=...`; `eval` makes both shell
 variables available. The worktree is created under `.claude/worktrees/sa/<slug>`.
 
-**Absolute-path rule for the rest of the run:** the main session's cwd stays in the main
-checkout, so **every edit targets an absolute path under `$WORKTREE_PATH`**, every test
-runs as `cd "$WORKTREE_PATH" && <cmd>` in one Bash call, and every git op uses
-`git -C "$WORKTREE_PATH"`.
+**Absolute-path rule for the rest of the run (MUST — this is the one easy way to corrupt
+the user's working copy):** the main session's cwd stays in the main checkout, NOT this
+worktree. So from here on:
+- Every `Edit`/`Write` **MUST** target an absolute path under `$WORKTREE_PATH`. Never edit
+  a relative path and never edit a path outside `$WORKTREE_PATH` — that would change the
+  user's real working copy, and the secret-guard hook will not catch it.
+- Every test/build runs as `cd "$WORKTREE_PATH" && <cmd>` in a single Bash call.
+- Every git op uses `git -C "$WORKTREE_PATH" ...`.
+- Each `implementer` subagent you dispatch is given `$WORKTREE_PATH` and the same rule.
 
 ## Phase 6 — Implement (test-driven, fast)
 

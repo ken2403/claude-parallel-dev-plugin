@@ -1,6 +1,6 @@
 ---
 name: clean-worktrees
-description: Reclaim sa worktrees after features land — remove merged feature worktrees and delete their merged branches. Use once a feature PR is merged. Safe by default — never removes a worktree with uncommitted changes and never deletes an unmerged branch.
+description: Reclaims sa worktrees after features land — removes merged feature worktrees and deletes their merged branches. Use once a feature PR is merged. Safe by default — never removes a worktree with uncommitted changes and never deletes an unmerged branch.
 argument-hint: '[feature ids / branches to clean, or all-merged]'
 model: haiku
 disable-model-invocation: true

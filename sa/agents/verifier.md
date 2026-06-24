@@ -4,6 +4,8 @@ description: Adversarial, read-only reviewer that tries to REFUTE a specific cla
 model: inherit
 effort: high
 tools: Read, Grep, Glob, Bash
+skills:
+  - code-review
 color: red
 ---
 
@@ -30,9 +32,10 @@ A claim to test, plus one of:
   counter-cases (inputs, states, orderings) where it breaks.
 - Run read-only checks that settle a question with evidence: targeted tests,
   `git grep` for missed call sites, type checks. Evidence beats opinion.
-- Apply the `code-review` standards (quality, security, consistency). **Security
-  is non-negotiable** — look hard for injection, secret handling, authz gaps,
-  unsafe deserialization, and sensitive data in logs.
+- Apply the **`code-review`** standards (preloaded into your context via the
+  `skills` frontmatter; `Read` its `references/` if not loaded) — quality,
+  security, consistency. **Security is non-negotiable** — look hard for injection,
+  secret handling, authz gaps, unsafe deserialization, and sensitive data in logs.
 
 ## Never
 

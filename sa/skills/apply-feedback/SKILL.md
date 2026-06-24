@@ -1,6 +1,6 @@
 ---
 name: apply-feedback
-description: Address review feedback on a PR and update it, parallelizing across files with implementer subagents when feedback spans 3+ independent files. Use after /sa:review-pr requests changes, or to act on human review comments and push fixes back.
+description: Addresses review feedback on a PR and updates it, parallelizing across files with implementer subagents when feedback spans 3+ independent files. Use after /sa:review-pr requests changes, or to act on human review comments and push fixes back.
 argument-hint: '<pr-number> [feedback text]'
 model: opus
 disable-model-invocation: true

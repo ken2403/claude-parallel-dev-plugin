@@ -5,7 +5,7 @@ plugins for parallel development. Each plugin is self-contained in its own
 directory with its own `.claude-plugin/plugin.json`; the root holds only
 marketplace-level files (`marketplace.json`, `README.md`, this file, `.gitignore`).
 
-- **`sa`** — "Simple Agents": command-free skills + subagents for fast single-feature work (digest plan → approve → worktree → implement → PR → review cycle), in `sa/`. See `sa/README.md`.
+- **`sa`** — "Simple Agents": command-free skills + subagents for fast single-feature work (digest plan → approve → worktree → implement → PR; review cycle is on-demand), in `sa/`. See `sa/README.md`.
 - **`hv`** — Opus 4.8-native rewrite using background agents + worktree isolation, in `hv/`. See `hv/README.md`.
 - **`ca`** — "Cooperate Agents": a Claude×Codex loop shipped as two co-located plugins (`ca/claude/`, `ca/codex/`). See `ca/README.md`.
 
@@ -33,7 +33,7 @@ entry (with its `source` path) to the relevant marketplace.
 - `sa/agents/<name>.md` — subagents (`implementer` opus·effort medium, `verifier` opus·effort high). No `janitor`/`analyzer` — sa stays light.
 - `sa/hooks/{hooks.json,guard-protected.sh}` — PreToolUse secret-file guard (only plugin-level script, referenced via `${CLAUDE_PLUGIN_ROOT}`).
 - **Model/effort**: all Opus, graded — `simple-feature` medium, `review-pr` high, `apply-feedback` medium, `implementer` medium, `verifier` high, `clean-worktrees` **haiku**, `code-review` omits both (standards skill).
-- **Worktrees**: created explicitly by `simple-feature/scripts/new-worktree.sh` under `.claude/worktrees/sa/<slug>` (vs hv's background auto-isolation). `simple-feature` **stops at PR**; the review cycle (`review-pr`/`apply-feedback`) is on-demand. `code-review` is the single standards skill (quality/security/consistency) auto-activating during both implement and review.
+- **Worktrees**: created explicitly by `simple-feature/scripts/new-worktree.sh` under `.claude/worktrees/sa/<slug>` (vs hv's background auto-isolation). `simple-feature` **stops at PR**; the review cycle (`review-pr`/`apply-feedback`) is on-demand. `code-review` is the single standards skill (quality/security/consistency): auto-activates in the main loop and is **preloaded** into the `implementer`/`verifier` subagents via their `skills:` frontmatter (subagents don't auto-activate skills by description).
 
 ## Authoring rules (learned the hard way)
 
