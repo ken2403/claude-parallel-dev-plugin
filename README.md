@@ -21,16 +21,17 @@ spelling differs.)
 | Plugin | What it is | Install | Docs |
 |--------|------------|---------|------|
 | **`hv`** | Opus 4.8-native, massively-parallel **autonomous** feature development: plan → launch background agents → build/verify → PR → auto-clean, with multi-pass adversarial verification. | `/plugin install hv@claude-parallel-dev-plugin` | [hv/README.md](hv/README.md) |
-| **`pw`** | The original **Parallel Workflow** plugin: generic large-scale parallel development via git worktrees + tmux + Agent Teams. | `/plugin install pw@claude-parallel-dev-plugin` | [pw/README.md](pw/README.md) |
+| **`sa`** | **Simple Agents** — command-free skills + subagents for fast single-feature work: digest a plan, get your approval, isolate in a worktree, implement, and open a PR. The interactive, lightweight counterpart to `hv`. | `/plugin install sa@claude-parallel-dev-plugin` | [sa/README.md](sa/README.md) |
 
-New to this? Start with **`hv`** — it's the modern, Opus 4.8-native successor and
-needs no tmux. `pw` remains available for the tmux/Agent-Teams workflow.
+New to this? Pick **`sa`** for a single, simple feature you want done fast with a quick
+approval gate; reach for **`hv`** when you want an autonomous fleet building many features
+in parallel. Both are Opus 4.8-native and need no tmux.
 
 ## Try a plugin locally (without installing)
 
 ```
 claude --plugin-dir /path/to/claude-paralell-dev-plugin/hv
-claude --plugin-dir /path/to/claude-paralell-dev-plugin/pw
+claude --plugin-dir /path/to/claude-paralell-dev-plugin/sa
 ```
 
 ## Repository layout
@@ -39,7 +40,7 @@ claude --plugin-dir /path/to/claude-paralell-dev-plugin/pw
 .
 ├── .claude-plugin/marketplace.json   # marketplace manifest (lists the plugins below)
 ├── hv/                               # the hv plugin (its own .claude-plugin/plugin.json, skills, agents, …)
-├── pw/                               # the pw plugin (its own .claude-plugin/plugin.json, commands, skills, …)
+├── sa/                               # the sa plugin (its own .claude-plugin/plugin.json, skills, agents, hooks)
 ├── CLAUDE.md                         # maintainer guidance for this repo
 └── README.md                         # this file
 ```
