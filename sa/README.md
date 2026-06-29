@@ -30,7 +30,7 @@ comes from one shared standards skill and an on-demand review guardrail.
 ## The flow
 
 ```
-(1) /sa:simple-feature <plan | task>
+(1) /sa:simple-implement <plan | task>
       digest plan -> explore (read-only) -> ask if unsure -> APPROVE GATE
         -> create worktree (.claude/worktrees/sa/<slug>)
           -> implement (you + parallel `implementer` subagents)
@@ -43,13 +43,13 @@ comes from one shared standards skill and an on-demand review guardrail.
         -> merge -> /sa:clean-worktrees   reclaim merged worktrees + branches
 ```
 
-`simple-feature` deliberately **stops at PR creation** for speed; reviewing is a separate,
+`simple-implement` deliberately **stops at PR creation** for speed; reviewing is a separate,
 explicit step.
 
 ## Components
 
 **Skills** (`/sa:<name>`)
-- `simple-feature` — plan -> approve -> worktree -> implement -> PR (opus, effort medium).
+- `simple-implement` — plan -> approve -> worktree -> implement -> PR (opus, effort medium).
 - `review-pr` — independent correctness/security/consistency review (opus, effort high).
 - `apply-feedback` — turn review feedback into committed fixes (opus, effort medium).
 - `resolve-conflicts` — merge the base branch and resolve conflicts in an isolated
@@ -71,7 +71,7 @@ and the on-demand opus/high `review-pr` keep accuracy from regressing.
 
 ## Relationship to ha
 
-| | `sa` (Simple Agents) | `ha` (Higher-skilled Agents) |
+| | `sa` (Simple Agents) | `ha` (Higher Agents) |
 |---|---|---|
 | Scope | one simple feature, fast | one feature, thorough |
 | Plan | digests a given plan | design dialogue + question gate + vetted plan |

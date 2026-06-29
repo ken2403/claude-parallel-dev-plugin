@@ -1,6 +1,6 @@
 ---
-name: simple-feature
-description: Takes a plan — a file path or plain-text task — and drives ONE simple feature to an open PR fast. Digests the plan, inspects the codebase, asks only when genuinely unsure, gets approval, then creates an isolated worktree, implements with subagents, verifies the build, and opens a PR. Stops at PR for speed; run /sa:review-pr separately to review. Use for small-to-medium implementation tasks. Invoke explicitly with /sa:simple-feature.
+name: simple-implement
+description: Takes a plan — a file path or plain-text task — and drives ONE simple feature to an open PR fast. Digests the plan, inspects the codebase, asks only when genuinely unsure, gets approval, then creates an isolated worktree, implements with subagents, verifies the build, and opens a PR. Stops at PR for speed; run /sa:review-pr separately to review. Use for small-to-medium implementation tasks. Invoke explicitly with /sa:simple-implement.
 argument-hint: '<plan-file-path | natural-language task>'
 model: opus
 disable-model-invocation: true
@@ -8,7 +8,7 @@ effort: medium
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent, AskUserQuestion
 ---
 
-# Simple feature
+# Simple implement
 
 ## Assignment
 $ARGUMENTS
@@ -135,7 +135,7 @@ EOF
 ```
 
 Always create the PR (a draft on failure beats a silent half-run). **This is the end of
-`simple-feature` — do not review here.** Print a one-line hand-off telling the user to run
+`simple-implement` — do not review here.** Print a one-line hand-off telling the user to run
 `/sa:review-pr <pr>` when they want the (separate, on-demand) review guardrail.
 
 ## Final report

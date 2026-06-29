@@ -1,4 +1,4 @@
-# ha — Higher-skilled Agents
+# ha — Higher Agents
 
 A command-free Claude Code plugin for getting **one feature built thoroughly**: plan it
 deeply, implement it with a per-task review loop *and* a whole-diff adversarial review,
@@ -84,7 +84,7 @@ subagent-driven-development — `ha` doesn't duplicate them.)
 
 ## Relationship to sa
 
-| | `sa` (Simple Agents) | `ha` (Higher-skilled Agents) |
+| | `sa` (Simple Agents) | `ha` (Higher Agents) |
 |---|---|---|
 | Goal | one feature, fast | one feature, thorough |
 | Plan | digests a given plan | design dialogue + question gate + vetted plan |

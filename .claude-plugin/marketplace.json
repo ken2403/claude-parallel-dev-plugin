@@ -18,7 +18,7 @@
     {
       "name": "ha",
       "source": "./ha",
-      "description": "Higher-skilled Agents — the thorough counterpart to sa for building ONE feature properly: deep plan, SDD per-task loop plus a whole-diff adversarial review, independent review, apply feedback, gated merge. Leverages the superpowers disciplines (required dependency); model-agnostic",
+      "description": "Higher Agents — the thorough counterpart to sa for building ONE feature properly: deep plan, SDD per-task loop plus a whole-diff adversarial review, independent review, apply feedback, gated merge. Leverages the superpowers disciplines (required dependency); model-agnostic",
       "category": "workflow",
       "tags": ["thorough", "single-feature", "subagents", "adversarial-verification", "tdd"]
     },

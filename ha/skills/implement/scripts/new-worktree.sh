@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Create an isolated worktree for an ha feature AFTER the human approved the plan.
-# Ported from sa/skills/simple-feature/scripts/new-worktree.sh (sa->ha) plus a
+# Ported from sa/skills/simple-implement/scripts/new-worktree.sh (sa->ha) plus a
 # superpowers:using-git-worktrees "Step 0" detection: if we are already inside a
 # linked worktree, reuse it instead of nesting another.
 #

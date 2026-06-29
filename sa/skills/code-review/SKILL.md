@@ -8,7 +8,7 @@ allowed-tools: Read, Grep, Glob, Bash
 
 The single source of engineering standards for `sa`. It applies in two modes:
 
-- **While implementing** (in `simple-feature` / `implementer`): follow these as you
+- **While implementing** (in `simple-implement` / `implementer`): follow these as you
   write, so the change is clean, safe, and consistent the first time.
 - **While reviewing** (in `review-pr` / `verifier` / `apply-feedback`): check the diff
   against these and report findings as `severity — file:line — issue — suggestion`.

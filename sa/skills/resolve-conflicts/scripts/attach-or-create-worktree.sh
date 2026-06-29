@@ -12,7 +12,7 @@
 #
 # Behavior:
 #   1. If <branch> is already checked out in a linked worktree (e.g. the one
-#      simple-feature created under .claude/worktrees/sa/<slug>), REUSE it.
+#      simple-implement created under .claude/worktrees/sa/<slug>), REUSE it.
 #   2. If <branch> is checked out in the MAIN working copy, refuse (exit 1) —
 #      this skill must not edit the user's main checkout.
 #   3. Otherwise create a fresh worktree under .claude/worktrees/sa/<slug>,
