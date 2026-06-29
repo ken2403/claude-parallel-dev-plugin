@@ -20,18 +20,20 @@ spelling differs.)
 
 | Plugin | What it is | Install | Docs |
 |--------|------------|---------|------|
-| **`hv`** | Opus 4.8-native, massively-parallel **autonomous** feature development: plan → launch background agents → build/verify → PR → auto-clean, with multi-pass adversarial verification. | `/plugin install hv@claude-parallel-dev-plugin` | [hv/README.md](hv/README.md) |
-| **`sa`** | **Simple Agents** — command-free skills + subagents for fast single-feature work: digest a plan, get your approval, isolate in a worktree, implement, and open a PR. The interactive, lightweight counterpart to `hv`. | `/plugin install sa@claude-parallel-dev-plugin` | [sa/README.md](sa/README.md) |
+| **`sa`** | **Simple Agents** — command-free skills + subagents for fast single-feature work: digest a plan, get your approval, isolate in a worktree, implement, and open a PR. | `/plugin install sa@claude-parallel-dev-plugin` | [sa/README.md](sa/README.md) |
+| **`ha`** | **Higher-skilled Agents** — the **thorough** counterpart to `sa` for building ONE feature properly: a deep plan, an SDD per-task loop plus a whole-diff adversarial review, an independent review, apply-feedback, and a gated merge. Leverages the `superpowers` disciplines (required). | `/plugin install ha@claude-parallel-dev-plugin` | [ha/README.md](ha/README.md) |
+| **`ca`** | **Cooperate Agents** — a Claude×Codex loop: draft a plan sparring with Codex, then review the Codex-built diff against it. | `/plugin install ca@claude-parallel-dev-plugin` | [ca/README.md](ca/README.md) |
 
-New to this? Pick **`sa`** for a single, simple feature you want done fast with a quick
-approval gate; reach for **`hv`** when you want an autonomous fleet building many features
-in parallel. Both are Opus 4.8-native and need no tmux.
+New to this? Pick **`sa`** for a single feature you want done fast with a quick approval
+gate; reach for **`ha`** when you want that same single feature built thoroughly — a deeper
+plan gate, layered review loops, and adversarial verification. Both are model-agnostic and
+need no tmux (`ha` additionally requires the `superpowers` plugin).
 
 ## Try a plugin locally (without installing)
 
 ```
-claude --plugin-dir /path/to/claude-paralell-dev-plugin/hv
 claude --plugin-dir /path/to/claude-paralell-dev-plugin/sa
+claude --plugin-dir /path/to/claude-paralell-dev-plugin/ha
 ```
 
 ## Repository layout
@@ -39,8 +41,9 @@ claude --plugin-dir /path/to/claude-paralell-dev-plugin/sa
 ```
 .
 ├── .claude-plugin/marketplace.json   # marketplace manifest (lists the plugins below)
-├── hv/                               # the hv plugin (its own .claude-plugin/plugin.json, skills, agents, …)
 ├── sa/                               # the sa plugin (its own .claude-plugin/plugin.json, skills, agents, hooks)
+├── ha/                               # the ha plugin (its own .claude-plugin/plugin.json, skills, agents, hooks)
+├── ca/                               # the ca plugin (Claude + Codex sides)
 ├── CLAUDE.md                         # maintainer guidance for this repo
 └── README.md                         # this file
 ```

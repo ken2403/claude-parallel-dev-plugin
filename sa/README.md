@@ -2,8 +2,8 @@
 
 A command-free Claude Code plugin for getting **one simple feature** done fast: hand it a
 plan, approve it, and it isolates a worktree, implements with subagents, and opens a PR —
-all on Opus 4.8 with effort tuned for speed. The interactive, lightweight counterpart to
-[`hv`](../hv/README.md).
+all on Opus 4.8 with effort tuned for speed. The fast, lightweight counterpart to
+[`ha`](../ha/README.md), which builds one feature thoroughly.
 
 ## Install
 
@@ -21,7 +21,7 @@ Requirements: `git`, the GitHub CLI (`gh`, authenticated), and Opus 4.8.
 
 ## Why sa
 
-Not every task needs `hv`'s autonomous fleet of background agents and multi-pass
+Not every feature needs `ha`'s deep plan gate, layered review loops, and multi-pass
 adversarial verification. `sa` is the fast path for a **single, well-scoped change** where
 you want to stay in the loop: it asks before it builds, gets your approval, then runs to a
 PR without hand-holding. Speed comes from graded effort and parallel subagents; quality
@@ -69,14 +69,14 @@ explicit step.
 but the `code-review` standards (security non-negotiable), an objective build/test gate,
 and the on-demand opus/high `review-pr` keep accuracy from regressing.
 
-## Relationship to hv
+## Relationship to ha
 
-| | `sa` (Simple Agents) | `hv` |
+| | `sa` (Simple Agents) | `ha` (Higher-skilled Agents) |
 |---|---|---|
-| Scope | one simple feature | a fleet of features in parallel |
-| Mode | foreground, human approval gate | autonomous background agents |
-| Worktree | explicit, `.claude/worktrees/sa/` | native background auto-isolation |
-| Verification | code-review standards + on-demand review-pr | multi-pass adversarial verification |
-| Speed dial | graded effort (medium build, high review) | thoroughness-first |
+| Scope | one simple feature, fast | one feature, thorough |
+| Plan | digests a given plan | design dialogue + question gate + vetted plan |
+| Implement | subagents → PR (no self-review) | SDD per-task loop + whole-diff adversarial loop → PR |
+| Verification | code-review standards + on-demand review-pr | + multi-pass adversarial verification |
+| Speed dial | graded effort (medium build, high review) | thoroughness-first (effort high) |
 
-Both are Opus 4.8-native and need no tmux.
+Both are foreground, single-feature, and need no tmux (`ha` also requires the `superpowers` plugin).

@@ -6,7 +6,7 @@ directory with its own `.claude-plugin/plugin.json`; the root holds only
 marketplace-level files (`marketplace.json`, `README.md`, this file, `.gitignore`).
 
 - **`sa`** — "Simple Agents": command-free skills + subagents for fast single-feature work (digest plan → approve → worktree → implement → PR; review cycle is on-demand), in `sa/`. See `sa/README.md`.
-- **`hv`** — Opus 4.8-native rewrite using background agents + worktree isolation, in `hv/`. See `hv/README.md`.
+- **`ha`** — "Higher-skilled Agents": the thorough counterpart to `sa` for building ONE feature properly (deep plan → SDD per-task loop + whole-diff adversarial review → independent review → apply feedback → gated merge, plus standalone conflict resolution and worktree cleanup), in `ha/`. Single-feature, foreground, model-agnostic; leverages the `superpowers` disciplines (required dependency). See `ha/README.md`.
 - **`ca`** — "Cooperate Agents": a Claude×Codex loop shipped as two co-located plugins (`ca/claude/`, `ca/codex/`). See `ca/README.md`.
 
 Keep the plugins independent; don't let edits to one leak into another. To add
@@ -18,13 +18,15 @@ entry (with its `source` path) to the relevant marketplace.
 > `CLAUDE.md` is a symlink to it, so Claude Code reads the same content. Edit
 > `AGENTS.md` only; never edit `CLAUDE.md` directly.
 
-## hv layout
+## ha layout
 
-- `hv/.claude-plugin/plugin.json` — the only file in `hv/.claude-plugin/`.
-- `hv/skills/<name>/SKILL.md` — skills (also the slash commands `/hv:<name>`). `reference/` holds progressively-disclosed detail.
-- `hv/agents/<name>.md` — subagents (`analyzer`, `implementer`, `verifier`, `janitor`).
-- `hv/scripts/*.sh`, `hv/scripts/validate_manifest.py` — self-contained helpers.
-- `hv/hooks.json` — PreToolUse secret-file guard.
+- `ha/.claude-plugin/plugin.json` — the only file in `ha/.claude-plugin/`.
+- `ha/skills/<name>/SKILL.md` — skills (also the slash commands `/ha:<name>`): `plan`, `implement`, `review-pr`, `apply-feedback`, `merge-pr`, `resolve-conflicts`, `clean-worktrees`, plus the auto-activating standards `code-review` and `adversarial-verification`. **Scripts are skill-local** under `ha/skills/<name>/scripts/`, referenced via `${CLAUDE_SKILL_DIR}` (aliased to `CLAUDE_SKILL_HA_DIR` in skill bodies); detail lives in `references/`. Shared helpers (`detect-base-branch.sh` ×5, `attach-or-create-worktree.sh` ×2, `new-worktree.sh`) are duplicated byte-identically into each skill that needs them.
+- `ha/agents/<name>.md` — only `verifier` and `analyzer` (the invoked `superpowers:subagent-driven-development` supplies the implementer + task-reviewer). No `janitor` — cleanup is a script.
+- `ha/hooks/{hooks.json,guard-protected.sh}` — PreToolUse secret-file guard (only plugin-level script, referenced via `${CLAUDE_PLUGIN_ROOT}`).
+- **Single-feature, foreground; model-agnostic.** Every skill **omits** `model` (inherits the session model) and every agent uses `model: inherit` — no pinned IDs, no `opus` alias. Effort: substantive skills `high` (`plan`/`implement`/`review-pr`/`apply-feedback`/`resolve-conflicts`); `merge-pr`/`clean-worktrees` `low`; standards skills omit it; `verifier`/`analyzer` `high`.
+- **Leverage, not fork — `ha` hard-depends on `superpowers`** and **invokes** its disciplines via `**REQUIRED SUB-SKILL:** Use superpowers:<name>` markers (never `@skills/...` links): `brainstorming` + `writing-plans` (in `plan`), `subagent-driven-development` (the per-task loop in `implement`, ledger overridden to `.ha/sdd/`, scoped to stop before SDD's own finish), `verification-before-completion` (build gates), `receiving-code-review` (in `apply-feedback`), `systematic-debugging` (red paths), and `finishing-a-development-branch`'s guardrails (in `merge-pr`/`clean-worktrees`). ha's own power-ups are `adversarial-verification`, the auto-activating `code-review`, the constructive-reviewer (SDD) / adversarial-verifier split, and the **whole-diff ≤2-round adversarial loop** in `implement`.
+- **Worktrees**: created by `implement/scripts/new-worktree.sh` under `.claude/worktrees/ha/<slug>` — persistent script-created (NOT native `EnterWorktree`, because they must outlive the session until the PR merges and `/ha:clean-worktrees` finds them by path), with a `using-git-worktrees` Step 0 reuse check. `apply-feedback`/`resolve-conflicts` isolate via `attach-or-create-worktree.sh` (reuse or create, **refuse** the main checkout). `code-review` is preloaded into `verifier` via its `skills:` frontmatter (subagents don't auto-activate skills by description).
 
 ## sa layout
 
@@ -39,21 +41,22 @@ entry (with its `source` path) to the relevant marketplace.
 
 - **Identity by name field**: a skill's `name:` MUST equal its directory; an agent's `name:` MUST equal its filename. Validation and references break otherwise.
 - **YAML frontmatter**: single-quote values starting with `[` (e.g. `argument-hint`); avoid a bare `: ` (colon-space) in plain scalars — both break the parser.
-- **Side-effecting / irreversible skills** (`launch-agents`, `build-feature`, `apply-feedback`, `merge-pr`, `clean-agents`, `watch-merges`) set `disable-model-invocation: true` so they run only on explicit invocation.
-- **Subagents are one level deep** — a subagent cannot spawn subagents, and cannot use `Agent` / `AskUserQuestion`. Do all fan-out at the skill's top level; ask the human from the skill's main loop, not a subagent.
+- **Side-effecting / irreversible skills** set `disable-model-invocation: true` so they run only on explicit invocation. In `ha`: `implement`, `apply-feedback`, `merge-pr`, `resolve-conflicts`, `clean-worktrees`. Entry/read-mostly skills (`plan`, `review-pr`) and standards skills do **not** (and standards skills must stay enabled so they can be preloaded into subagents — `disable-model-invocation` also blocks preload).
+- **Subagent fan-out stays at the skill top level.** The platform now supports nested subagents (depth limited), but `ha` keeps all fan-out and all human questions (`AskUserQuestion`) in the skill's main loop for predictability — don't rely on a subagent spawning its own.
 - **Plugin subagents ignore** `hooks`, `mcpServers`, `permissionMode`. A subagent's `cd` does not persist between Bash calls — use `git -C <root>` / absolute paths.
-- **No nested `claude --bg`**: a session spawning sessions is unsupported. `launch-agents` emits commands for the human; background sessions auto-isolate into `.claude/worktrees/` on first write.
-- **Scripts must be self-contained** (no `../` to the repo root) and referenced via `${CLAUDE_PLUGIN_ROOT}` — keeps them cache-safe.
-- **Single source of truth**: cleanup/guardrail logic lives in `agents/janitor.md`; the review judgment axis lives in `skills/review-pr/SKILL.md`. Reference them; don't duplicate.
-- **No time-sensitive info**: use the `opus` model alias, not a pinned ID like `claude-opus-4-8`.
-- **Security**: never weaken the secret-file guard (`hv/scripts/guard-protected.sh`); never let cleanup delete a running agent or unmerged work.
+- **Cross-reference other skills by name**, via `**REQUIRED SUB-SKILL:** Use superpowers:<name>` markers — never `@skills/...` links (they force-load 200k+ tokens). `ha` leverages superpowers this way instead of vendoring it.
+- **Scripts must be self-contained** (no `../` to the repo root) and referenced via `${CLAUDE_PLUGIN_ROOT}` (hooks) / `${CLAUDE_SKILL_DIR}` (skill scripts) — keeps them cache-safe.
+- **Single source of truth**: in `ha`, cleanup/guardrail logic lives in `clean-worktrees/scripts/clean.sh`; the review judgment axis lives in `code-review` + `skills/review-pr/SKILL.md`. Reference them; don't duplicate.
+- **No time-sensitive info**: `ha` is model-agnostic — skills omit `model`, agents use `model: inherit`; never pin an ID like `claude-opus-4-8`.
+- **Security**: never weaken the secret-file guard (`<plugin>/hooks/guard-protected.sh`); never let cleanup delete unmerged work.
 
 ## Validate before committing
 
-- `claude plugin validate ./hv` (and `./sa`, `./ca/claude` if you touched them) — must pass.
+- `claude plugin validate ./ha` (and `./sa`, `./ca/claude` if you touched them) — must pass.
 - Skill `name:` ↔ directory and agent `name:` ↔ filename all match.
-- `bash -n hv/scripts/*.sh sa/skills/*/scripts/*.sh sa/hooks/*.sh`; `python3 hv/scripts/validate_manifest.py <manifest>` for manifest changes.
-- Each `SKILL.md` body stays **under 500 lines** (push detail to `reference/`).
+- `bash -n ha/skills/*/scripts/*.sh ha/hooks/*.sh sa/skills/*/scripts/*.sh sa/hooks/*.sh`.
+- Byte-identical duplicated helpers stay in lockstep (`md5` of every `detect-base-branch.sh` / `attach-or-create-worktree.sh` copy matches).
+- Each `SKILL.md` body stays **under 500 lines** (push detail to `references/`).
 
 ## Git
 
