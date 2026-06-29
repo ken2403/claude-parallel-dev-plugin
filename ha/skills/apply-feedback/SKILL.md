@@ -1,6 +1,6 @@
 ---
 name: apply-feedback
-description: Address review feedback on a PR and update it, parallelizing across files with subagents when feedback spans 3+ independent files. Use after /ha:review-pr requests changes, or to act on human review comments and push fixes back. Applies the superpowers receiving-code-review discipline — verify before implementing, push back on wrong items, no performative agreement.
+description: Address review feedback on a PR and push the fixes back, rigorously — feedback is evaluated against the code, not obeyed blindly. Use after /ha:review-pr requests changes, or to act on human review comments on a PR. Invoke explicitly with /ha:apply-feedback. Requires the superpowers plugin.
 argument-hint: '<pr-number> [feedback text]'
 disable-model-invocation: true
 effort: high

@@ -1,94 +1,89 @@
-# Whole-diff adversarial review loop (ha power-up)
+# Pre-PR adversarial gate (ha's `implement` Phase 4)
 
-This is the heavyweight delta `implement` adds **on top of** the per-task review
-that `superpowers:subagent-driven-development` already runs. Two distinct review
-layers, both required:
+This is the delta `implement` adds **on top of** `superpowers:subagent-driven-development`.
+SDD already runs a constructive, two-verdict review per task. This gate adds the one
+thing per-task review structurally cannot give — **refutation of the assembled
+whole** — and is otherwise kept as small as the risk allows.
 
-1. **Per-task** (owned by SDD): each task gets a two-verdict task review during
-   the loop. Catches per-task defects close to where they were introduced.
-2. **Whole-diff** (this file): after all tasks land, the *entire* change is
-   reviewed as one unit, adversarially, for up to two rounds. Catches the
-   cross-task and emergent defects no single-task review can see.
+## Why this is NOT a second `/ha:review-pr`
 
-## The loop
+There are two whole-change reviews in the ha lifecycle, and they are different on
+purpose:
 
-Operate on the full diff: `git -C "$WORKTREE_PATH" diff <base>...HEAD`.
+- **(b) this gate** — runs inside `implement`, before the PR exists. It is the
+  *author's* last self-check. Because it is the author reviewing their own work, it
+  is the **less independent** of the two, so it is deliberately **light and
+  risk-scaled**: just enough refutation to open the PR in good faith.
+- **(c) `/ha:review-pr`** — runs after the PR, as a genuinely independent second
+  opinion that assumes nothing the PR claims. This is where the **full-strength**
+  adversarial review lives.
 
-**Round 1**
-- Run ha's `review-pr` hybrid axis on the whole diff: dispatch parallel
-  `verifier` subagents for generic, diff-only checks (broad correctness, style,
-  mechanical security patterns, missed call sites); keep repo-specific,
-  security-critical, architectural, and cross-diff-consistency judgment in the
-  main loop using the `code-review` standards.
-- Run `adversarial-verification` on the change's central claims (refute-oriented
-  `verifier`s + a completeness critic).
-- Apply every Critical/Important fix. A fix touching 3+ file-disjoint,
-  dependency-free spots may fan out to parallel general-purpose subagents
-  (`superpowers:dispatching-parallel-agents`); never put two on the same file.
+The earlier design ran (b) as a full re-run of (c)'s procedure on the same bytes —
+two identical heavy reviews of one diff. That was recomputation, not thoroughness.
+The fix: (c) carries the weight; (b) is scaled down to the plan's risk grade and
+only adds the refutation angle. Never make (b) a clone of (c).
 
-**Round 2**
-- Re-run the same review on the **post-fix** diff. A fix can introduce a new
-  break, so the second round is not optional padding — it is where second-order
-  problems surface.
-- Apply fixes again.
+## Risk-scaled rounds
 
-Run up to `MAX_ROUNDS` (default **2**). Stop early only when a full round produces
-no REFUTED/UNCERTAIN verdicts and the completeness critic finds nothing new.
+The plan's `analyzer` risk grade governs how much (b) does:
 
-## This is a discipline — do not collapse it
-
-The single most common way this phase fails is to **run one round and stop**, or
-to treat SDD's per-task reviews as having "already covered it". They have not:
-per-task review is blind to the assembled whole.
-
-### Prohibition
-
-- Do **not** skip Round 2 because Round 1 "looked clean" — Round 2 reviews a
-  *different* diff (the post-fix one).
-- Do **not** count the SDD per-task review as one of these rounds.
-- Do **not** open the PR until either a full round came back clean or you have
-  run `MAX_ROUNDS` rounds.
-
-### Rationalization table
-
-| Excuse | Reality |
+| Risk | Gate |
 |---|---|
-| "SDD already reviewed every task." | Per-task review can't see cross-task interactions, the integrated whole, or emergent inconsistency. |
-| "Round 1 found nothing, so Round 2 is a waste." | If Round 1 truly found nothing, Round 2 is one cheap confirming pass. If Round 1 applied fixes, Round 2 is mandatory — the diff changed. |
-| "The build is green, so it's correct." | Green tests prove the tests pass, not that the change is correct, safe, and complete. That's what refutation is for. |
-| "It's a small diff." | Small diffs hide ordering, security, and consistency bugs as readily as large ones; scale the verifier count down, not the rounds. |
+| LOW / isolated | build gate + ONE `verifier` on "correct + no regression". No loop. |
+| MEDIUM | `adversarial-verification`, 1 round; a 2nd round only if round 1 applied fixes. |
+| HIGH | full `adversarial-verification` (≥3 verifiers, distinct lenses, completeness critic), up to `MAX_ROUNDS` (default 2). |
 
-### Red flags (stop and run the loop properly)
+**Round caps, disambiguated (the two numbers are different loops):** the *outer*
+gate runs at most `MAX_ROUNDS` (default **2**, HIGH only). Each outer round may
+*invoke* `adversarial-verification`, whose own *inner* refutation loop caps at its
+default **3**. So a HIGH-risk worst case is 2 outer × ≤3 inner; LOW/MEDIUM never
+reach that. They are nested, not contradictory.
 
-- You are writing the PR body and have run only one review round.
-- You are about to claim "reviewed" without a verifier verdict on the whole diff.
-- You skipped `adversarial-verification` because the change "seemed fine".
+## The discipline: match rigor to risk (not "always two rounds")
+
+The failure this gate guards against is **both** directions:
+
+- **Do not skip the gate.** SDD's per-task reviews are blind to the integrated
+  whole; opening the PR with zero whole-change refutation defeats the gate.
+- **Do not over-run it.** Forcing the ≥3-verifier multi-round panel on a one-line,
+  LOW-risk change is ceremony, not rigor — and it contradicts
+  `adversarial-verification`'s own "match rigor to risk" rule and wastes the
+  analyzer grade ha computed. Scale the verifier *count* and *rounds* to risk.
+
+| Rationalization | Reality |
+|---|---|
+| "SDD already reviewed every task." | Per-task review can't see cross-task interactions or the assembled whole; that's exactly what (b) checks. |
+| "It's HIGH risk, so I'll just eyeball it." | HIGH risk is the case the multi-lens panel exists for; don't downgrade it. |
+| "It's a one-liner, I'll run the full panel to be safe." | Wrong direction — one verifier + build is the right gate for LOW risk; the full review is `/ha:review-pr` later. |
 
 ## SDD scope contract
 
 When you invoke `superpowers:subagent-driven-development` in Phase 3, it normally
 ends by running a final whole-branch review and then
 `superpowers:finishing-a-development-branch`. **ha takes over instead:** stop SDD
-after its per-task loop, then run *this* whole-diff loop and ha's own PR finish
-(`implement` Phases 4–6). Also override SDD's ledger path to
-`$WORKTREE_PATH/.ha/sdd/progress.md`. Everything else about SDD — its implementer
-and task-reviewer dispatch, its file-handoff scripts, its model selection — is
-used as-is, not reinvented.
+after its per-task loop, then run this gate and ha's own PR finish (Phases 4–6). Say
+this to SDD loudly when invoking it — its own text ends by invoking
+finishing-a-development-branch, so a quiet instruction can lose to SDD's bolded
+terminal step.
+
+**Use SDD's own workspace paths.** SDD keeps its ledger/briefs/review-packages under
+`.superpowers/sdd/`. Do not redirect them — redirecting only some splits the
+workspace and breaks resume-after-compaction (SDD reads its default ledger path and
+re-runs finished tasks). `implement` Phase 2 instead adds `.ha/` and `.superpowers/`
+to the worktree's local `info/exclude`, so the scratch never reaches the PR while
+SDD's internals stay untouched.
 
 ## Why script-created persistent worktrees (not native EnterWorktree)
 
 `superpowers:using-git-worktrees` prefers a native worktree tool (e.g.
-`EnterWorktree`) when one exists. ha deliberately does **not** use it here, and
-this is a considered trade-off, not an oversight:
+`EnterWorktree`) when one exists. ha deliberately does **not** use it here:
 
-- ha's worktree must **outlive the session** — it persists until the PR is
-  reviewed and merged, possibly across several sessions. Native worktrees are
-  harness-managed and auto-cleaned on session exit, which would destroy
-  in-flight, unmerged work.
+- ha's worktree must **outlive the session** — it persists until the PR is reviewed
+  and merged, possibly across sessions. Native worktrees are harness-managed and
+  auto-cleaned on session exit, which would destroy in-flight, unmerged work.
 - `/ha:clean-worktrees` reclaims worktrees by their predictable path
-  `.claude/worktrees/ha/<slug>` and verifies the PR merged first. Native
-  worktrees live elsewhere and outside that contract.
+  `.claude/worktrees/ha/<slug>` and verifies the PR merged first. Native worktrees
+  live elsewhere, outside that contract.
 
-`new-worktree.sh` still honors `using-git-worktrees` **Step 0** (if already inside
-a linked worktree, reuse it rather than nest) — the part of the skill that applies
-regardless of which creation mechanism is used.
+`new-worktree.sh` still honors `using-git-worktrees` **Step 0** (reuse an existing
+linked worktree instead of nesting) — the part that applies regardless of mechanism.

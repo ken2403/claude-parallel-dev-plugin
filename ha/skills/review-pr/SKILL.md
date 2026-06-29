@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Critically review a PR for correctness, security, architecture, testing, and codebase consistency — an independent, adversarial second opinion, not a rubber stamp. Use to review an ha feature's PR before merging, or any PR you want high confidence in. Runs verifier subagents and adversarial-verification, applies the code-reviewer dimensions, and posts inline comments with --comment. Invoke explicitly with /ha:review-pr.
+description: Critically review a PR for correctness, security, architecture, testing, and codebase consistency — an independent, adversarial second opinion, not a rubber stamp. Use to review an ha feature's PR before merging, or any PR you want high confidence in; pass --comment to post findings inline. Invoke explicitly with /ha:review-pr.
 argument-hint: '<pr-number> [--comment]'
 effort: high
 allowed-tools: Read, Grep, Glob, Bash, Agent, WebFetch

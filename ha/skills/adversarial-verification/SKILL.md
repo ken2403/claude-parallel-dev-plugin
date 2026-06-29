@@ -1,6 +1,6 @@
 ---
 name: adversarial-verification
-description: Multi-pass adversarial verification harness that guarantees the accuracy of a change before it ships. Use whenever you need high confidence that an implementation is correct, safe, and complete — before opening a PR, before approving a review, or whenever a change touches risky surface area. Spawns independent skeptical verifiers that try to refute each claim, plus a completeness critic, and loops until the change survives or the round budget is hit.
+description: Multi-pass adversarial verification harness that guarantees the accuracy of a change before it ships. Use whenever you need high confidence that an implementation is correct, safe, and complete — before opening a PR, before approving a review, or whenever a change touches risky surface area such as auth, crypto, data migration, money, or external input.
 allowed-tools: Read, Grep, Glob, Bash, Agent
 ---
 

@@ -51,7 +51,7 @@ done < <(git worktree list --porcelain 2>/dev/null | awk '
 if [ -n "$existing_path" ]; then
   if [ "$existing_is_main" = 1 ]; then
     echo "error: branch '$BRANCH' is checked out in your MAIN working copy ($existing_path)." >&2
-    echo "  apply-feedback will not edit the main checkout. Switch it off the branch" >&2
+    echo "  this skill will not edit the main checkout. Switch it off the branch" >&2
     echo "  (e.g. 'git -C \"$existing_path\" switch -') and re-run so an isolated worktree is used." >&2
     exit 1
   fi

@@ -19,10 +19,11 @@ claude --plugin-dir /path/to/claude-paralell-dev-plugin/ha
 ```
 
 **Requirements:** `git`, the GitHub CLI (`gh`, authenticated), and — importantly — the
-**[`superpowers`](https://github.com/anthropics/claude-code) plugin**. `ha` does not vendor
-the superpowers disciplines; it **invokes** them, so they must be installed. `ha` is
-model-agnostic (it inherits whatever model your session runs — use your strongest, e.g.
-Opus).
+**`superpowers`** plugin (from the official Claude Code plugins marketplace). `ha` does not
+vendor the superpowers disciplines; it **invokes** them, so they must be installed — if
+`superpowers` is absent, the `REQUIRED SUB-SKILL: Use superpowers:…` steps will not resolve
+and the skill stops. `ha` is model-agnostic (it inherits whatever model your session runs —
+use your strongest, e.g. Opus).
 
 ## Why ha
 
@@ -41,7 +42,7 @@ layer on top.
    (superpowers:writing-plans) → vet for quality+security → APPROVE GATE
      → /ha:implement <plan>
          worktree → per-task loop (superpowers:subagent-driven-development)
-           → whole-diff ≤2-round ADVERSARIAL review loop → build gate → PR → STOP
+           → risk-scaled pre-PR adversarial gate → build gate → PR → STOP
 
 on demand:
    /ha:review-pr <pr> [--comment]   independent heavyweight review (verifiers +
@@ -61,7 +62,8 @@ separate, independent second opinion.
 - `plan` — design dialogue + bite-sized plan, vetted for quality/security (effort high).
   Invokes `superpowers:brainstorming` + `superpowers:writing-plans`.
 - `implement` — worktree → the per-task loop (`superpowers:subagent-driven-development`) →
-  a **whole-diff ≤2-round adversarial review loop** → verified build → PR (effort high).
+  a **risk-scaled pre-PR adversarial gate** (lighter than `review-pr`, scaled to the risk
+  grade) → verified build → PR (effort high).
 - `review-pr` — independent review: verifier subagents + `adversarial-verification` + the
   five code-reviewer dimensions (effort high).
 - `apply-feedback` — turn review feedback into committed fixes, with the
@@ -87,8 +89,8 @@ subagent-driven-development — `ha` doesn't duplicate them.)
 | | `sa` (Simple Agents) | `ha` (Higher Agents) |
 |---|---|---|
 | Goal | one feature, fast | one feature, thorough |
-| Plan | digests a given plan | design dialogue + question gate + vetted plan |
-| Implement | subagents → PR (no self-review) | SDD per-task loop **+** whole-diff ≤2-round adversarial loop → PR |
+| Plan | digests a given plan | design dialogue + **design red-team** + edge-cases→required tests |
+| Implement | subagents → PR (no self-review) | SDD per-task loop **+** risk-scaled pre-PR adversarial gate → PR |
 | Review | code-review + on-demand review-pr | + adversarial-verification + the 5 code-reviewer dimensions |
 | Disciplines | inlined, light | **invokes** the `superpowers` disciplines (required dependency) |
 | Effort | graded (medium build, high review) | high across substantive skills |
