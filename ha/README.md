@@ -1,10 +1,11 @@
 # ha — Higher Agents
 
 A command-free Claude Code plugin for getting **one feature built thoroughly**: plan it
-deeply, implement it with a per-task review loop *and* a whole-diff adversarial review,
-get an independent review, apply feedback rigorously, and merge behind a gate. The
-**thorough** counterpart to [`sa`](../sa/README.md) — same single-feature, foreground,
-in-the-loop shape, heavier at every phase.
+deeply (design red-teamed, edge cases turned into required tests), implement it behind a
+per-task review loop *and* a risk-scaled pre-PR adversarial gate, get an independent
+review, apply feedback rigorously, and merge behind a gate. The **thorough** counterpart to
+[`sa`](../sa/README.md) — same single-feature, foreground, in-the-loop shape, heavier at
+every phase.
 
 ## Install
 
@@ -29,10 +30,11 @@ use your strongest, e.g. Opus).
 
 Not every feature should be rushed. Where `sa` optimizes for speed (digest a given plan →
 approve → implement → PR, review on demand), `ha` optimizes for **getting it right**: it
-questions you until the design is unambiguous, runs two distinct review layers during
-implementation, and verifies adversarially before the PR. It leverages the proven
-`superpowers` disciplines rather than reinventing them, and adds a heavyweight verification
-layer on top.
+questions you until the design is unambiguous, red-teams the plan and turns edge cases into
+required tests *before* coding, reviews each task as it lands, and runs a risk-scaled
+adversarial gate before the PR. It leverages the proven `superpowers` disciplines rather
+than reinventing them, and adds its rigor where defects are actually born — the plan — not
+only at the end.
 
 ## The flow
 

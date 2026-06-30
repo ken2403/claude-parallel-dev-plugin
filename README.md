@@ -21,7 +21,7 @@ spelling differs.)
 | Plugin | What it is | Install | Docs |
 |--------|------------|---------|------|
 | **`sa`** | **Simple Agents** — command-free skills + subagents for fast single-feature work: digest a plan, get your approval, isolate in a worktree, implement, and open a PR. | `/plugin install sa@claude-parallel-dev-plugin` | [sa/README.md](sa/README.md) |
-| **`ha`** | **Higher Agents** — the **thorough** counterpart to `sa` for building ONE feature properly: a deep plan, an SDD per-task loop plus a whole-diff adversarial review, an independent review, apply-feedback, and a gated merge. Leverages the `superpowers` disciplines (required). | `/plugin install ha@claude-parallel-dev-plugin` | [ha/README.md](ha/README.md) |
+| **`ha`** | **Higher Agents** — the **thorough** counterpart to `sa` for building ONE feature properly: a deep, red-teamed plan, an SDD per-task loop plus a risk-scaled pre-PR adversarial gate, an independent review, apply-feedback, and a gated merge. Leverages the `superpowers` disciplines (required). | `/plugin install ha@claude-parallel-dev-plugin` | [ha/README.md](ha/README.md) |
 | **`ca`** | **Cooperate Agents** — a Claude×Codex loop: draft a plan sparring with Codex, then review the Codex-built diff against it. | `/plugin install ca@claude-parallel-dev-plugin` | [ca/README.md](ca/README.md) |
 
 New to this? Pick **`sa`** for a single feature you want done fast with a quick approval

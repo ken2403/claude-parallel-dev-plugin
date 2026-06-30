@@ -75,7 +75,7 @@ and the on-demand opus/high `review-pr` keep accuracy from regressing.
 |---|---|---|
 | Scope | one simple feature, fast | one feature, thorough |
 | Plan | digests a given plan | design dialogue + question gate + vetted plan |
-| Implement | subagents → PR (no self-review) | SDD per-task loop + whole-diff adversarial loop → PR |
+| Implement | subagents → PR (no self-review) | SDD per-task loop + risk-scaled pre-PR adversarial gate → PR |
 | Verification | code-review standards + on-demand review-pr | + multi-pass adversarial verification |
 | Speed dial | graded effort (medium build, high review) | thoroughness-first (effort high) |
 
