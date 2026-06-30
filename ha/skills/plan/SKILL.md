@@ -25,6 +25,7 @@ Requires the `superpowers` plugin.
 - Current branch: !`git branch --show-current 2>/dev/null`
 - Base branch: !`bash "${CLAUDE_SKILL_DIR}/scripts/detect-base-branch.sh" 2>/dev/null`
 - Conventions: !`test -f CLAUDE.md && echo "CLAUDE.md present — read it before designing" || echo "no CLAUDE.md"`
+- Plan output dir: !`[ -d docs/plans ] && echo docs/plans || echo docs/ha/plans` (ha-owned; honor a `plan.dir:` CLAUDE.md hint if set; never docs/superpowers/)
 
 ## Phase 1 — Resolve the input
 
@@ -80,10 +81,22 @@ Turn every surviving concern into either an explicit **success criterion** or a
 
 ## Phase 4 — Write the design-plus-plan document (leverage writing-plans)
 
+The plan is a committed deliverable the human reviews, so it goes to a visible,
+ha-owned path **in this repository** — never to `superpowers`' own namespace.
+
+**Target path (the location control).** Use the auto-injected **Plan output dir**
+above (default `docs/ha/plans/`; it instead honors a `plan.dir:` hint in CLAUDE.md or
+an existing top-level `docs/plans/`). The file is `<plan-output-dir>/YYYY-MM-DD-<slug>.md`.
+**Never** write the plan — or any spec — under `docs/superpowers/`; that is
+`superpowers`' scratch namespace, not your output.
+
 **REQUIRED SUB-SKILL:** Use `superpowers:writing-plans` to write the bite-sized,
 TDD-structured plan (its header, File Structure, per-task Files/Interfaces/RED→GREEN
-steps, No-Placeholders rule, inline Self-Review). **Pass the location override**
-`docs/ha/plans/YYYY-MM-DD-<feature>.md` (writing-plans honors a caller's location).
+steps, No-Placeholders rule, inline Self-Review), **passing it that resolved target
+path as the explicit save location** (writing-plans honors a caller's location
+preference over its own `docs/superpowers/plans/` default). Phase 3's scope contract
+already stopped `brainstorming` from writing a spec or invoking writing-plans itself,
+so this is the only writing-plans call and the only plan file produced.
 
 **Fused doc, one gate.** ha diverges from superpowers' two-doc spec→plan model:
 capture the agreed design as a short **Design** section at the top of the single
@@ -93,8 +106,17 @@ risks), then the writing-plans body. Do not write a separate spec file.
 **Front-load test rigor.** Every edge case and failure mode surfaced in Phase 2/3.5
 **MUST** appear as an explicit test task (RED→GREEN) in the plan — not left to the
 implementer's discretion. Where the toolchain supports coverage, state the coverage
-expectation as a success criterion. This is the point of ha's thoroughness: the plan
-already encodes how the feature will be proven correct.
+expectation as a success criterion.
+
+**Verify the location (control check).** After writing, confirm the plan landed at the
+target and that this run created nothing under `docs/superpowers/`:
+
+```bash
+git -C "$(git rev-parse --show-toplevel)" status --porcelain docs/superpowers 2>/dev/null
+```
+
+This must be empty. If a stray spec/plan appeared under `docs/superpowers/`, move it
+to the target dir and delete the stray before the approval gate.
 
 ## Phase 5 — Approval gate (HARD GATE)
 
