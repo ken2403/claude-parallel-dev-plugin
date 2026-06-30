@@ -12,7 +12,7 @@ allowed-tools: Read, Grep, Glob, Bash, Agent, WebFetch
 ## Input
 $ARGUMENTS
 
-`simple-feature` opens PRs fast without an internal review, so this is the precision
+`simple-implement` opens PRs fast without an internal review, so this is the precision
 guardrail: an **independent second opinion**. Assume nothing the PR claims; try to find
 what it missed. A review that only confirms is worth little; one that surfaces a real
 defect before merge is worth everything.

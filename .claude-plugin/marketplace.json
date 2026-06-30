@@ -16,11 +16,11 @@
       "tags": ["simple", "worktree", "subagents", "code-review", "opus-4-8"]
     },
     {
-      "name": "hv",
-      "source": "./hv",
-      "description": "Opus 4.8-native massively-parallel autonomous feature development with background agents and multi-pass adversarial verification",
+      "name": "ha",
+      "source": "./ha",
+      "description": "Higher Agents — the thorough counterpart to sa for building ONE feature properly: deep red-teamed plan, SDD per-task loop plus a risk-scaled pre-PR adversarial gate, independent review, apply feedback, gated merge. Leverages the superpowers disciplines (required dependency); model-agnostic",
       "category": "workflow",
-      "tags": ["parallel", "autonomous", "background-agents", "opus-4-8"]
+      "tags": ["thorough", "single-feature", "subagents", "adversarial-verification", "tdd"]
     },
     {
       "name": "ca",

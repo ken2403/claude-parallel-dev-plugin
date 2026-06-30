@@ -2,6 +2,7 @@
 # ==============================================================================
 # Resolve an ISOLATED worktree for applying feedback to an EXISTING branch
 # (typically a PR's head branch) — never the main checkout.
+# Ported from sa/skills/apply-feedback/scripts/attach-or-create-worktree.sh (sa->ha).
 #
 # Usage: attach-or-create-worktree.sh <branch>
 # Prints (stdout, machine-parseable):
@@ -12,10 +13,10 @@
 #
 # Behavior:
 #   1. If <branch> is already checked out in a linked worktree (e.g. the one
-#      simple-implement created under .claude/worktrees/sa/<slug>), REUSE it.
+#      ha:implement created under .claude/worktrees/ha/<slug>), REUSE it.
 #   2. If <branch> is checked out in the MAIN working copy, refuse (exit 1) —
 #      this skill must not edit the user's main checkout.
-#   3. Otherwise create a fresh worktree under .claude/worktrees/sa/<slug>,
+#   3. Otherwise create a fresh worktree under .claude/worktrees/ha/<slug>,
 #      attaching the existing local branch or tracking origin/<branch>.
 # ==============================================================================
 set -euo pipefail
@@ -50,7 +51,7 @@ done < <(git worktree list --porcelain 2>/dev/null | awk '
 if [ -n "$existing_path" ]; then
   if [ "$existing_is_main" = 1 ]; then
     echo "error: branch '$BRANCH' is checked out in your MAIN working copy ($existing_path)." >&2
-    echo "  apply-feedback will not edit the main checkout. Switch it off the branch" >&2
+    echo "  this skill will not edit the main checkout. Switch it off the branch" >&2
     echo "  (e.g. 'git -C \"$existing_path\" switch -') and re-run so an isolated worktree is used." >&2
     exit 1
   fi
@@ -60,16 +61,16 @@ if [ -n "$existing_path" ]; then
   exit 0
 fi
 
-# --- 2. None exists — create one under .claude/worktrees/sa/<slug> -------------
+# --- 2. None exists — create one under .claude/worktrees/ha/<slug> -------------
 SLUG="$(printf '%s' "$BRANCH" | tr '/' '-' | tr -cs 'A-Za-z0-9._-' '-')"
-WT_DIR="$ROOT/.claude/worktrees/sa/$SLUG"
+WT_DIR="$ROOT/.claude/worktrees/ha/$SLUG"
 [ -e "$WT_DIR" ] && {
   echo "error: path '$WT_DIR' already exists but is not a registered worktree on '$BRANCH' — inspect it." >&2
   exit 1
 }
 
 git -C "$ROOT" fetch origin "$BRANCH" --quiet 2>/dev/null || true
-mkdir -p "$ROOT/.claude/worktrees/sa"
+mkdir -p "$ROOT/.claude/worktrees/ha"
 
 if git -C "$ROOT" show-ref --verify --quiet "refs/heads/$BRANCH"; then
   # Local branch exists (and isn't checked out anywhere) — attach it.

@@ -32,7 +32,7 @@ the input. Note the PR's `headRefName` — that is the branch you will fix.
 
 ## Step 2 — Locate or create the isolated worktree (do NOT touch the main checkout)
 
-`simple-feature` usually already left an isolated worktree for this branch under
+`simple-implement` usually already left an isolated worktree for this branch under
 `.claude/worktrees/sa/<slug>`. Reuse it if present; otherwise cut a fresh one. Either way
 you work in a worktree, **never** `gh pr checkout` into the user's main working copy.
 

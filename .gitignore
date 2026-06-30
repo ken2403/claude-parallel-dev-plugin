@@ -10,3 +10,6 @@ __pycache__/
 
 # sa worktrees (and Claude Code native worktrees)
 .claude/worktrees/
+
+# ha SDD ledger / scratch workspace (per-feature, not committed)
+.ha/
