@@ -11,7 +11,7 @@ allowed-tools: Read, Grep, Glob, Bash, Agent, WebFetch
 ## Input
 $ARGUMENTS
 
-`implement` already runs its own whole-diff review before opening the PR, so this
+`implement` already runs its own risk-scaled pre-PR adversarial gate before opening the PR, so this
 skill is the **independent second opinion** — a different reviewer, assuming
 nothing the PR or its author claims, trying to find what they missed. A review
 that only confirms is worth little; one that surfaces a real defect before merge

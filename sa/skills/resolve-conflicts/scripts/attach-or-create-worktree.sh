@@ -55,9 +55,8 @@ if [ -n "$existing_path" ]; then
     exit 1
   fi
   echo "reusing existing isolated worktree for '$BRANCH': $existing_path" >&2
-  echo "WORKTREE_PATH=$existing_path"
-  echo "BRANCH=$BRANCH"
-  echo "REUSED=1"
+  # Shell-quote so `eval "$(...)"` survives paths containing spaces.
+  printf 'WORKTREE_PATH=%q\nBRANCH=%q\nREUSED=%q\n' "$existing_path" "$BRANCH" "1"
   exit 0
 fi
 
@@ -94,6 +93,5 @@ if [ -f "$ROOT/.claude/settings.local.json" ]; then
 fi
 
 echo "created isolated worktree for '$BRANCH': $WT_DIR" >&2
-echo "WORKTREE_PATH=$WT_DIR"
-echo "BRANCH=$BRANCH"
-echo "REUSED=0"
+# Shell-quote so `eval "$(...)"` survives paths containing spaces.
+printf 'WORKTREE_PATH=%q\nBRANCH=%q\nREUSED=%q\n' "$WT_DIR" "$BRANCH" "0"

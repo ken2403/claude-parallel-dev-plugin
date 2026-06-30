@@ -40,18 +40,20 @@ actually is, stop and ask the human — do not silently "fix" the plan. Read-onl
 ```bash
 CLAUDE_SKILL_HA_DIR="${CLAUDE_SKILL_DIR}"   # ha-recognizable alias of the built-in skill dir
 eval "$(bash "$CLAUDE_SKILL_HA_DIR/scripts/new-worktree.sh" "feat/<slug>")"
+[ -n "${WORKTREE_PATH:-}" ] || { echo "error: worktree was not resolved — aborting"; exit 1; }
 echo "Implementing in: $WORKTREE_PATH on $BRANCH (reused=$REUSED)"
-# Keep ha's and SDD's per-feature scratch out of the PR (local, uncommitted ignore):
+# Keep ha's and SDD's scratch out of the PR via the repo-local (uncommitted) exclude.
+# This is the shared info/exclude, so add each pattern at most once (no dup growth):
 EXCLUDE="$(git -C "$WORKTREE_PATH" rev-parse --git-path info/exclude)"
 case "$EXCLUDE" in /*) ;; *) EXCLUDE="$WORKTREE_PATH/$EXCLUDE";; esac
 mkdir -p "$(dirname "$EXCLUDE")"
-printf '%s\n%s\n' '.ha/' '.superpowers/' >> "$EXCLUDE" 2>/dev/null || true
+for p in '.ha/' '.superpowers/'; do grep -qxF "$p" "$EXCLUDE" 2>/dev/null || printf '%s\n' "$p" >> "$EXCLUDE"; done
 ```
 
 `new-worktree.sh` runs a `superpowers:using-git-worktrees` Step 0 check (reuses an
 existing linked worktree instead of nesting) and otherwise creates
 `.claude/worktrees/ha/<slug>`. ha uses script-created **persistent** worktrees here,
-not native `EnterWorktree` — see `references/whole-diff-loop.md` for why.
+not native `EnterWorktree` — see `references/pre-pr-gate.md` for why.
 
 **Absolute-path rule (MUST — the one easy way to corrupt the user's working copy):**
 the main session cwd stays in the main checkout, NOT this worktree. So: every
@@ -104,7 +106,7 @@ dependency-free spots may fan out to parallel general-purpose subagents —
 `superpowers:dispatching-parallel-agents`; never two on the same file). **Match
 rigor to risk** — do not run the heavy multi-round panel on a trivial change; that
 is `adversarial-verification`'s own rule and the analyzer already graded this work.
-Detail and the (b)-vs-(c) rationale in `references/whole-diff-loop.md`.
+Detail and the (b)-vs-(c) rationale in `references/pre-pr-gate.md`.
 
 ## Phase 5 — Verify the build (objective gate, evidence required)
 

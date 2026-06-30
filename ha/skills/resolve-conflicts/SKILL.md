@@ -33,6 +33,7 @@ else
   BRANCH="${ARG:-$(git branch --show-current)}"
 fi
 eval "$(bash "$CLAUDE_SKILL_HA_DIR/scripts/attach-or-create-worktree.sh" "$BRANCH")"
+[ -n "${WORKTREE_PATH:-}" ] || { echo "error: worktree was not resolved — aborting"; exit 1; }
 echo "Resolving in: $WORKTREE_PATH on $BRANCH (reused=$REUSED)"
 ```
 

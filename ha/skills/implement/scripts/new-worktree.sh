@@ -35,9 +35,8 @@ SUPER="$(git -C "$ROOT" rev-parse --show-superproject-working-tree 2>/dev/null |
 if [ -n "$GIT_DIR" ] && [ "$GIT_DIR" != "$GIT_COMMON" ] && [ -z "$SUPER" ]; then
   CUR="$(git -C "$ROOT" branch --show-current 2>/dev/null || echo)"
   echo "note: already inside a linked worktree ($ROOT on '$CUR') — reusing it" >&2
-  echo "WORKTREE_PATH=$ROOT"
-  echo "BRANCH=$CUR"
-  echo "REUSED=1"
+  # Shell-quote so `eval "$(...)"` survives paths containing spaces.
+  printf 'WORKTREE_PATH=%q\nBRANCH=%q\nREUSED=%q\n' "$ROOT" "$CUR" "1"
   exit 0
 fi
 
@@ -76,6 +75,5 @@ if [ -f "$ROOT/.claude/settings.local.json" ]; then
   cp "$ROOT/.claude/settings.local.json" "$WT_DIR/.claude/settings.local.json" 2>/dev/null || true
 fi
 
-echo "WORKTREE_PATH=$WT_DIR"
-echo "BRANCH=$BRANCH"
-echo "REUSED=0"
+# Shell-quote so `eval "$(...)"` survives paths containing spaces.
+printf 'WORKTREE_PATH=%q\nBRANCH=%q\nREUSED=%q\n' "$WT_DIR" "$BRANCH" "0"

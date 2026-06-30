@@ -56,6 +56,7 @@ incorrect. Drop items that are mistaken or already handled, and say why.
 CLAUDE_SKILL_HA_DIR="${CLAUDE_SKILL_DIR}"   # ha-recognizable alias of the built-in skill dir
 BRANCH="$(gh pr view "$PR" --json headRefName --jq .headRefName)"
 eval "$(bash "$CLAUDE_SKILL_HA_DIR/scripts/attach-or-create-worktree.sh" "$BRANCH")"
+[ -n "${WORKTREE_PATH:-}" ] || { echo "error: worktree was not resolved — aborting"; exit 1; }
 echo "Working in: $WORKTREE_PATH on $BRANCH (reused=$REUSED)"
 ```
 

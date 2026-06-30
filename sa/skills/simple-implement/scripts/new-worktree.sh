@@ -53,5 +53,5 @@ if [ -f "$ROOT/.claude/settings.local.json" ]; then
   cp "$ROOT/.claude/settings.local.json" "$WT_DIR/.claude/settings.local.json" 2>/dev/null || true
 fi
 
-echo "WORKTREE_PATH=$WT_DIR"
-echo "BRANCH=$BRANCH"
+# Shell-quote so `eval "$(...)"` survives paths containing spaces.
+printf 'WORKTREE_PATH=%q\nBRANCH=%q\n' "$WT_DIR" "$BRANCH"

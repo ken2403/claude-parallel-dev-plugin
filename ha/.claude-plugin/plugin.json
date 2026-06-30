@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin.json",
   "name": "ha",
   "displayName": "Higher Agents",
-  "description": "Command-free, skills + subagents plugin for building ONE feature thoroughly: deep plan (design dialogue) to approval, then implement with a per-task review loop plus a whole-diff adversarial review, an independent heavyweight PR review, rigorous feedback application, and a gated merge — with standalone conflict resolution and worktree cleanup. The thorough counterpart to sa; leverages the superpowers disciplines (required dependency). Model-agnostic.",
+  "description": "Command-free, skills + subagents plugin for building ONE feature thoroughly: deep plan (design dialogue) to approval, then implement with a per-task review loop plus a risk-scaled pre-PR adversarial gate, an independent heavyweight PR review, rigorous feedback application, and a gated merge — with standalone conflict resolution and worktree cleanup. The thorough counterpart to sa; leverages the superpowers disciplines (required dependency). Model-agnostic.",
   "version": "0.1.0",
   "author": { "name": "ken2403" },
   "homepage": "https://github.com/ken2403/claude-paralell-dev-plugin",
