@@ -5,10 +5,7 @@
 __pycache__/
 *.pyc
 
-# ca worktrees
-.claude/ca/
-
-# sa worktrees (and Claude Code native worktrees)
+# sa / ha / ca worktrees (and Claude Code native worktrees)
 .claude/worktrees/
 
 # ha SDD ledger / scratch workspace (per-feature, not committed)

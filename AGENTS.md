@@ -95,7 +95,7 @@ tool scans only its own skills.
 **Loop rules**
 
 - Review capped at 2 rounds (`MAX_ROUNDS` default 2).
-- Implementation runs in a `ca/<plan-id>` worktree created by `new-worktree.sh` (a script, never the model, never `main`).
+- Implementation runs in a `ca/<plan-id>` worktree created by `new-worktree.sh` (a script, never the model, never `main`), located under `.claude/worktrees/ca/<plan-id>` to match `sa`/`ha`'s worktree convention (all three share the single `.claude/worktrees/` gitignore).
 - **Both plugins are required.** The Codex skill implements; it calls the Claude plugin's `/ca:review-diff` via `claude -p`. So `claude-review.sh` needs `/ca:review-diff` resolvable — the ca Claude plugin installed in the user's config, or `CA_CLAUDE_PLUGIN_DIR` set so it passes `--plugin-dir`. Installing only one side makes every review round fail.
 - Codex runs `-s workspace-write -c approval_policy=never` for implementation (no `gh`). The review step calls `claude -p`, which **needs network** — Codex's `workspace-write` sandbox blocks it, so the review must run where network is allowed (network-permitted Codex launch/approval for that command, or run `claude-review.sh` on the host). `claude-review.sh` fails loudly, naming both possible causes (skill-not-installed / network), if no review is produced. Capture `thread_id` from `codex exec --json`; resume by id, **never `--last`**.
 - Handoff contract: `ca_claude_review.v1` JSON (see `ca/claude/skills/review-diff/references/review-contract.md`); validated by `validate-review.py`; missing/malformed → treat as `blocked` (fail-closed).
