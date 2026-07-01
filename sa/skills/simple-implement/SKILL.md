@@ -2,7 +2,7 @@
 name: simple-implement
 description: Takes a plan — a file path or plain-text task — and drives ONE simple feature to an open PR fast. Digests the plan, inspects the codebase, asks only when genuinely unsure, gets approval, then creates an isolated worktree, implements with subagents, verifies the build, and opens a PR. Stops at PR for speed; run /sa:review-pr separately to review. Use for small-to-medium implementation tasks. Invoke explicitly with /sa:simple-implement.
 argument-hint: '<plan-file-path | natural-language task>'
-model: opus
+model: sonnet
 disable-model-invocation: true
 effort: medium
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent, AskUserQuestion
@@ -113,7 +113,7 @@ git -C "$WORKTREE_PATH" commit -m "$(cat <<'EOF'
 
 <what changed and why>
 
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
 git -C "$WORKTREE_PATH" push -u origin "$BRANCH"
