@@ -1,7 +1,7 @@
 ---
 name: implementer
 description: Implements one file-disjoint slice of a simple feature inside an absolute worktree the caller provides. Dispatch several in parallel — one per slice — when a task spans independent files. Slices must be file-disjoint so parallel implementers never collide.
-model: inherit
+model: sonnet
 effort: medium
 tools: Read, Edit, Write, Bash, Grep, Glob
 skills:

@@ -2,7 +2,7 @@
 name: apply-feedback
 description: Addresses review feedback on a PR and updates it, parallelizing across files with implementer subagents when feedback spans 3+ independent files. Use after /sa:review-pr requests changes, or to act on human review comments and push fixes back.
 argument-hint: '<pr-number> [feedback text]'
-model: opus
+model: sonnet
 disable-model-invocation: true
 effort: medium
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent

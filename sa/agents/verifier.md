@@ -1,7 +1,7 @@
 ---
 name: verifier
 description: Adversarial, read-only reviewer that tries to REFUTE a specific claim about a change (correct, safe, complete). Dispatch several in parallel with different lenses to verify before shipping. Defaults to skeptical.
-model: inherit
+model: opus
 effort: high
 tools: Read, Grep, Glob, Bash
 skills:
