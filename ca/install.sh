@@ -10,7 +10,7 @@
 # --dry-run Print planned actions without changing anything.
 #
 # With no flag, BOTH sides are handled — the loop needs BOTH plugins: the Codex skill
-# implements, and it calls the Claude plugin's /ca:review-diff to review. Installing only
+# implements, and it calls the Claude plugin's /ca:review-pr to review. Installing only
 # one side makes every review round fail.
 set -euo pipefail
 
@@ -43,17 +43,17 @@ if [ "$do_codex" = 1 ]; then
 fi
 
 if [ "$do_claude" = 1 ]; then
-  echo "[ca] Claude Code plugin (REQUIRED for the review step — provides /ca:review-diff):"
+  echo "[ca] Claude Code plugin (REQUIRED for the review step — provides /ca:review-pr):"
   echo "    /plugin install ca@claude-parallel-dev-plugin"
   echo "    # or, for local dev:  claude --plugin-dir \"$HERE/claude\""
   # Warn if the Claude plugin does not appear installed, since claude-review.sh calls plain
-  # `claude -p /ca:review-diff` and will fail (no review) without it.
+  # `claude -p /ca:review-pr` and will fail (no review) without it.
   if command -v claude >/dev/null 2>&1; then
     if claude plugin list 2>/dev/null | grep -q "ca@"; then
       echo "[ca] detected: the ca Claude plugin appears installed. ✔"
     else
       echo "[ca] WARNING: the ca Claude plugin is NOT installed. Until it is (or you set"
-      echo "     CA_CLAUDE_PLUGIN_DIR=\"$HERE/claude\" when running the loop), /ca:review-diff"
+      echo "     CA_CLAUDE_PLUGIN_DIR=\"$HERE/claude\" when running the loop), /ca:review-pr"
       echo "     will not resolve and every review round will fail." >&2
     fi
   fi
@@ -62,6 +62,6 @@ fi
 [ "$dry" = 0 ] && {
   echo
   echo "[ca] Reminder: the loop needs BOTH plugins. The Codex skill calls the Claude plugin's"
-  echo "     /ca:review-diff via 'claude -p'. If you cannot install the Claude plugin globally,"
+  echo "     /ca:review-pr via 'claude -p'. If you cannot install the Claude plugin globally,"
   echo "     export CA_CLAUDE_PLUGIN_DIR=\"$HERE/claude\" so the review can load it with --plugin-dir."
 }

@@ -1,6 +1,6 @@
 ---
 name: ca-implement-plan
-description: Implement a saved implementation-plan markdown file task-by-task inside an isolated git worktree, then loop with an external Claude reviewer that checks the plan against the diff, address blocking feedback over a few rounds, and open a PR that includes a summary of the Claude/Codex exchange. Use when the user points at a plan file under docs/superpowers/plans or any task-by-task plan and says things like "implement this plan", "build the plan at this path", "run the ca loop on this plan", or "have Claude review what you built". The human stays in control and is asked to confirm at key decision points and before any cleanup.
+description: Implement a saved implementation-plan markdown file task-by-task inside an isolated git worktree, open a draft PR, then loop with an external Claude reviewer that checks the plan against the PR, address blocking feedback over a few rounds, and mark the PR ready with a summary of the Claude/Codex exchange. Use when the user points at a plan file under docs/superpowers/plans or any task-by-task plan and says things like "implement this plan", "build the plan at this path", "run the ca loop on this plan", or "have Claude review what you built". The human stays in control and is asked to confirm at key decision points and before any cleanup.
 license: MIT
 metadata:
   short-description: Build a plan with Claude review rounds
@@ -70,32 +70,38 @@ Hard rules while implementing:
 - Keep the diff scoped to the plan. Do not refactor unrelated code.
 - Do not push or open a PR yet.
 
-## Step 3 — Self-review, then call Claude
+## Step 3 — Self-review, open a draft PR, then call Claude
 
 1. Self-review the diff against the plan: every task covered, tests present and green, no placeholder left.
-2. Produce the diff for review (use the round number, starting at 1):
+2. Push the branch and open a **draft** PR (the reviewer reviews the PR; the draft state is the
+   fail-closed gate — it is promoted to ready only after Claude approves):
 
    ```bash
    RUND=1
-   git -C "$ROOT" add -A
-   git -C "$ROOT" diff --cached > "$RUN/round-$RUND.diff"
+   git -C "$ROOT" push -u origin "$BR"
+   gh pr view "$BR" >/dev/null 2>&1 || \
+     gh pr create --draft --base "${CA_BASE:-main}" --head "$BR" --title "feat: $ID" --body-file "$RUN/plan.md"
+   PR="$(gh pr view "$BR" --json number --jq .number)"
+   echo "draft PR: #$PR"
    ```
-3. Call the Claude reviewer. This bundled script runs `claude -p /ca:review-diff` and writes a
-   validated JSON verdict.
+3. Call the Claude reviewer on the PR. This bundled script runs `claude -p /ca:review-pr` and writes
+   a validated JSON verdict.
 
    **TWO PRECONDITIONS — important.** Both must hold or no review is produced:
-   - **Skill resolvable:** `claude -p /ca:review-diff` only works if the ca *Claude* plugin is
+   - **Skill resolvable:** `claude -p /ca:review-pr` only works if the ca *Claude* plugin is
      installed in the user's Claude config, or `CA_CLAUDE_PLUGIN_DIR` points at the `ca/claude` dir
      (the script then passes `--plugin-dir`). If neither, the skill won't load.
-   - **Network:** `claude -p` reaches the Anthropic API, but Codex's default `-s workspace-write`
-     sandbox blocks network, so the call fails inside a normal sandboxed session. Provide network
-     by launching Codex with it permitted for this command, or run the command in a host terminal.
+   - **Network + `gh`:** `claude -p` reaches the Anthropic API, and the review fetches the PR via
+     `gh pr diff`, so both network and an authenticated `gh` are required. Codex's default
+     `-s workspace-write` sandbox blocks network, so the call fails inside a normal sandboxed
+     session. Provide network by launching Codex with it permitted for this command, or run the
+     command in a host terminal where `gh` is authenticated.
 
    Tell the human which arrangement you are relying on before running it.
 
    ```bash
    bash "$SKILL_DIR/scripts/claude-review.sh" \
-     --plan "$RUN/plan.md" --diff "$RUN/round-$RUND.diff" --worktree "$ROOT" \
+     --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
      --round "$RUND" --out "$RUN/review-round-$RUND.json"
    ```
 
@@ -111,26 +117,31 @@ Hard rules while implementing:
 - If `verdict` is `approve`, or no finding has `blocking: true`, go to Step 5.
 - Otherwise address every blocking finding. For a finding you judge incorrect, do not silently skip
   it — record your disagreement to surface in the PR summary, and **ASK** the human if it is material.
-- Re-run the affected tests, increment the round, regenerate the diff, and call Claude again (Step 3).
+- Re-run the affected tests, commit, and **push** (this updates the draft PR's diff), increment the
+  round, and call Claude again on the same PR (Step 3.3 — reuse `$PR`, never open a second PR).
 - Stop when approved, when the round count reaches `MAX_ROUNDS` (default 2 — the initial review plus
   at most two fix rounds), or when two consecutive rounds produce an identical diff. On a forced stop,
-  **ASK** the human whether to open a draft PR or keep going.
+  **leave the PR as a draft** and **ASK** the human whether to keep going or take it from here.
 
 This is one continuous session, so prior rounds are already in context — still re-read the latest
-review JSON and diff so decisions rest on the current files, not memory alone.
+review JSON and the current PR diff so decisions rest on the current files, not memory alone.
 
-## Step 5 — Open the PR with an exchange summary
+## Step 5 — Promote the PR to ready, with an exchange summary
+
+The PR already exists (opened as a draft in Step 3). Once the review approved — or produced no
+blocking findings — promote it to ready:
 
 ```bash
-git -C "$ROOT" push -u origin "$BR"
-gh pr create --base main --head "$BR" --title "feat: $ID" --body-file "$RUN/plan.md"   # add --draft if not approved
+gh pr ready "$PR"          # promote the draft PR to ready-for-review
 ```
+
+If the loop hit a forced stop with unresolved blocking findings, leave it as a draft instead and say so.
 
 Then post the round-by-round Claude/Codex exchange (verdicts, what each round fixed, any disputed
 findings) as a PR comment, and report the PR link to the human:
 
 ```bash
-bash "$SKILL_DIR/scripts/post-summary.sh" "$RUN" "PR_URL_OR_NUMBER"
+bash "$SKILL_DIR/scripts/post-summary.sh" "$RUN" "$PR"
 ```
 
 **ASK** the human to review and merge.

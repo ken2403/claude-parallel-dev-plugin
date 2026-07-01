@@ -9,7 +9,7 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, Agent
 
 # plan-loop
 
-Draft a strong implementation plan, sharpen it by sparring with Codex, then save it. This is the planning half of the ca (Cooperate Agents) loop; the saved plan is later built by `$ca-implement-plan` and reviewed by `/ca:review-diff`.
+Draft a strong implementation plan, sharpen it by sparring with Codex, then save it. This is the planning half of the ca (Cooperate Agents) loop; the saved plan is later built by `$ca-implement-plan` and reviewed by `/ca:review-pr`.
 
 ## Step 1 — Draft
 
@@ -33,7 +33,7 @@ Apply the sparring outcomes, re-run the writing-plans self-review (spec coverage
 docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md
 ```
 
-Tell the human the saved path and that the next step is `/ca:start <plan>` to launch the Codex implement loop. Open a plan PR only if the human asks.
+Tell the human the saved path and that the next step is `/ca:implement <plan>` to launch the Codex implement loop. Open a plan PR only if the human asks.
 
 ## Notes
 

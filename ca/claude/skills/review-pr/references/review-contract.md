@@ -28,6 +28,6 @@ The Claude reviewer returns a single JSON object to `--out`. The loop reads `ver
 ```
 
 Loop gate:
-- `verdict == "approve"` **or** no finding has `blocking: true` → proceed to PR.
+- `verdict == "approve"` **or** no finding has `blocking: true` → promote the draft PR to ready.
 - Otherwise address every `blocking: true` finding, then request another review round.
 - Non-blocking findings are advisory; record them but they do not block the PR.
