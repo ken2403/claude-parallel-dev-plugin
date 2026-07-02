@@ -43,7 +43,8 @@ review/verify path and an on-demand review guardrail.
       /sa:review-pr <pr>             independent review (opus/high + `verifier` subagents)
         -> /sa:apply-feedback <pr>      fix + push
       /sa:resolve-conflicts <pr>     merge base + resolve conflicts (isolated) + push
-        -> merge -> /sa:clean-worktrees   reclaim merged worktrees + branches
+      /sa:merge-pr [pr]              gated merge (approved + green + mergeable)
+        -> /sa:clean-worktrees          reclaim merged worktrees + branches
 ```
 
 `simple-implement` deliberately **stops at PR creation** for speed; reviewing is a separate,
@@ -57,7 +58,10 @@ explicit step.
 - `apply-feedback` — turn review feedback into committed fixes (sonnet, effort medium).
 - `resolve-conflicts` — merge the base branch and resolve conflicts in an isolated
   worktree, verify, and push (opus, effort high).
-- `clean-worktrees` — reclaim merged sa worktrees + branches, safely (haiku).
+- `merge-pr` — gated merge: refuses drafts, missing approval, red CI, and conflicts
+  (haiku, effort low; the preflight is mechanical `gh pr view` field checks, and
+  `gh pr merge` + branch protection refuse ineligible merges server-side).
+- `clean-worktrees` — reclaim merged sa worktrees + branches, safely (haiku, effort low).
 - `code-review` — the single source of engineering standards (quality, security,
   consistency); **auto-activates** during both implementation and review.
 
