@@ -71,7 +71,8 @@ separate, independent second opinion.
 - `apply-feedback` — turn review feedback into committed fixes, with the
   `superpowers:receiving-code-review` discipline (effort high).
 - `merge-pr` — gated merge; inherits `superpowers:finishing-a-development-branch`'s
-  guardrails (effort low).
+  guardrails (haiku, effort low; the preflight is mechanical `gh pr view` field checks,
+  and `gh pr merge` + branch protection refuse ineligible merges server-side).
 - `resolve-conflicts` — merge the base and resolve conflicts in isolation, verified
   (effort high).
 - `clean-worktrees` — reclaim merged `ha` worktrees + branches, safely (haiku, effort low;

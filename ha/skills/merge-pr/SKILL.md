@@ -2,6 +2,7 @@
 name: merge-pr
 description: Merge a reviewed PR after confirming it is genuinely ready — open, not draft, approved, green CI, up to date with base, no unresolved blocking feedback. Use once /ha:review-pr approves a feature's PR. Refuses to merge on red checks, missing review, or conflicts. Invoke explicitly with /ha:merge-pr.
 argument-hint: '<pr-number> [--squash | --merge | --rebase]'
+model: haiku
 disable-model-invocation: true
 effort: low
 allowed-tools: Read, Bash, Grep, Glob
