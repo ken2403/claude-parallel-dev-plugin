@@ -13,9 +13,9 @@ Codex   $ca-implement-plan PLAN=<abs>   (inside the worktree)
    ├─ claude-review.sh ─▶ Claude /ca:review-pr <pr> ─▶ ca_claude_review.v1 JSON
    ├─ address blocking findings, push, re-review the PR   (≤ 2 rounds)
    └─ on approve: gh pr ready + post the Claude/Codex exchange summary
-Human merges ─▶ /ca:clean-worktrees reclaims the worktree + branch
+/ca:merge-pr (gated) or human merges ─▶ /ca:clean-worktrees reclaims it
 
-Standalone (Claude): /ca:resolve-conflicts <pr|branch>, /ca:clean-worktrees
+Standalone (Claude): /ca:merge-pr [pr], /ca:resolve-conflicts [pr|branch], /ca:clean-worktrees
 ```
 
 The implementing Codex session keeps continuous memory across rounds; state also lives in files
@@ -36,8 +36,8 @@ network + an authenticated `gh`.
 ```
 ca/
   claude/                 # Claude Code plugin (/ca:plan-loop, /ca:implement, /ca:review-pr,
-    .claude-plugin/plugin.json          #        /ca:resolve-conflicts, /ca:clean-worktrees)
-    skills/{plan-loop,implement,review-pr,resolve-conflicts,clean-worktrees}/   # SKILL.md + scripts/
+    .claude-plugin/plugin.json          #        /ca:merge-pr, /ca:resolve-conflicts, /ca:clean-worktrees)
+    skills/{plan-loop,implement,review-pr,merge-pr,resolve-conflicts,clean-worktrees}/
   codex/                  # Codex plugin ($ca-implement-plan)
     .codex-plugin/plugin.json
     skills/ca-implement-plan/               # SKILL.md + agents/openai.yaml + scripts/ + references/
@@ -76,11 +76,13 @@ A Codex plugin manifest (`ca/codex/.codex-plugin/plugin.json`) and marketplace e
 4. In a Codex session in that worktree (use a strong model + high reasoning):
    `$ca-implement-plan PLAN=<abs-plan-path>` → implements, opens a **draft** PR, gets Claude
    `/ca:review-pr` review (≤2 rounds), and on approve marks the PR **ready**.
-5. Merge the PR, then `/ca:clean-worktrees` reclaims the worktree and branch.
+5. Merge the PR — `/ca:merge-pr [pr]` (gated: refuses drafts/red CI/conflicts) or on GitHub —
+   then `/ca:clean-worktrees` reclaims the worktree and branch.
 
-Standalone Claude skills: `/ca:resolve-conflicts <pr|branch>` (resolve base-branch conflicts in an
-isolated worktree) and `/ca:clean-worktrees` (reclaim merged ca worktrees) — the same operations
-sa/ha ship, adapted to ca.
+Standalone Claude skills: `/ca:merge-pr [pr]` (gated merge — refuses drafts, red CI, conflicts;
+in ca a draft means the review loop has not approved), `/ca:resolve-conflicts [pr|branch]`
+(resolve base-branch conflicts in an isolated worktree) and `/ca:clean-worktrees` (reclaim merged
+ca worktrees) — the same operations ha ships, adapted to ca.
 
 ## The handoff contract
 

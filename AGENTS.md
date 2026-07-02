@@ -75,7 +75,7 @@ tool scans only its own skills.
 
 **Layout**
 
-- `ca/claude/` — Claude Code plugin (`.claude-plugin/plugin.json`, skills `/ca:plan-loop`, `/ca:implement`, `/ca:review-pr`, `/ca:resolve-conflicts`, `/ca:clean-worktrees`). `resolve-conflicts`/`clean-worktrees` are ported from `ha` but **agent-less** (ca ships no subagents / no `code-review` skill — they verify inline); their `detect-base-branch.sh` copies stay byte-identical.
+- `ca/claude/` — Claude Code plugin (`.claude-plugin/plugin.json`, skills `/ca:plan-loop`, `/ca:implement`, `/ca:review-pr`, `/ca:merge-pr`, `/ca:resolve-conflicts`, `/ca:clean-worktrees`). `merge-pr`/`resolve-conflicts`/`clean-worktrees` are ported from `ha` but **agent-less** (ca ships no subagents / no `code-review` skill — they verify inline); their `detect-base-branch.sh` copies stay byte-identical.
 - `ca/codex/` — Codex plugin (`.codex-plugin/plugin.json`, skill `$ca-implement-plan`).
 - `ca/install.sh` — installs the Codex skill into `~/.codex/skills`; prints the Claude install.
 - `ca/README.md` — human-facing overview + install for both tools.
@@ -92,7 +92,7 @@ tool scans only its own skills.
 **Model & effort**
 
 - `ca-implement-plan` (Codex): set at session launch (`codex -m <model>`, `~/.codex/config.toml`, profile) — frontmatter can't carry it.
-- Claude-side skills are **model-agnostic** (omit `model`; in loop mode the review runs under the `claude -p` session's default model) with **ha-style graded effort**: `plan-loop`/`review-pr`/`resolve-conflicts` `effort: high`, `implement` `effort: medium`, `clean-worktrees` pinned **haiku** / `effort: low` (safe because `clean.sh` owns every guardrail — merged-only with positive proof, never the current worktree or main checkout, no `--force`/`-D`).
+- Claude-side skills are **model-agnostic** (omit `model`; in loop mode the review runs under the `claude -p` session's default model) with **ha-style graded effort**: `plan-loop`/`review-pr`/`resolve-conflicts` `effort: high`, `implement` `effort: medium`, `merge-pr` + `clean-worktrees` pinned **haiku** / `effort: low` (their guardrails are mechanical, not judgment: `clean.sh` owns every cleanup rule — merged-only with positive proof, never the current worktree or main checkout, no `--force`/`-D` — and merge-pr's preflight is field checks on `gh pr view` JSON with `gh`/branch-protection refusing ineligible merges server-side; in ca a **draft** blocks the merge, since draft = the review loop has not approved).
 
 **Loop rules**
 
