@@ -61,7 +61,7 @@ explicit step.
 - `merge-pr` — gated merge: refuses drafts, missing approval, red CI, and conflicts
   (haiku, effort low; the preflight is mechanical `gh pr view` field checks, and
   `gh pr merge` + branch protection refuse ineligible merges server-side).
-- `clean-worktrees` — reclaim merged sa worktrees + branches, safely (haiku).
+- `clean-worktrees` — reclaim merged sa worktrees + branches, safely (haiku, effort low).
 - `code-review` — the single source of engineering standards (quality, security,
   consistency); **auto-activates** during both implementation and review.
 

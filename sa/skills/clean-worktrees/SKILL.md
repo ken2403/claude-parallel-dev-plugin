@@ -4,6 +4,7 @@ description: Reclaims sa worktrees after features land — removes merged featur
 argument-hint: '[feature ids / branches to clean, or all-merged]'
 model: haiku
 disable-model-invocation: true
+effort: low
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
