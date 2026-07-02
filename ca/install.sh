@@ -59,9 +59,10 @@ if [ "$do_claude" = 1 ]; then
   fi
 fi
 
-[ "$dry" = 0 ] && {
+if [ "$dry" = 0 ]; then
   echo
   echo "[ca] Reminder: the loop needs BOTH plugins. The Codex skill calls the Claude plugin's"
   echo "     /ca:review-pr via 'claude -p'. If you cannot install the Claude plugin globally,"
   echo "     export CA_CLAUDE_PLUGIN_DIR=\"$HERE/claude\" so the review can load it with --plugin-dir."
-}
+fi
+exit 0
