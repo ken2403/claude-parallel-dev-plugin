@@ -1,7 +1,7 @@
 ---
 name: merge-pr
 description: Merge a reviewed PR after confirming it is genuinely ready — open, not draft, approved, green CI, up to date with base, no unresolved blocking feedback. Use once /ha:review-pr approves a feature's PR. Refuses to merge on red checks, missing review, or conflicts. Invoke explicitly with /ha:merge-pr.
-argument-hint: '<pr-number> [--squash | --merge | --rebase]'
+argument-hint: '[pr-number] [--squash | --merge | --rebase]'
 model: haiku
 disable-model-invocation: true
 effort: low
@@ -19,7 +19,9 @@ Confirm readiness with evidence before merging — never merge on assumption.
 ## Step 1 — Preflight (all must pass)
 
 ```bash
-PR="<number>"
+PR="<pr-number from the arguments, or empty to auto-detect>"
+[ -n "$PR" ] || PR="$(gh pr view --json number --jq .number 2>/dev/null)"  # no number given -> current branch's PR
+[ -n "$PR" ] || { echo "no PR number given and none found for the current branch" >&2; exit 1; }
 gh pr view "$PR" --json state,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,headRefName,isDraft
 ```
 

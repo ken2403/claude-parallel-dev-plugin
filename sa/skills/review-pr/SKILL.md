@@ -1,7 +1,7 @@
 ---
 name: review-pr
 description: Critically reviews a PR for correctness, security, and codebase consistency — an independent second opinion, not a rubber stamp. Use to review a simple feature's PR before merging. Posts inline comments with --comment.
-argument-hint: '<pr-number> [--comment]'
+argument-hint: '[pr-number] [--comment]'
 model: opus
 effort: high
 allowed-tools: Read, Grep, Glob, Bash, Agent, WebFetch
@@ -20,7 +20,9 @@ defect before merge is worth everything.
 ## Step 1 — Load the PR
 
 ```bash
-PR="<number>"
+PR="<pr-number from the arguments, or empty to auto-detect>"
+[ -n "$PR" ] || PR="$(gh pr view --json number --jq .number 2>/dev/null)"  # no number given -> current branch's PR
+[ -n "$PR" ] || { echo "no PR number given and none found for the current branch" >&2; exit 1; }
 gh pr view "$PR" --json title,body,headRefName,additions,deletions,files,reviewDecision,statusCheckRollup
 gh pr diff "$PR"
 ```

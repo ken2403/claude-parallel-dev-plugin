@@ -1,7 +1,7 @@
 ---
 name: resolve-conflicts
 description: Resolves merge conflicts between a feature branch and its base branch, in an isolated worktree, parallelizing across files with implementer subagents when 3+ files conflict. Use when a PR or feature branch is behind/conflicting with the base branch and you want the conflicts resolved, verified, and pushed.
-argument-hint: '<pr-number | branch name>'
+argument-hint: '[pr-number | branch name]'
 model: opus
 disable-model-invocation: true
 effort: high
@@ -26,10 +26,11 @@ then reuse its existing sa worktree or create one — **never** edit the main ch
 ```bash
 ARG="<pr-number | branch | empty>"
 CLAUDE_SKILL_SA_DIR="${CLAUDE_SKILL_DIR}"   # sa-recognizable alias of the built-in skill dir
+if [ -z "$ARG" ]; then ARG="$(gh pr view --json number --jq .number 2>/dev/null)"; fi   # no arg -> current branch's PR
 if printf '%s' "$ARG" | grep -qE '^[0-9]+$'; then
-  BRANCH="$(gh pr view "$ARG" --json headRefName --jq .headRefName)"
+  PR="$ARG"; BRANCH="$(gh pr view "$PR" --json headRefName --jq .headRefName)"
 else
-  BRANCH="${ARG:-$(git branch --show-current)}"
+  PR=""; BRANCH="${ARG:-$(git branch --show-current)}"
 fi
 eval "$(bash "$CLAUDE_SKILL_SA_DIR/scripts/attach-or-create-worktree.sh" "$BRANCH")"
 echo "Resolving in: $WORKTREE_PATH on $BRANCH (reused=$REUSED)"
@@ -115,10 +116,10 @@ git -C "$WORKTREE_PATH" commit --no-edit   # completes the merge commit
 git -C "$WORKTREE_PATH" push
 ```
 
-If a PR number was given, leave a short note:
+If a PR was resolved (given or auto-detected), leave a short note:
 
 ```bash
-gh pr comment "<pr>" --body "Merged origin/$BASE and resolved conflicts:
+[ -n "$PR" ] && gh pr comment "$PR" --body "Merged origin/$BASE and resolved conflicts:
 - <file> — <strategy>
 Verification: <result>"
 ```

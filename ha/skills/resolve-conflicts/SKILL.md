@@ -1,7 +1,7 @@
 ---
 name: resolve-conflicts
 description: Resolve merge conflicts between a feature branch and its base branch, in an isolated worktree, parallelizing across files with subagents when 3+ files conflict. Use when a PR or feature branch is behind or conflicting with the base branch and you want the conflicts resolved, verified, and pushed. Invoke explicitly with /ha:resolve-conflicts.
-argument-hint: '<pr-number | branch name>'
+argument-hint: '[pr-number | branch name]'
 disable-model-invocation: true
 effort: high
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
@@ -27,10 +27,11 @@ main checkout.
 ```bash
 ARG="<pr-number | branch | empty>"
 CLAUDE_SKILL_HA_DIR="${CLAUDE_SKILL_DIR}"   # ha-recognizable alias of the built-in skill dir
+if [ -z "$ARG" ]; then ARG="$(gh pr view --json number --jq .number 2>/dev/null)"; fi   # no arg -> current branch's PR
 if printf '%s' "$ARG" | grep -qE '^[0-9]+$'; then
-  BRANCH="$(gh pr view "$ARG" --json headRefName --jq .headRefName)"
+  PR="$ARG"; BRANCH="$(gh pr view "$PR" --json headRefName --jq .headRefName)"
 else
-  BRANCH="${ARG:-$(git branch --show-current)}"
+  PR=""; BRANCH="${ARG:-$(git branch --show-current)}"
 fi
 eval "$(bash "$CLAUDE_SKILL_HA_DIR/scripts/attach-or-create-worktree.sh" "$BRANCH")"
 [ -n "${WORKTREE_PATH:-}" ] || { echo "error: worktree was not resolved — aborting"; exit 1; }
@@ -118,10 +119,10 @@ git -C "$WORKTREE_PATH" commit --no-edit   # completes the merge commit
 git -C "$WORKTREE_PATH" push
 ```
 
-If a PR number was given, leave a short note:
+If a PR was resolved (given or auto-detected), leave a short note:
 
 ```bash
-gh pr comment "<pr>" --body "Merged origin/$BASE and resolved conflicts:
+[ -n "$PR" ] && gh pr comment "$PR" --body "Merged origin/$BASE and resolved conflicts:
 - <file> — <strategy>
 Verification: <result>"
 ```

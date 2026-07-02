@@ -1,7 +1,7 @@
 ---
 name: apply-feedback
 description: Address review feedback on a PR and push the fixes back, rigorously — feedback is evaluated against the code, not obeyed blindly. Use after /ha:review-pr requests changes, or to act on human review comments on a PR. Invoke explicitly with /ha:apply-feedback. Requires the superpowers plugin.
-argument-hint: '<pr-number> [feedback text]'
+argument-hint: '[pr-number] [feedback text]'
 disable-model-invocation: true
 effort: high
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
@@ -19,7 +19,9 @@ main checkout. Requires the `superpowers` plugin.
 ## Step 1 — Gather the feedback
 
 ```bash
-PR="<number>"
+PR="<pr-number from the arguments, or empty to auto-detect>"
+[ -n "$PR" ] || PR="$(gh pr view --json number --jq .number 2>/dev/null)"  # no number given -> current branch's PR
+[ -n "$PR" ] || { echo "no PR number given and none found for the current branch" >&2; exit 1; }
 gh pr view "$PR" --json headRefName,reviews,comments
 gh pr diff "$PR"
 ```

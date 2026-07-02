@@ -1,7 +1,7 @@
 ---
 name: apply-feedback
 description: Addresses review feedback on a PR and updates it, parallelizing across files with implementer subagents when feedback spans 3+ independent files. Use after /sa:review-pr requests changes, or to act on human review comments and push fixes back.
-argument-hint: '<pr-number> [feedback text]'
+argument-hint: '[pr-number] [feedback text]'
 model: sonnet
 disable-model-invocation: true
 effort: medium
@@ -22,7 +22,9 @@ checkout.
 ## Step 1 — Gather the feedback
 
 ```bash
-PR="<number>"
+PR="<pr-number from the arguments, or empty to auto-detect>"
+[ -n "$PR" ] || PR="$(gh pr view --json number --jq .number 2>/dev/null)"  # no number given -> current branch's PR
+[ -n "$PR" ] || { echo "no PR number given and none found for the current branch" >&2; exit 1; }
 gh pr view "$PR" --json headRefName,reviews,comments
 gh pr diff "$PR"
 ```
