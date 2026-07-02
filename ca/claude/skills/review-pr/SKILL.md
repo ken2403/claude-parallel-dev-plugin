@@ -2,8 +2,6 @@
 name: review-pr
 description: Review a pull request against the implementation plan it was built from, then emit a structured ca_claude_review.v1 JSON verdict (approve / request_changes / blocked) with blocking findings. Use when the ca loop or a user asks to review a Codex-built PR before it is merged, or says things like "review this PR against the plan", "review what Codex built", "is this implementation correct", or invokes /ca:review-pr. Reviews the PR diff; does not edit code.
 license: MIT
-model: opus
-effort: high
 allowed-tools: Read, Grep, Glob, Bash, WebFetch
 disable-model-invocation: true
 ---

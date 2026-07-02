@@ -3,6 +3,7 @@ name: clean-worktrees
 description: Reclaim ca worktrees after features land — remove merged feature worktrees and delete their merged branches. Use once a ca PR is merged. Safe by default — never removes a worktree with uncommitted changes and never deletes an unmerged branch. Invoke explicitly with /ca:clean-worktrees.
 license: MIT
 argument-hint: '[feature ids / branches to clean, or all-merged]'
+model: haiku
 disable-model-invocation: true
 effort: low
 allowed-tools: Read, Bash, Grep, Glob

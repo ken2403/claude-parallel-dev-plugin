@@ -2,8 +2,6 @@
 name: plan-loop
 description: Draft an implementation plan for an epic or feature, then spar with Codex to harden it before saving. Use when the user wants to plan a sizable change and have a second model stress-test the plan, or says things like "plan this feature", "draft a plan and spar with Codex", "write an implementation plan for", or invokes /ca:plan-loop. Produces a saved task-by-task plan ready for the ca implement loop.
 license: MIT
-model: opus
-effort: xhigh
 allowed-tools: Read, Grep, Glob, Bash, WebFetch, Agent
 ---
 
