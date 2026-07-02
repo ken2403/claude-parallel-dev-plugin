@@ -74,7 +74,8 @@ separate, independent second opinion.
   guardrails (effort low).
 - `resolve-conflicts` — merge the base and resolve conflicts in isolation, verified
   (effort high).
-- `clean-worktrees` — reclaim merged `ha` worktrees + branches, safely (effort low).
+- `clean-worktrees` — reclaim merged `ha` worktrees + branches, safely (haiku, effort low;
+  all guardrails live in `clean.sh`, so no judgment-model is needed).
 - `code-review` + `adversarial-verification` — the auto-activating standards skills.
 
 **Subagents** (`ha/agents/`)
