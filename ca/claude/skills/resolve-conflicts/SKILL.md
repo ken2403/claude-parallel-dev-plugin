@@ -2,6 +2,7 @@
 name: resolve-conflicts
 description: Resolve merge conflicts between a ca feature branch and its base branch, in an isolated worktree, preserving the intent of both sides. Use when a ca PR or feature branch is behind or conflicting with the base branch and you want the conflicts resolved, verified, and pushed. Invoke explicitly with /ca:resolve-conflicts.
 license: MIT
+effort: high
 disable-model-invocation: true
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob
 ---

@@ -92,7 +92,7 @@ tool scans only its own skills.
 **Model & effort**
 
 - `ca-implement-plan` (Codex): set at session launch (`codex -m <model>`, `~/.codex/config.toml`, profile) — frontmatter can't carry it.
-- Claude-side skills are **model-agnostic**: `plan-loop`/`review-pr`/`resolve-conflicts` omit `model` and `effort` (inherit the session — in loop mode the review runs under the `claude -p` session's default model). `implement` is `effort: low`; `clean-worktrees` is pinned **haiku** / `effort: low` (safe because `clean.sh` owns every guardrail — merged-only with positive proof, never the current worktree or main checkout, no `--force`/`-D`).
+- Claude-side skills are **model-agnostic** (omit `model`; in loop mode the review runs under the `claude -p` session's default model) with **ha-style graded effort**: `plan-loop`/`review-pr`/`resolve-conflicts` `effort: high`, `implement` `effort: medium`, `clean-worktrees` pinned **haiku** / `effort: low` (safe because `clean.sh` owns every guardrail — merged-only with positive proof, never the current worktree or main checkout, no `--force`/`-D`).
 
 **Loop rules**
 

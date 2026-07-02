@@ -2,7 +2,7 @@
 name: implement
 description: Kick off the ca implement loop for a saved plan — create an isolated git worktree for it and print the exact Codex command to run there. Use when the user has a saved plan and wants to build it with the ca loop, or says things like "implement this plan with ca", "start building this plan", "kick off implementation of", "set up the worktree for", or invokes /ca:implement. Hands off to a Codex session; it does not implement the plan itself.
 license: MIT
-effort: low
+effort: medium
 disable-model-invocation: true
 allowed-tools: Read, Bash
 ---
