@@ -1,6 +1,7 @@
 ---
 name: merge-pr
-description: Merge a reviewed PR after confirming it is genuinely ready — open, not draft, approved, green CI, up to date with base, no unresolved blocking feedback. Use once /ha:review-pr approves a feature's PR. Refuses to merge on red checks, missing review, or conflicts. Invoke explicitly with /ha:merge-pr.
+description: Merge a ca PR after confirming it is genuinely ready — open, not draft (in ca a draft means the Codex-Claude review loop has not approved it), green CI, mergeable, no unresolved blocking feedback. Use once the ca loop marked the PR ready and you want it merged from the CLI. Refuses to merge drafts, red checks, or conflicts. Invoke explicitly with /ca:merge-pr.
+license: MIT
 argument-hint: '[pr-number] [--squash | --merge | --rebase]'
 model: haiku
 disable-model-invocation: true
@@ -8,12 +9,12 @@ effort: low
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
-# Merge an ha PR
+# Merge a ca PR
 
 ## Input
 $ARGUMENTS
 
-Merging is the one irreversible step in the pipeline, so it gets a real gate.
+Merging is the one irreversible step in the loop, so it gets a real gate.
 Confirm readiness with evidence before merging — never merge on assumption.
 
 ## Step 1 — Preflight (all must pass)
@@ -27,12 +28,14 @@ gh pr view "$PR" --json state,mergeable,mergeStateStatus,reviewDecision,statusCh
 
 Block the merge and report if any of these hold:
 
-- `state` is not OPEN, or `isDraft` is true.
-- `reviewDecision` is not APPROVED (an ha PR should have a `/ha:review-pr` pass).
+- `state` is not OPEN.
+- `isDraft` is true — **in ca the draft state IS the review gate**: the Codex loop
+  promotes the PR to ready only after `/ca:review-pr` approves. A draft means the
+  loop has not approved (or was force-stopped); send it back to the loop, don't merge.
+- `reviewDecision` is CHANGES_REQUESTED (a human requested changes on GitHub).
 - CI (`statusCheckRollup`) is not all-green.
 - `mergeable` is false / `mergeStateStatus` indicates conflicts or out-of-date —
-  in that case update from base first: run `/ha:resolve-conflicts <pr>` (it merges
-  the base in the feature's isolated worktree and re-verifies), then re-run this skill.
+  run `/ca:resolve-conflicts <pr>` first, then re-run this skill.
 - There is unresolved blocking review feedback.
 
 If anything fails, stop and say exactly what's missing — do not "force" it.
@@ -46,9 +49,8 @@ rule). Delete the remote branch on merge to keep things tidy:
 gh pr merge "$PR" --squash --delete-branch   # or --merge / --rebase per repo norm
 ```
 
-This follows `superpowers:finishing-a-development-branch`'s ordering — **merge
-first, then reclaim the worktree** (the next step), and never delete a branch that
-still has unmerged work.
+Merge first, then reclaim the worktree (the next step) — never delete a branch
+that still has unmerged work.
 
 ## Step 3 — Confirm and hand off
 
@@ -59,5 +61,5 @@ gh pr view "$PR" --json state,mergedAt
 result: PR #<n> merged.
 
 Remind the user that once the PR is merged, its isolated worktree and local branch
-can be reclaimed with **`/ha:clean-worktrees`** (it removes only worktrees whose PR
+can be reclaimed with **`/ca:clean-worktrees`** (it removes only worktrees whose PR
 is verified merged).

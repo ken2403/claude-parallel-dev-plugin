@@ -1,8 +1,9 @@
 # sa — Simple Agents
 
 A command-free Claude Code plugin for getting **one simple feature** done fast: hand it a
-plan, approve it, and it isolates a worktree, implements with subagents, and opens a PR —
-all on Opus 4.8 with effort tuned for speed. The fast, lightweight counterpart to
+plan, approve it, and it isolates a worktree, implements with subagents, and opens a PR.
+Implementation runs on the latest **Sonnet** for speed; review and verification stay on
+**Opus** so accuracy holds. The fast, lightweight counterpart to
 [`ha`](../ha/README.md), which builds one feature thoroughly.
 
 ## Install
@@ -17,15 +18,17 @@ Or try it locally without installing:
 claude --plugin-dir /path/to/claude-paralell-dev-plugin/sa
 ```
 
-Requirements: `git`, the GitHub CLI (`gh`, authenticated), and Opus 4.8.
+Requirements: `git`, the GitHub CLI (`gh`, authenticated), and access to the latest
+Sonnet and Opus models.
 
 ## Why sa
 
 Not every feature needs `ha`'s deep plan gate, layered review loops, and multi-pass
 adversarial verification. `sa` is the fast path for a **single, well-scoped change** where
 you want to stay in the loop: it asks before it builds, gets your approval, then runs to a
-PR without hand-holding. Speed comes from graded effort and parallel subagents; quality
-comes from one shared standards skill and an on-demand review guardrail.
+PR without hand-holding. Speed comes from a fast Sonnet build path, graded effort, and
+parallel subagents; quality comes from one shared standards skill plus an Opus
+review/verify path and an on-demand review guardrail.
 
 ## The flow
 
@@ -40,7 +43,8 @@ comes from one shared standards skill and an on-demand review guardrail.
       /sa:review-pr <pr>             independent review (opus/high + `verifier` subagents)
         -> /sa:apply-feedback <pr>      fix + push
       /sa:resolve-conflicts <pr>     merge base + resolve conflicts (isolated) + push
-        -> merge -> /sa:clean-worktrees   reclaim merged worktrees + branches
+      /sa:merge-pr [pr]              gated merge (approved + green + mergeable)
+        -> /sa:clean-worktrees          reclaim merged worktrees + branches
 ```
 
 `simple-implement` deliberately **stops at PR creation** for speed; reviewing is a separate,
@@ -49,25 +53,29 @@ explicit step.
 ## Components
 
 **Skills** (`/sa:<name>`)
-- `simple-implement` — plan -> approve -> worktree -> implement -> PR (opus, effort medium).
+- `simple-implement` — plan -> approve -> worktree -> implement -> PR (sonnet, effort medium).
 - `review-pr` — independent correctness/security/consistency review (opus, effort high).
-- `apply-feedback` — turn review feedback into committed fixes (opus, effort medium).
+- `apply-feedback` — turn review feedback into committed fixes (sonnet, effort medium).
 - `resolve-conflicts` — merge the base branch and resolve conflicts in an isolated
   worktree, verify, and push (opus, effort high).
-- `clean-worktrees` — reclaim merged sa worktrees + branches, safely (haiku).
+- `merge-pr` — gated merge: refuses drafts, missing approval, red CI, and conflicts
+  (haiku, effort low; the preflight is mechanical `gh pr view` field checks, and
+  `gh pr merge` + branch protection refuse ineligible merges server-side).
+- `clean-worktrees` — reclaim merged sa worktrees + branches, safely (haiku, effort low).
 - `code-review` — the single source of engineering standards (quality, security,
   consistency); **auto-activates** during both implementation and review.
 
 **Subagents** (`sa/agents/`)
-- `implementer` — builds one file-disjoint slice in the worktree (inherit model, effort medium).
-- `verifier` — adversarial read-only reviewer that tries to refute a claim (inherit, effort high).
+- `implementer` — builds one file-disjoint slice in the worktree (sonnet, effort medium).
+- `verifier` — adversarial read-only reviewer that tries to refute a claim (opus, effort high).
 
 **Hook** — `sa/hooks/` ships a PreToolUse guard that refuses edits/writes to secret files
 (`.env`, keys, credentials), allowing `*.example`/`*.sample` variants.
 
-**Guardrails for "fast but accurate"** — the bulk implementation runs at medium effort,
-but the `code-review` standards (security non-negotiable), an objective build/test gate,
-and the on-demand opus/high `review-pr` keep accuracy from regressing.
+**Guardrails for "fast but accurate"** — the bulk implementation runs on Sonnet at medium
+effort, but every adversarial `verifier` and the on-demand `review-pr` run on Opus/high, and
+the `code-review` standards (security non-negotiable) plus an objective build/test gate keep
+accuracy from regressing.
 
 ## Relationship to ha
 
@@ -77,6 +85,6 @@ and the on-demand opus/high `review-pr` keep accuracy from regressing.
 | Plan | digests a given plan | design dialogue + question gate + vetted plan |
 | Implement | subagents → PR (no self-review) | SDD per-task loop + risk-scaled pre-PR adversarial gate → PR |
 | Verification | code-review standards + on-demand review-pr | + multi-pass adversarial verification |
-| Speed dial | graded effort (medium build, high review) | thoroughness-first (effort high) |
+| Speed dial | Sonnet build / Opus review, graded effort (medium build, high review) | thoroughness-first (effort high) |
 
 Both are foreground, single-feature, and need no tmux (`ha` also requires the `superpowers` plugin).

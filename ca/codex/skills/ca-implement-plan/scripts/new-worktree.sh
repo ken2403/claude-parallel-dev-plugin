@@ -12,11 +12,11 @@ ABS_PLAN="$(cd "$(dirname "$PLAN")" && pwd)/$(basename "$PLAN")"
 ID="$(basename "$PLAN" .md)"
 ROOT="$(git -C "$(dirname "$ABS_PLAN")" rev-parse --show-toplevel 2>/dev/null || git rev-parse --show-toplevel)"
 BASE="${CA_BASE:-main}"
-WT="$ROOT/.claude/ca/$ID"          # isolated worktree, inside the repo under .claude/ca/
+WT="$ROOT/.claude/worktrees/ca/$ID"  # isolated worktree under .claude/worktrees/ca/ (matches sa/ha)
 BR="ca/$ID"
 
 git -C "$ROOT" fetch origin "$BASE" >/dev/null 2>&1 || true
-mkdir -p "$ROOT/.claude/ca"
+mkdir -p "$ROOT/.claude/worktrees/ca"
 if git -C "$ROOT" show-ref --verify --quiet "refs/heads/$BR"; then
   git -C "$ROOT" worktree add "$WT" "$BR"
 else
