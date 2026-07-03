@@ -1,6 +1,6 @@
 ---
 name: ca-implement-plan
-description: Implement a saved implementation-plan markdown file task-by-task inside an isolated git worktree, open a draft PR, then loop with an external Claude reviewer that checks the plan against the PR, address blocking feedback over a few rounds, and mark the PR ready with a summary of the Claude/Codex exchange. Use when the user points at a plan file under docs/superpowers/plans or any task-by-task plan and says things like "implement this plan", "build the plan at this path", "run the ca loop on this plan", or "have Claude review what you built". The human stays in control and is asked to confirm at key decision points and before any cleanup.
+description: Build a saved task-by-task implementation plan in an isolated worktree, gated by Claude-reviewed rounds before the PR is marked ready — the Codex half of the ca (Cooperate Agents) loop. Use when the user points at a plan file under docs/superpowers/plans or any task-by-task plan and says things like "implement this plan", "build the plan at this path", "run the ca loop on this plan", or "have Claude review what you built". Human confirmation is required at key decision points and before cleanup.
 license: MIT
 metadata:
   short-description: Build a plan with Claude review rounds
