@@ -16,7 +16,7 @@ Prepare an isolated worktree for a saved plan and hand off to Codex. This is the
 Given the plan path, run the bundled script (it creates a `ca/<plan-id>` worktree off the base branch under `.claude/worktrees/ca/`, copies the plan in, and records a checksum):
 
 ```bash
-bash scripts/new-worktree.sh /abs/path/to/plan.md
+bash "${CLAUDE_SKILL_DIR}/scripts/new-worktree.sh" /abs/path/to/plan.md
 ```
 
 `CA_BASE` (default `main`) overrides the base branch. The script prints the worktree path and branch.

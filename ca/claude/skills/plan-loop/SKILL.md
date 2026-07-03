@@ -19,7 +19,7 @@ Ground the plan in the codebase (read relevant files, dispatch `Explore` agents 
 Get an independent, adversarial critique from Codex. **Codex `exec` calls are stateless** — each call forgets the last — so write the FULL current draft plus your specific questions into a prompt file each round, then:
 
 ```bash
-bash scripts/spar-codex.sh /path/to/round-N-prompt.md
+bash "${CLAUDE_SKILL_DIR}/scripts/spar-codex.sh" /path/to/round-N-prompt.md
 ```
 
 Ask Codex to attack the plan: missing tasks, wrong sequencing, risky assumptions, simpler approaches, failure modes. Incorporate what holds up; record (don't silently drop) what you reject and why. Repeat once more if the first round surfaced substantial changes.
