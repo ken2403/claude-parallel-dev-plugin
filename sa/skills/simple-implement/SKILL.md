@@ -1,6 +1,6 @@
 ---
 name: simple-implement
-description: Takes a plan — a file path or plain-text task — and drives ONE simple feature to an open PR fast. Digests the plan, inspects the codebase, asks only when genuinely unsure, gets approval, then creates an isolated worktree, implements with subagents, verifies the build, and opens a PR. Stops at PR for speed; run /sa:review-pr separately to review. Use for small-to-medium implementation tasks. Invoke explicitly with /sa:simple-implement.
+description: Takes a plan — a file path or plain-text task — and drives ONE simple feature to an open PR fast, with a human approval gate before any code is written. Use for a small-to-medium, well-scoped implementation task where you want to move quickly and review separately afterward. Stops at PR; run /sa:review-pr to review. Invoke explicitly with /sa:simple-implement.
 argument-hint: '<plan-file-path | natural-language task>'
 model: sonnet
 disable-model-invocation: true
