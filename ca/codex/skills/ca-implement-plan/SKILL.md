@@ -31,10 +31,12 @@ Run only inside a dedicated worktree on a `ca/` branch, never on the default bra
 ROOT="$(git rev-parse --show-toplevel)"
 BR="$(git -C "$ROOT" rev-parse --abbrev-ref HEAD)"
 echo "root=$ROOT branch=$BR"
+case "$BR" in ca/*) ;; *) echo "NOT ISOLATED: branch '$BR' is not a ca/ branch — STOP" >&2; exit 1;; esac
+case "$ROOT" in */.claude/worktrees/ca/*) ;; *) echo "NOT ISOLATED: '$ROOT' is not a ca worktree — STOP" >&2; exit 1;; esac
 ```
 
-If `BR` is `main` or `master`, or the tree is not a `ca/` worktree, **STOP** and tell the human to
-launch from an isolated worktree first:
+If either check fails (branch not `ca/*`, or the tree is not under `.claude/worktrees/ca/`),
+**STOP** and tell the human to launch from an isolated worktree first:
 
 ```bash
 bash "$SKILL_DIR/scripts/new-worktree.sh" "$PLAN"
@@ -120,7 +122,7 @@ Hard rules while implementing:
 - Re-run the affected tests, commit, and **push** (this updates the draft PR's diff), increment the
   round, and call Claude again on the same PR (Step 3.3 — reuse `$PR`, never open a second PR).
 - Stop when approved, when the round count reaches `MAX_ROUNDS` (default 2 — the initial review plus
-  at most two fix rounds), or when two consecutive rounds produce an identical diff. On a forced stop,
+  at most one fix-and-re-review round), or when two consecutive rounds produce an identical diff. On a forced stop,
   **leave the PR as a draft** and **ASK** the human whether to keep going or take it from here.
 
 This is one continuous session, so prior rounds are already in context — still re-read the latest
@@ -148,13 +150,18 @@ bash "$SKILL_DIR/scripts/post-summary.sh" "$RUN" "$PR"
 
 ## Step 6 — Cleanup after merge (only on confirmation)
 
-Delete nothing until the human confirms the PR merged. Then, from the main checkout (`MAIN` is the
-original repo root, not this worktree):
+Delete nothing until the human confirms the PR merged. The preferred path is the Claude-side
+`/ca:clean-worktrees` (it owns the cleanup guardrails and verifies the merge itself). If the human
+asks you to clean up from here instead, derive the main checkout first — `git worktree remove`
+must run from OUTSIDE the worktree being removed:
 
 ```bash
-git -C "$MAIN" worktree remove "$ROOT"   # no --force; refuses uncommitted changes
-git -C "$MAIN" branch -d "$BR"           # -d refuses unmerged; never -D
-git -C "$MAIN" worktree prune
+MAIN="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"   # first entry = main checkout
+[ -n "$MAIN" ] && [ "$MAIN" != "$ROOT" ] || { echo "cannot resolve main checkout — use /ca:clean-worktrees" >&2; exit 1; }
+cd "$MAIN"
+git worktree remove "$ROOT"   # no --force; refuses uncommitted changes
+git branch -d "$BR"           # -d refuses unmerged; never -D
+git worktree prune
 ```
 
 If the PR was closed unmerged, clean nothing and tell the human.
