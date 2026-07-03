@@ -11,9 +11,9 @@
     {
       "name": "sa",
       "source": "./sa",
-      "description": "Simple Agents — command-free skills + subagents for fast single-feature development: plan, approve, isolate in a worktree, implement, PR",
+      "description": "Simple Agents — command-free skills + subagents for fast single-feature development: plan, approve, isolate in a worktree, implement, PR — Sonnet build / Opus review",
       "category": "workflow",
-      "tags": ["simple", "worktree", "subagents", "code-review", "opus-4-8"]
+      "tags": ["simple", "worktree", "subagents", "code-review", "sonnet"]
     },
     {
       "name": "ha",
@@ -25,7 +25,7 @@
     {
       "name": "ca",
       "source": "./ca/claude",
-      "description": "Cooperate Agents — Claude×Codex loop (plan & review side): draft a plan sparring with Codex, then review the Codex-built diff against it",
+      "description": "Cooperate Agents — Claude×Codex loop: draft a plan sparring with Codex, hand off to Codex to implement and open a draft PR, review that PR (gated, up to 2 rounds), then merge and clean up worktrees — full lifecycle, two co-located plugins",
       "category": "workflow",
       "tags": ["codex", "cross-tool", "worktree", "code-review"]
     }
