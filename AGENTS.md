@@ -61,7 +61,7 @@ entry (with its `source` path) to the relevant marketplace.
 ## Git
 
 - Branch off the default branch (e.g. `feat/<topic>`); commit/push only when asked.
-- End commit messages with: `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
+- End commit messages with: `Co-Authored-By: Claude <noreply@anthropic.com>`.
 
 ## Working on the ca plugin
 

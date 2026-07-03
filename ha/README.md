@@ -99,4 +99,5 @@ subagent-driven-development — `ha` doesn't duplicate them.)
 | Disciplines | inlined, light | **invokes** the `superpowers` disciplines (required dependency) |
 | Effort | graded (medium build, high review) | high across substantive skills |
 
-Both are foreground, single-feature, model-agnostic, and need no tmux.
+Both are foreground, single-feature, and need no tmux. `ha` is model-agnostic (inherits your
+session model); `sa` pins Sonnet for the build path and Opus for review/verify.
