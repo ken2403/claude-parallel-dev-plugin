@@ -16,7 +16,7 @@ every phase.
 Or try it locally without installing:
 
 ```
-claude --plugin-dir /path/to/claude-paralell-dev-plugin/ha
+claude --plugin-dir /path/to/claude-parallel-dev-plugin/ha
 ```
 
 **Requirements:** `git`, the GitHub CLI (`gh`, authenticated), and — importantly — the

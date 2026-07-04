@@ -15,7 +15,7 @@ Implementation runs on the latest **Sonnet** for speed; review and verification 
 Or try it locally without installing:
 
 ```
-claude --plugin-dir /path/to/claude-paralell-dev-plugin/sa
+claude --plugin-dir /path/to/claude-parallel-dev-plugin/sa
 ```
 
 Requirements: `git`, the GitHub CLI (`gh`, authenticated), and access to the latest
