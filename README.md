@@ -9,12 +9,8 @@ whichever plugins you want.
 In Claude Code:
 
 ```
-/plugin marketplace add ken2403/claude-paralell-dev-plugin
+/plugin marketplace add ken2403/claude-parallel-dev-plugin
 ```
-
-(The GitHub repo is `claude-paralell-dev-plugin`; the marketplace name declared in
-`.claude-plugin/marketplace.json` is `claude-parallel-dev-plugin` — note the
-spelling differs.)
 
 ## Plugins
 
@@ -33,8 +29,8 @@ model-agnostic (inherits your session model). All three are foreground and need 
 ## Try a plugin locally (without installing)
 
 ```
-claude --plugin-dir /path/to/claude-paralell-dev-plugin/sa
-claude --plugin-dir /path/to/claude-paralell-dev-plugin/ha
+claude --plugin-dir /path/to/claude-parallel-dev-plugin/sa
+claude --plugin-dir /path/to/claude-parallel-dev-plugin/ha
 ```
 
 ## Repository layout
