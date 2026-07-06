@@ -1,6 +1,6 @@
 ---
 name: clean-worktrees
-description: Reclaims sa worktrees after features land — removes merged feature worktrees and deletes their merged branches. Use once a feature PR is merged. Safe by default — never removes a worktree with uncommitted changes and never deletes an unmerged branch.
+description: Reclaims worktrees after features land — removes every merged worktree in the repo (sa/ha/ca and any other, regardless of location) and deletes their merged branches. Use once a feature PR is merged. Safe by default — never removes a worktree with uncommitted changes, never deletes an unmerged branch, and never touches the main checkout or current worktree.
 argument-hint: '[feature ids / branches to clean, or all-merged]'
 model: haiku
 disable-model-invocation: true
@@ -13,11 +13,12 @@ allowed-tools: Read, Bash, Grep, Glob
 ## Input
 $ARGUMENTS
 
-sa worktrees accumulate under `.claude/worktrees/sa/` and each consumes disk, so reclaim
-them once their work has landed. The hard rule: **never destroy work that hasn't been
-merged.** A leftover worktree is cheap; a deleted unmerged branch is lost work. sa has no
-background agent sessions, so this only touches **worktrees and branches** under
-`.claude/worktrees/sa/` — there is nothing to stop.
+Worktrees accumulate and each consumes disk, so reclaim them once their work has landed.
+This command is **repo-wide**: it cleans **every** merged worktree in `git worktree list`
+regardless of location (sa/ha/ca and any other), so a single run reclaims them all. The
+hard rule: **never destroy work that hasn't been merged.** A leftover worktree is cheap; a
+deleted unmerged branch is lost work. The main checkout and the current worktree are always
+preserved.
 
 ## Context (auto-injected)
 - Worktrees: !`git worktree list 2>/dev/null`
@@ -39,8 +40,8 @@ CLAUDE_SKILL_SA_DIR="${CLAUDE_SKILL_DIR}"
 bash "$CLAUDE_SKILL_SA_DIR/scripts/clean.sh" "<branch | all-merged>"
 ```
 
-`clean.sh` considers **only** worktrees under `.claude/worktrees/sa/`, uses
-`git worktree list` to find them, `git worktree remove` **without `--force`** (uncommitted
+`clean.sh` considers **every** worktree in `git worktree list` (any path), uses
+`git worktree remove` **without `--force`** (uncommitted
 changes ⇒ skip + report), and `git branch -d` (**never `-D`**). It never removes the main
 checkout or the current worktree, and it syncs the base branch with origin before deciding.
 

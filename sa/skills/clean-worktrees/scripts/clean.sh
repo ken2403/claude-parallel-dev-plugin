@@ -2,18 +2,19 @@
 # ==============================================================================
 # Worktree cleanup script for the sa plugin.
 #
-# Scans linked worktrees via `git worktree list` and removes the ones that are
-# BOTH (a) created by sa — i.e. living under `.claude/worktrees/sa/` — AND
-# (b) on a branch that has been merged. Native background-agent worktrees and
-# any other worktree outside `.claude/worktrees/sa/` are never touched.
+# Scans linked worktrees via `git worktree list` and removes EVERY worktree —
+# regardless of location — whose branch has been merged. This is intentionally
+# repo-wide: it reclaims ha/sa/ca worktrees and any other merged worktree, so a
+# single run cleans them all. The main checkout and the current worktree are
+# always preserved, and an unmerged branch is never deleted.
 #
 # Usage:
 #   scripts/clean.sh [branch | path | all-merged | --all]
-#     (no arg / all-merged / --all) → consider every sa worktree
+#     (no arg / all-merged / --all) → consider every worktree
 #     (a name/branch/path) → only that one
 #
 # Safety:
-#   - Only ever considers worktrees under `.claude/worktrees/sa/`.
+#   - Considers every worktree in `git worktree list` (any path).
 #   - NEVER deletes a worktree whose branch has NOT been merged.
 #   - NEVER deletes the main checkout or the worktree this script runs in.
 #   - NEVER uses `git worktree remove --force` — a worktree with uncommitted
@@ -49,9 +50,6 @@ echo "Repository: $GIT_ROOT"
 
 # Helper scripts are co-located in this skill's own scripts/ dir (self-contained).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Only sa's own worktrees are eligible for removal.
-SA_WT_PREFIX="$GIT_ROOT/.claude/worktrees/sa/"
 
 # Base branch detection
 BASE_BRANCH=$("$SCRIPT_DIR/detect-base-branch.sh" 2>/dev/null || echo "main")
@@ -108,7 +106,7 @@ case "$COMMON_GIT_DIR" in
 esac
 
 echo ""
-echo "=== Scanning sa worktrees under .claude/worktrees/sa/ ==="
+echo "=== Scanning all worktrees ==="
 
 MERGED_JOBS=()     # entries: "<path>\t<branch>"
 UNMERGED_JOBS=()   # "<name>:<branch>"
@@ -119,12 +117,6 @@ FAILED_JOBS=()
 while IFS=$'\t' read -r wt_path wt_branch; do
   [ -z "$wt_path" ] && continue
   name="$(basename "$wt_path")"
-
-  # Only ever consider sa's own worktrees, under .claude/worktrees/sa/.
-  case "$wt_path/" in
-    "$SA_WT_PREFIX"*) ;;
-    *) continue ;;
-  esac
 
   # Never touch the main checkout or the current worktree.
   if [ -n "$MAIN_WT" ] && [ "$wt_path" = "$MAIN_WT" ]; then
