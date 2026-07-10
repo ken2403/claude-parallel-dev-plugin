@@ -25,7 +25,7 @@
     {
       "name": "ca",
       "source": "./ca/claude",
-      "description": "Cooperate Agents — Claude×Codex loop: draft a plan sparring with Codex, hand off to Codex to implement and open a draft PR, review that PR (gated, up to 2 rounds), then merge and clean up worktrees — full lifecycle, two co-located plugins",
+      "description": "Cooperate Agents — Claude×Codex loop: draft a milestone-grouped plan sparring with Codex, hand off to Codex to implement milestone by milestone with Claude checkpoint reviews on a draft PR, then a final gated review (up to 2 final rounds), then merge and clean up worktrees — full lifecycle, two co-located plugins",
       "category": "workflow",
       "tags": ["codex", "cross-tool", "worktree", "code-review"]
     }
