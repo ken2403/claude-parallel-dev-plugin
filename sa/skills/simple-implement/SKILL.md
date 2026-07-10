@@ -92,6 +92,12 @@ the *expected* reason, (3) write the minimal implementation, (4) run it green an
 the pass. A test that never failed proves nothing. Skip only when there is no testable
 behavior (docs, comments, pure config) — and say so in the PR Notes.
 
+| Rationalization | Reality |
+|---|---|
+| "Too simple to test" | Simple changes break too — and the reviewer blocks untested behavior changes anyway. |
+| "I'll add the test after" | A test written after proves what the code *does*, not what it *should* do. |
+| "The suite will catch it" | The suite proves the tree is green, not that *your* change is covered. |
+
 The `code-review` standards skill auto-activates — follow it (quality, security,
 consistency). Update any docs the repo keeps in step with the code (within scope).
 
@@ -114,31 +120,11 @@ Fix failures. If still red after a fix attempt, open the PR as a **draft** docum
 
 The build gate proves the tree is green; this is an **independent** look before the PR —
 an error the author makes is often one the author cannot see, and catching it here is far
-cheaper than a review round-trip. Grade the diff
-(`git -C "$WORKTREE_PATH" diff origin/<base>...HEAD`) with this inline heuristic — no
-extra agent, seconds:
+cheaper than a review round-trip.
 
-- **RISKY** — touches authn/authz/sessions/tokens, crypto/secrets, money/billing,
-  external-input parsing (HTTP handlers, deserialization, file uploads), data
-  migration/deletion, permissions, or SQL/shell string construction.
-- **TRIVIAL** — docs/comments/config-only, or ≤~25 changed lines already covered by an
-  existing test.
-- **NORMAL** — everything else.
-
-Then dispatch `verifier` subagent(s), passing each the absolute `$WORKTREE_PATH`:
-
-- **TRIVIAL** → skip; the build gate is the gate.
-- **NORMAL** → **one** verifier, claim: *"the diff satisfies the stated success criteria
-  for all relevant inputs, and no call site or consumer outside the diff was missed."*
-- **RISKY** → **two** verifiers in parallel, blind to each other, distinct lenses:
-  (1) correctness — construct a concrete counter-example; (2) security — trace external
-  input to its sinks, check authz.
-
-On **REFUTED**: fix, then re-verify only the refuted claim with one verifier. **Hard cap:
-one fix round.** If a claim stays REFUTED — or UNCERTAIN on a RISKY diff — open the PR as
-a **draft** with the finding in Notes. Never loop.
-
-## Phase 9 — Open the PR (end of this skill)
+**Commit first** — uncommitted and untracked work is invisible both to
+`git diff <base>...HEAD` and to the verifier, so an uncommitted change would sail through
+this gate unreviewed:
 
 ```bash
 git -C "$WORKTREE_PATH" add -A
@@ -150,6 +136,38 @@ git -C "$WORKTREE_PATH" commit -m "$(cat <<'EOF'
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
+BASE="$(bash "${CLAUDE_SKILL_DIR}/scripts/detect-base-branch.sh" "$WORKTREE_PATH")"
+git -C "$WORKTREE_PATH" diff --stat "origin/$BASE...HEAD"   # this diff is what gets graded
+```
+
+Grade that diff with this inline heuristic — no extra agent, seconds:
+
+- **RISKY** — touches a risky surface. The canonical list lives in the `code-review`
+  skill (authn/authz, secrets, money, external input, migration/deletion, permissions,
+  SQL/shell construction) — that list is the single source of truth.
+- **TRIVIAL** — docs/comments/config-only, or ≤~25 changed lines already covered by an
+  existing test.
+- **NORMAL** — everything else.
+
+Then dispatch `verifier` subagent(s), passing each the absolute `$WORKTREE_PATH`, the
+base branch, **and the plan's success criteria from Phase 1** (the claim references them):
+
+- **TRIVIAL** → skip; the build gate is the gate.
+- **NORMAL** → **one** verifier, claim: *"the diff satisfies the stated success criteria
+  for all relevant inputs, and no call site or consumer outside the diff was missed."*
+- **RISKY** → **two** verifiers in parallel, blind to each other, distinct lenses:
+  (1) correctness — construct a concrete counter-example; (2) security — trace external
+  input to its sinks, check authz.
+
+On **REFUTED**: fix, commit the fix, then re-verify only the refuted claim with one
+verifier. **Hard cap: one fix round.** If a claim stays REFUTED — or UNCERTAIN on a RISKY
+diff — open the PR as a **draft** with the finding in Notes. Never loop.
+
+## Phase 9 — Open the PR (end of this skill)
+
+The work is already committed (Phase 8). Push and open the PR:
+
+```bash
 git -C "$WORKTREE_PATH" push -u origin "$BRANCH"
 BASE="$(bash "${CLAUDE_SKILL_DIR}/scripts/detect-base-branch.sh" "$WORKTREE_PATH")"
 # add --draft if checks are red

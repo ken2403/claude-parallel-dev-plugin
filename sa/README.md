@@ -21,7 +21,12 @@ claude --plugin-dir /path/to/claude-parallel-dev-plugin/sa
 ```
 
 Requirements: `git`, the GitHub CLI (`gh`, authenticated), and access to the latest
-Sonnet and Opus models.
+Sonnet, Opus, and Haiku models.
+
+Note on model pins: sa pins model aliases, and a skill's `model` overrides the session
+model **in both directions** — review runs on Sonnet even in an Opus session (the Opus
+look comes from the `deep-verifier` escalation, not the session). If you want reviews on
+your session's model, use `ha`, which is model-agnostic by design.
 
 ## Why sa
 
