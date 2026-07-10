@@ -50,7 +50,7 @@ on demand:
    /ha:review-pr <pr> [--comment]   independent heavyweight review (verifiers +
                                      adversarial-verification + the 5 code-reviewer dims)
      → /ha:apply-feedback <pr>       fix (superpowers:receiving-code-review) + push
-   /ha:merge-pr <pr>                 gated merge (approved + green + mergeable)
+   /ha:merge-pr <pr>                 gated merge (no changes requested + green + mergeable)
      → /ha:clean-worktrees           reclaim merged worktrees + branches, safely
    /ha:resolve-conflicts <pr|branch> merge base + resolve in isolation + verify + push
 ```

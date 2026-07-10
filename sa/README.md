@@ -43,7 +43,7 @@ review/verify path and an on-demand review guardrail.
       /sa:review-pr <pr>             independent review (opus/high + `verifier` subagents)
         -> /sa:apply-feedback <pr>      fix + push
       /sa:resolve-conflicts <pr>     merge base + resolve conflicts (isolated) + push
-      /sa:merge-pr [pr]              gated merge (approved + green + mergeable)
+      /sa:merge-pr [pr]              gated merge (no changes requested + green + mergeable)
         -> /sa:clean-worktrees          reclaim merged worktrees + branches
 ```
 

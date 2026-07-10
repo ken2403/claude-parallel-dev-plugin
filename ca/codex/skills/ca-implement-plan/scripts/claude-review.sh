@@ -16,13 +16,15 @@ set -euo pipefail
 
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
 CA_CLAUDE_PLUGIN_DIR="${CA_CLAUDE_PLUGIN_DIR:-}"   # optional: load /ca:review-pr without a global install
-PLAN="" PR="" WT="" ROUND="1" OUT=""
+PLAN="" PR="" WT="" ROUND="1" OUT="" MODE="final"
 while [ $# -gt 0 ]; do case "$1" in
   --plan) PLAN="$2"; shift 2;; --pr) PR="$2"; shift 2;;
   --worktree) WT="$2"; shift 2;; --round) ROUND="$2"; shift 2;;
+  --mode) MODE="$2"; shift 2;;
   --out) OUT="$2"; shift 2;; *) echo "unknown arg: $1" >&2; exit 2;; esac; done
 [ -n "$PLAN" ] && [ -n "$PR" ] && [ -n "$OUT" ] || {
-  echo "usage: claude-review.sh --plan P --pr N --worktree W --round N --out O" >&2; exit 2; }
+  echo "usage: claude-review.sh --plan P --pr N --worktree W --round N [--mode checkpoint|final] --out O" >&2; exit 2; }
+case "$MODE" in checkpoint|final) ;; *) echo "claude-review: bad --mode '$MODE' (checkpoint|final)" >&2; exit 2;; esac
 
 command -v "$CLAUDE_BIN" >/dev/null 2>&1 || {
   echo "claude-review: '$CLAUDE_BIN' not found on PATH. Set CLAUDE_BIN or install Claude Code." >&2
@@ -36,6 +38,7 @@ plan=$PLAN
 pr=$PR
 worktree=$WT
 round=$ROUND
+mode=$MODE
 out=$OUT
 Review the PR against the plan for correctness, security, and codebase consistency.
 Use web search if a claim needs external grounding. Mark a finding blocking:true only for

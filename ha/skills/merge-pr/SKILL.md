@@ -1,6 +1,6 @@
 ---
 name: merge-pr
-description: Merge a reviewed PR after confirming it is genuinely ready — open, not draft, approved, green CI, up to date with base, no unresolved blocking feedback. Use once /ha:review-pr approves a feature's PR. Refuses to merge on red checks, missing review, or conflicts. Invoke explicitly with /ha:merge-pr.
+description: Merge a reviewed PR after confirming it is genuinely ready — open, not draft, no changes requested, green CI, up to date with base, no unresolved blocking feedback. Use once /ha:review-pr approves a feature's PR. Refuses to merge on red checks, changes-requested reviews, or conflicts. Invoke explicitly with /ha:merge-pr.
 argument-hint: '[pr-number] [--squash | --merge | --rebase]'
 model: haiku
 disable-model-invocation: true
@@ -28,7 +28,10 @@ gh pr view "$PR" --json state,mergeable,mergeStateStatus,reviewDecision,statusCh
 Block the merge and report if any of these hold:
 
 - `state` is not OPEN, or `isDraft` is true.
-- `reviewDecision` is not APPROVED (an ha PR should have a `/ha:review-pr` pass).
+- `reviewDecision` is CHANGES_REQUESTED (a human requested changes on GitHub).
+  Do NOT require APPROVED: a `/ha:review-pr` APPROVE is a process gate that lands
+  as a PR *comment* — it never sets `reviewDecision` (and the PR's own author
+  cannot approve it on GitHub), so requiring APPROVED would block solo use forever.
 - CI (`statusCheckRollup`) is not all-green.
 - `mergeable` is false / `mergeStateStatus` indicates conflicts or out-of-date —
   in that case update from base first: run `/ha:resolve-conflicts <pr>` (it merges

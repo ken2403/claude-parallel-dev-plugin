@@ -1,6 +1,6 @@
 ---
 name: ca-implement-plan
-description: Build a saved task-by-task implementation plan in an isolated worktree, gated by Claude-reviewed rounds before the PR is marked ready — the Codex half of the ca (Cooperate Agents) loop. Use when the user points at a plan file under docs/superpowers/plans or any task-by-task plan and says things like "implement this plan", "build the plan at this path", "run the ca loop on this plan", or "have Claude review what you built". Human confirmation is required at key decision points and before cleanup.
+description: Build a saved task-by-task implementation plan in an isolated worktree, milestone by milestone, with Claude checkpoint reviews between milestones and Claude-reviewed final rounds gating the PR before it is marked ready — the Codex half of the ca (Cooperate Agents) loop. Use when the user points at a plan file under docs/ca/plans or any task-by-task plan and says things like "implement this plan", "build the plan at this path", "run the ca loop on this plan", or "have Claude review what you built". Human confirmation is required at key decision points and before cleanup.
 license: MIT
 metadata:
   short-description: Build a plan with Claude review rounds
@@ -8,14 +8,16 @@ metadata:
 
 # ca-implement-plan
 
-Build a saved implementation plan task-by-task in an isolated worktree, get it reviewed by an
-external Claude reviewer between rounds, address blocking feedback, and open a PR — with the human
-present. Pause for the human at every point marked **ASK**.
+Build a saved implementation plan in an isolated worktree, milestone by milestone: an external
+Claude reviewer checkpoints each milestone (so defects surface before more code is built on top
+of them) and gates the final PR promotion, with the human present. Pause for the human at every
+point marked **ASK**.
 
 ## Inputs
 
 - `PLAN` — absolute path to the plan markdown file. Ask the human if it was not provided.
-- `MAX_ROUNDS` — optional cap on Claude review rounds before forcing a stop. Default 2.
+- `MAX_ROUNDS` — optional cap on **final** Claude review rounds before forcing a stop. Default 2.
+  Milestone checkpoint reviews do not count against it.
 
 Resolve the skill's own bundled scripts from its install dir:
 
@@ -47,7 +49,7 @@ Proceed only once on a `ca/<plan-id>` branch in its own worktree.
 
 ## Step 1 — Read and anchor the plan
 
-1. Read `PLAN` in full. `PLAN` must be the **original** plan file (e.g. `docs/superpowers/plans/<id>.md`), not a staged copy named `plan.md` — the id is derived from its basename, and a copy named `plan.md` would collapse the id to `plan`. Ensure a copy and checksum exist at `$ROOT/.ca/runs/<id>/`:
+1. Read `PLAN` in full. `PLAN` must be the **original** plan file (e.g. `docs/ca/plans/<id>.md`), not a staged copy named `plan.md` — the id is derived from its basename, and a copy named `plan.md` would collapse the id to `plan`. Ensure a copy and checksum exist at `$ROOT/.ca/runs/<id>/`:
 
    ```bash
    ID="$(basename "$PLAN" .md)"; RUN="$ROOT/.ca/runs/$ID"; mkdir -p "$RUN"
@@ -55,11 +57,15 @@ Proceed only once on a `ca/<plan-id>` branch in its own worktree.
    cp "$PLAN" "$RUN/plan.md"; shasum -a 256 "$PLAN" | awk '{print $1}' > "$RUN/plan.sha256"
    ```
 2. Restate the goal and the ordered task list in two or three sentences. Note each task's test command.
-3. If the plan contradicts the actual code (a referenced file is gone, an interface drifted), **ASK** the human before building.
+3. Resolve the **milestone grouping**: use the plan's `## Milestones` section if present;
+   otherwise group the tasks yourself at 2–4 natural boundaries (layer/dependency seams, each
+   leaving the tree green). A plan of roughly 4 tasks or fewer is a **single milestone** — the
+   loop then skips checkpoints entirely and behaves as implement-everything-then-final-review.
+4. If the plan contradicts the actual code (a referenced file is gone, an interface drifted), **ASK** the human before building.
 
-## Step 2 — Implement task-by-task (test-first, frequent commits)
+## Step 2 — Implement milestone by milestone (test-first, checkpoint-reviewed)
 
-For each task, in plan order:
+Within each milestone, implement its tasks in plan order:
 
 1. Write the failing test the task specifies. Run it. Confirm it fails for the stated reason.
 2. Write the minimal implementation. Run the test. Confirm it passes.
@@ -70,13 +76,46 @@ Hard rules while implementing:
 
 - Stay inside this worktree. Never edit `.env`, credentials, keys, or other secret files.
 - Keep the diff scoped to the plan. Do not refactor unrelated code.
-- Do not push or open a PR yet.
 
-## Step 3 — Self-review, open a draft PR, then call Claude
+**At the end of each milestone except the last** (a single-milestone plan goes straight to
+Step 3), run a checkpoint review so defects are caught before more code is built on top of them:
+
+1. Push, and on the **first** milestone open the **draft** PR (the reviewer reviews the PR; the
+   draft state is the fail-closed gate — it is promoted to ready only after the final review
+   approves):
+
+   ```bash
+   git -C "$ROOT" push -u origin "$BR"
+   gh pr view "$BR" >/dev/null 2>&1 || \
+     gh pr create --draft --base "${CA_BASE:-main}" --head "$BR" --title "feat: $ID" --body-file "$RUN/plan.md"
+   PR="$(gh pr view "$BR" --json number --jq .number)"
+   echo "draft PR: #$PR"
+   ```
+2. Call the checkpoint review (`M` = the milestone number just completed). The same **TWO
+   PRECONDITIONS** as the final review apply (Step 3) — a resolvable `/ca:review-pr` plus
+   network + authenticated `gh`. If the script fails because the reviewer was unreachable,
+   **ASK** the human whether to run it where network works or to skip the remaining checkpoints
+   and rely on the final review — do not treat an unreachable reviewer as a real `blocked` verdict.
+
+   ```bash
+   bash "$SKILL_DIR/scripts/claude-review.sh" \
+     --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
+     --mode checkpoint --round "$M" --out "$RUN/review-checkpoint-$M.json"
+   ```
+
+   Checkpoint mode judges only the milestones built so far (round `M` = milestones 1..M);
+   unbuilt later tasks are not defects.
+3. Read the verdict JSON. Address every `blocking: true` finding **now** — fix, re-run the
+   affected tests, commit, push — before starting the next milestone. There is no checkpoint
+   re-review (the final review verifies the fixes). Record non-blocking findings for the PR
+   summary. On a malformed file, treat it as blocked and **ASK** the human.
+
+## Step 3 — Self-review, ensure the draft PR, then the final Claude review
 
 1. Self-review the diff against the plan: every task covered, tests present and green, no placeholder left.
-2. Push the branch and open a **draft** PR (the reviewer reviews the PR; the draft state is the
-   fail-closed gate — it is promoted to ready only after Claude approves):
+2. Push, and make sure the **draft** PR exists (checkpointed runs opened it at milestone 1; a
+   single-milestone run opens it here — the draft state is the fail-closed gate, promoted to
+   ready only after Claude approves):
 
    ```bash
    RUND=1
@@ -86,8 +125,9 @@ Hard rules while implementing:
    PR="$(gh pr view "$BR" --json number --jq .number)"
    echo "draft PR: #$PR"
    ```
-3. Call the Claude reviewer on the PR. This bundled script runs `claude -p /ca:review-pr` and writes
-   a validated JSON verdict.
+3. Call the Claude reviewer on the PR in **final** mode (only final rounds count against
+   `MAX_ROUNDS`). This bundled script runs `claude -p /ca:review-pr` and writes a validated
+   JSON verdict.
 
    **TWO PRECONDITIONS — important.** Both must hold or no review is produced:
    - **Skill resolvable:** `claude -p /ca:review-pr` only works if the ca *Claude* plugin is
@@ -104,7 +144,7 @@ Hard rules while implementing:
    ```bash
    bash "$SKILL_DIR/scripts/claude-review.sh" \
      --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
-     --round "$RUND" --out "$RUN/review-round-$RUND.json"
+     --mode final --round "$RUND" --out "$RUN/review-round-$RUND.json"
    ```
 
    The script fails loudly (non-zero) with an actionable reason if no valid review is produced — if
@@ -130,8 +170,8 @@ review JSON and the current PR diff so decisions rest on the current files, not 
 
 ## Step 5 — Promote the PR to ready, with an exchange summary
 
-The PR already exists (opened as a draft in Step 3). Once the review approved — or produced no
-blocking findings — promote it to ready:
+The PR already exists (opened as a draft at the first milestone, or in Step 3). Once the final
+review approved — or produced no blocking findings — promote it to ready:
 
 ```bash
 gh pr ready "$PR"          # promote the draft PR to ready-for-review
@@ -139,8 +179,8 @@ gh pr ready "$PR"          # promote the draft PR to ready-for-review
 
 If the loop hit a forced stop with unresolved blocking findings, leave it as a draft instead and say so.
 
-Then post the round-by-round Claude/Codex exchange (verdicts, what each round fixed, any disputed
-findings) as a PR comment, and report the PR link to the human:
+Then post the Claude/Codex exchange — every checkpoint and final round (verdicts, what each one
+fixed, any disputed findings) — as a PR comment, and report the PR link to the human:
 
 ```bash
 bash "$SKILL_DIR/scripts/post-summary.sh" "$RUN" "$PR"

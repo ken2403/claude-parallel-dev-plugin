@@ -39,4 +39,4 @@ The Codex skill cannot set model/effort in its frontmatter, so tell the human to
 codex -C "<worktree-path>" -m <strong-model> -c model_reasoning_effort=high
 ```
 
-State clearly what the Codex session will do: it implements the plan task-by-task, **opens a draft PR**, calls Claude (`/ca:review-pr`) to review that PR over at most 2 rounds, and — once the review approves — **marks the PR ready**. Do not attempt to implement the plan from here.
+State clearly what the Codex session will do: it implements the plan milestone by milestone, **opens a draft PR at the first milestone**, gets a Claude checkpoint review (`/ca:review-pr`, `mode=checkpoint`) between milestones, then runs the final review over at most 2 rounds, and — once the final review approves — **marks the PR ready**. Do not attempt to implement the plan from here.
