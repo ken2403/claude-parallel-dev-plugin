@@ -19,7 +19,9 @@ with `Grep`/`Glob` before flagging something as wrong.
 ## Three dimensions
 
 - **Quality** — readability, maintainability, simplicity, type safety, error handling,
-  performance, tests, matching existing style. → [references/code-quality.md](references/code-quality.md)
+  performance, tests, matching existing style. A behavior change without a covering test
+  is a **High/blocking** finding unless the PR states why it is untestable.
+  → [references/code-quality.md](references/code-quality.md)
 - **Security** (non-negotiable; must never regress) — injection (SQL/command/path/template),
   authn/authz, secrets, crypto, unsafe deserialization, SSRF, sensitive data in logs,
   dependency risk. → [references/security.md](references/security.md)

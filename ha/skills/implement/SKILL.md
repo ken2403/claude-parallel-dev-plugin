@@ -82,7 +82,11 @@ text ends by invoking finishing-a-development-branch, so the stop instruction mu
 be loud.
 
 If the plan is a bare task with no task breakdown, first produce a short task list
-(or run `/ha:plan`) — SDD needs tasks to iterate over.
+(or run `/ha:plan`) — SDD needs tasks to iterate over. An inline task list written
+here skips `/ha:plan`'s front-loaded test rigor, so it must carry that rigor itself:
+give every task explicit RED→GREEN test steps (the failing assertion, then the
+implementation). **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`
+for tasks generated this way.
 
 ## Phase 4 — Pre-PR adversarial gate (risk-scaled — NOT a second full review)
 

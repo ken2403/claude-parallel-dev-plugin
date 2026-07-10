@@ -22,11 +22,11 @@ Get an independent, adversarial critique from Codex. **Codex `exec` calls are st
 bash "${CLAUDE_SKILL_DIR}/scripts/spar-codex.sh" /path/to/round-N-prompt.md
 ```
 
-Ask Codex to attack the plan: missing tasks, wrong sequencing, risky assumptions, simpler approaches, failure modes. Incorporate what holds up; record (don't silently drop) what you reject and why. Repeat once more if the first round surfaced substantial changes.
+Ask Codex to attack the plan: missing tasks, wrong sequencing, risky assumptions, simpler approaches, failure modes, and tasks whose tests are missing or would not prove the behavior. Incorporate what holds up; record (don't silently drop) what you reject and why. Repeat once more if the first round surfaced substantial changes.
 
 ## Step 3 — Finalize and save
 
-Apply the sparring outcomes, re-run the writing-plans self-review (spec coverage, no placeholders, type/identifier consistency), and save to:
+Apply the sparring outcomes, re-run the writing-plans self-review (spec coverage, no placeholders, type/identifier consistency), and confirm **every task carries a failing-test spec and its test command** — a task with no testable behavior must say so explicitly, because `$ca-implement-plan`'s test-first step runs off exactly what each task specifies. Then save to:
 
 ```
 docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md
