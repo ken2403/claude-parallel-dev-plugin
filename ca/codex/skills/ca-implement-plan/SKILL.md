@@ -61,7 +61,9 @@ Proceed only once on a `ca/<plan-id>` branch in its own worktree.
 
 For each task, in plan order:
 
-1. Write the failing test the task specifies. Run it. Confirm it fails for the stated reason.
+1. Write the failing test the task specifies. If the task specifies no test, write one yourself
+   before implementing — unless the task has no testable behavior, in which case note that in the
+   commit body; never silently skip test-first. Run it. Confirm it fails for the stated reason.
 2. Write the minimal implementation. Run the test. Confirm it passes.
 3. Run the task's lint/build/typecheck if specified. Capture real output — never claim success without evidence.
 4. Commit with a conventional message and the repo's co-author footer.

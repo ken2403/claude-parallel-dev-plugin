@@ -1,7 +1,7 @@
 ---
 name: verifier
-description: Adversarial, read-only reviewer that tries to REFUTE a specific claim about a change (correct, safe, complete). Dispatch several in parallel with different lenses to verify before shipping. Defaults to skeptical.
-model: opus
+description: Adversarial, read-only reviewer that tries to REFUTE a specific claim about a change (correct, safe, complete). The cheap fan-out cross-checker — dispatch several in parallel with different, mutually blind lenses (pre-PR check, review, feedback re-check); independence between lenses is what multiplies the error rate down. Defaults to skeptical. Escalate unresolved or risky claims to deep-verifier.
+model: sonnet
 effort: high
 tools: Read, Grep, Glob, Bash
 skills:
