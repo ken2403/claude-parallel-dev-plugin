@@ -42,7 +42,11 @@ an auth change needs all five.
 
 For each claim, dispatch a `verifier` subagent with a distinct lens, **in
 parallel** (one `Agent` message, multiple calls). Tell each one to *try to break
-the claim* and default to REFUTED when uncertain. For higher-stakes claims, put
+the claim* — but a REFUTED verdict must carry a **concrete counter-example or
+failing evidence**; with no evidence either way the verdict is UNCERTAIN, never
+UPHELD (the same rule the `verifier` agent itself states). A panel that rejects
+without evidence manufactures false findings and fix-churn — evidence-gated
+refutation is what keeps the panel's precision. For higher-stakes claims, put
 **3 or more verifiers** on the same claim with different lenses (e.g. correctness,
 edge-cases, security) and take a majority — an odd number breaks ties, and three
 distinct lenses is the smallest panel that catches failure modes a single

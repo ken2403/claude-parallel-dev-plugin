@@ -51,8 +51,13 @@ is left as "the reviewer will catch it later" — that is the axis ha is correct
 The plan must encode *how the feature is proven correct*, not delegate it:
 
 - Each edge case / failure mode from Phase 2 and the Phase 3.5 red-team is an
-  explicit **test task** (RED→GREEN with the actual assertion), not a vague
-  "add tests" step.
+  explicit **test task** with the intended assertion, not a vague "add tests" step.
+- **Test strategy is declared per task, deviations named.** RED→GREEN TDD is the
+  default for new behavior; a task may instead declare `characterization`
+  (refactor — pin current behavior first), `test-after` (interface only stabilizes
+  with the code), or `e2e` (no unit seam), each with a one-line reason. What makes
+  LLM-built code correct is tests-as-context plus executable checks — procedural
+  RED→GREEN everywhere is ceremony on tasks that don't fit it.
 - Tests assert **real behavior**, not mocks of the thing under test.
 - Where the toolchain supports coverage (e.g. `pytest --cov`, `go test -cover`,
   `jest --coverage`), state the coverage expectation for the touched code as a

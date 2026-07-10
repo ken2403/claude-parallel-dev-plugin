@@ -105,9 +105,13 @@ the same bytes are not reviewed twice by the same method. Operate on the full di
   broad refactor) → the full `adversarial-verification` treatment — ≥3 `verifier`s
   with distinct lenses + the completeness critic — up to `MAX_ROUNDS` (default 2).
 
-Apply every Critical/Important finding (a fix spanning 3+ file-disjoint,
-dependency-free spots may fan out to parallel general-purpose subagents —
-`superpowers:dispatching-parallel-agents`; never two on the same file). **Match
+**Evaluate findings before applying them** — a verifier verdict is data, not
+orders (the same `superpowers:receiving-code-review` discipline `apply-feedback`
+uses): verify each finding against the code first, and drop one that is factually
+wrong, recording why. Then apply every **verified** Critical/Important finding (a
+fix spanning 3+ file-disjoint, dependency-free spots may fan out to parallel
+general-purpose subagents — `superpowers:dispatching-parallel-agents`; never two
+on the same file). **Match
 rigor to risk** — do not run the heavy multi-round panel on a trivial change; that
 is `adversarial-verification`'s own rule and the analyzer already graded this work.
 Detail and the (b)-vs-(c) rationale in `references/pre-pr-gate.md`.

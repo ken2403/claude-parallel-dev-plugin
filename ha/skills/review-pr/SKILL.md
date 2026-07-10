@@ -87,7 +87,16 @@ non-negotiable**; never wave it through. Evidence beats opinion.
 
 ## Verification
 - <claims checked, verifier verdicts, evidence>
+
+## Escape analysis (calibration)
+- <blocking finding> — escaped from: plan red-team | SDD task review | pre-PR gate | none (only visible post-assembly)
 ```
+
+The escape analysis is ha's lightweight calibration loop: for each blocking
+finding, name the earlier gate that should have caught it (or "none" if it only
+becomes visible in the assembled whole). Recurring escapes from the same gate
+mean *that* gate's rigor is miscalibrated — tune it there instead of adding
+rounds here. Skip the section when there are no blocking findings.
 
 Only **APPROVE** when the blocking list is empty AND adversarial verification
 passed. "Looks fine" without having tried to break it is not approval.

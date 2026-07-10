@@ -104,9 +104,13 @@ plan doc (chosen approach, explicit deviations, risk grade, the red-team's resid
 risks), then the writing-plans body. Do not write a separate spec file.
 
 **Front-load test rigor.** Every edge case and failure mode surfaced in Phase 2/3.5
-**MUST** appear as an explicit test task (RED→GREEN) in the plan — not left to the
-implementer's discretion. Where the toolchain supports coverage, state the coverage
-expectation as a success criterion.
+**MUST** be covered by an explicit test task in the plan — not left to the
+implementer's discretion. Declare a **test strategy per task**: RED→GREEN TDD is
+the default for new behavior, but a task may instead declare `characterization`
+(refactors — pin current behavior before changing it), `test-after` (e.g. thin
+adapters whose interface only stabilizes with the code), or `e2e` (no unit seam
+exists) — each deviation from TDD named with a one-line reason. Where the
+toolchain supports coverage, state the coverage expectation as a success criterion.
 
 **Verify the location (control check).** After writing, confirm the plan landed at the
 target and that this run created nothing under `docs/superpowers/`:
