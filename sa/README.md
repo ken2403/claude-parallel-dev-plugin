@@ -53,7 +53,7 @@ the claims they cannot settle.
                                      lenses; escalates hard cases to opus `deep-verifier`)
         -> /sa:apply-feedback <pr>      fix + push
       /sa:resolve-conflicts <pr>     merge base + resolve conflicts (isolated) + push
-      /sa:merge-pr [pr]              gated merge (approved + green + mergeable)
+      /sa:merge-pr [pr]              gated merge (no changes requested + green + mergeable)
         -> /sa:clean-worktrees          reclaim merged worktrees + branches
 ```
 
@@ -70,7 +70,7 @@ explicit step.
 - `apply-feedback` — turn review feedback into committed fixes (sonnet, effort medium).
 - `resolve-conflicts` — merge the base branch and resolve conflicts in an isolated
   worktree, verify, and push (opus, effort high).
-- `merge-pr` — gated merge: refuses drafts, missing approval, red CI, and conflicts
+- `merge-pr` — gated merge: refuses drafts, changes-requested reviews, red CI, and conflicts
   (haiku, effort low; the preflight is mechanical `gh pr view` field checks, and
   `gh pr merge` + branch protection refuse ineligible merges server-side).
 - `clean-worktrees` — reclaim merged sa worktrees + branches, safely (haiku, effort low).

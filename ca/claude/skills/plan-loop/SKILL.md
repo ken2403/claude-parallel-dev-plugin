@@ -14,6 +14,8 @@ Draft a strong implementation plan, sharpen it by sparring with Codex, then save
 
 Ground the plan in the codebase (read relevant files, dispatch `Explore` agents for unfamiliar areas) and write a task-by-task implementation plan following the superpowers writing-plans conventions: a clear goal, architecture, exact file paths, bite-sized TDD steps with real code/commands, and a self-review. Resolve ambiguities with the human before designing.
 
+Include a `## Milestones` section that groups the tasks into 2–4 natural checkpoints (layer or dependency seams — e.g. "data model", "API", "UI"); the implement loop pushes and gets a Claude checkpoint review at the end of each one, so defects surface before more code is built on top of them. A small plan (roughly 4 tasks or fewer) is a single milestone.
+
 ## Step 2 — Spar with Codex (1–2 rounds)
 
 Get an independent, adversarial critique from Codex. **Codex `exec` calls are stateless** — each call forgets the last — so write the FULL current draft plus your specific questions into a prompt file each round, then:
@@ -22,14 +24,14 @@ Get an independent, adversarial critique from Codex. **Codex `exec` calls are st
 bash "${CLAUDE_SKILL_DIR}/scripts/spar-codex.sh" /path/to/round-N-prompt.md
 ```
 
-Ask Codex to attack the plan: missing tasks, wrong sequencing, risky assumptions, simpler approaches, failure modes, and tasks whose tests are missing or would not prove the behavior. Incorporate what holds up; record (don't silently drop) what you reject and why. Repeat once more if the first round surfaced substantial changes.
+Ask Codex to attack the plan: missing tasks, wrong sequencing, risky assumptions, simpler approaches, failure modes, tasks whose tests are missing or would not prove the behavior, and whether the milestone grouping/ordering is right (each milestone should leave the tree green and reviewable on its own). Incorporate what holds up; record (don't silently drop) what you reject and why. Repeat once more if the first round surfaced substantial changes.
 
 ## Step 3 — Finalize and save
 
-Apply the sparring outcomes, re-run the writing-plans self-review (spec coverage, no placeholders, type/identifier consistency), and confirm **every task carries a failing-test spec and its test command** — a task with no testable behavior must say so explicitly, because `$ca-implement-plan`'s test-first step runs off exactly what each task specifies. Then save to:
+Apply the sparring outcomes, re-run the writing-plans self-review (spec coverage, no placeholders, type/identifier consistency), and confirm **every task carries a failing-test spec and its test command** — a task with no testable behavior must say so explicitly, because `$ca-implement-plan`'s test-first step runs off exactly what each task specifies. Then save to the ca-owned plan dir (never `docs/superpowers/` — that is superpowers' scratch namespace):
 
 ```
-docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md
+docs/ca/plans/YYYY-MM-DD-<feature-name>.md
 ```
 
 Tell the human the saved path and that the next step is `/ca:implement <plan>` to launch the Codex implement loop. Open a plan PR only if the human asks.

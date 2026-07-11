@@ -6,13 +6,14 @@ RUN="${1:?run dir}"; PR="${2:-}"
 MD="$RUN/exchange-summary.md"
 {
   echo "## ca loop — Claude×Codex exchange summary"; echo
-  for r in "$RUN"/review-round-*.json; do
+  for r in "$RUN"/review-checkpoint-*.json "$RUN"/review-round-*.json; do
     [ -f "$r" ] || continue
     n="$(basename "$r" | tr -dc '0-9')"
-    python3 - "$r" "$n" <<'PY'
+    case "$(basename "$r")" in review-checkpoint-*) label="Checkpoint";; *) label="Round";; esac
+    python3 - "$r" "$n" "$label" <<'PY'
 import json, sys
-d = json.load(open(sys.argv[1])); n = sys.argv[2]
-print(f"### Round {n} — Claude verdict: **{d.get('verdict','?')}**")
+d = json.load(open(sys.argv[1])); n = sys.argv[2]; label = sys.argv[3]
+print(f"### {label} {n} — Claude verdict: **{d.get('verdict','?')}**")
 s = (d.get("summary") or "").strip()
 if s: print(f"> {s}")
 for f in d.get("findings", []):

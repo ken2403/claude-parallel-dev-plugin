@@ -72,10 +72,12 @@ entry (with its `source` path) to the relevant marketplace.
 
 ## Working on the ca plugin
 
-`ca` ("Cooperate Agents") is a Claude×Codex loop: **Claude drafts a plan and spars
-with Codex → Codex implements an epic in an isolated git worktree and opens a draft
-PR → Claude reviews the PR vs. the plan (≤2 rounds) → on approve Codex marks the PR
-ready with an exchange summary → human merges → `/ca:clean-worktrees` reclaims it.**
+`ca` ("Cooperate Agents") is a Claude×Codex loop: **Claude drafts a milestone-grouped plan
+(saved to `docs/ca/plans/` — never `docs/superpowers/`) and spars with Codex → Codex implements
+it milestone by milestone in an isolated git worktree, opening a draft PR at the first milestone
+and getting a Claude checkpoint review (`mode=checkpoint`) between milestones → Claude runs the
+final review vs. the plan (≤2 rounds) → on approve Codex marks the PR ready with an exchange
+summary → human merges → `/ca:clean-worktrees` reclaims it.**
 Plus standalone `/ca:resolve-conflicts` and `/ca:clean-worktrees`, mirroring sa/ha.
 It ships as two co-located plugins so each
 tool scans only its own skills.
@@ -103,12 +105,18 @@ tool scans only its own skills.
 
 **Loop rules**
 
-- Review capped at 2 rounds (`MAX_ROUNDS` default 2).
+- **Final** review capped at 2 rounds (`MAX_ROUNDS` default 2). **Milestone checkpoint reviews
+  don't count against it**: plans group tasks into 2–4 milestones (plan-loop writes a
+  `## Milestones` section; ≤4-task plans are a single milestone = no checkpoints); after each
+  milestone except the last, Codex pushes and calls `/ca:review-pr` with `mode=checkpoint`
+  (`--mode checkpoint` on `claude-review.sh`, output `review-checkpoint-<m>.json`), fixes
+  blocking findings before the next milestone, with no checkpoint re-review — the final review
+  verifies the fixes. Checkpoint verdicts never promote the PR; only a final-mode approve does.
 - Implementation runs in a `ca/<plan-id>` worktree created by `new-worktree.sh` (a script, never the model, never `main`), located under `.claude/worktrees/ca/<plan-id>` to match `sa`/`ha`'s worktree convention (all three share the single `.claude/worktrees/` gitignore).
-- **Draft-PR-first loop (the review reviews a *PR*, not a pre-PR diff).** After implementing, Codex pushes and opens a **draft** PR, then calls `/ca:review-pr <pr>`; blocking findings keep it a draft; on approve Codex runs `gh pr ready`. The draft state is the fail-closed gate. `/ca:review-pr` fetches the PR via `gh pr diff` and still emits the `ca_claude_review.v1` JSON the loop consumes (and, if a human runs it with no `CA_OUT`, prints an APPROVE/REQUEST-CHANGES summary). If the `pr=` input is absent it auto-detects the current branch's PR.
+- **Draft-PR-first loop (the review reviews a *PR*, not a pre-PR diff).** Codex pushes and opens the **draft** PR at the end of the *first milestone* (single-milestone plans: before the final review), then calls `/ca:review-pr`; blocking findings keep it a draft; on a final-mode approve Codex runs `gh pr ready`. The draft state is the fail-closed gate. `/ca:review-pr` fetches the PR via `gh pr diff`, takes `mode=checkpoint|final` (default final; checkpoint judges only the milestones built so far and never flags unbuilt later tasks), and still emits the `ca_claude_review.v1` JSON the loop consumes (and, if a human runs it with no `CA_OUT`, prints an APPROVE/REQUEST-CHANGES summary). If the `pr=` input is absent it auto-detects the current branch's PR.
 - **Both plugins are required.** The Codex skill implements; it calls the Claude plugin's `/ca:review-pr` via `claude -p`. So `claude-review.sh` needs `/ca:review-pr` resolvable — the ca Claude plugin installed in the user's config, or `CA_CLAUDE_PLUGIN_DIR` set so it passes `--plugin-dir`. Installing only one side makes every review round fail.
 - Codex runs `-s workspace-write -c approval_policy=never` for implementation. The push, draft-PR, and review steps need **network + an authenticated `gh`** (`claude -p` reaches the API; `/ca:review-pr` fetches the PR via `gh pr diff`) — Codex's `workspace-write` sandbox blocks network, so run them where network+gh are allowed (network-permitted Codex launch/approval, or run `claude-review.sh` on the host). `claude-review.sh` fails loudly, naming both possible causes (skill-not-installed / network-or-gh), if no review is produced. Capture `thread_id` from `codex exec --json`; resume by id, **never `--last`**.
-- Handoff contract: `ca_claude_review.v1` JSON (see `ca/claude/skills/review-pr/references/review-contract.md`); validated by `validate-review.py`; missing/malformed → treat as `blocked` (fail-closed).
+- Handoff contract: `ca_claude_review.v1` JSON with an optional `mode` echo (see `ca/claude/skills/review-pr/references/review-contract.md`); validated by `validate-review.py`; missing/malformed → treat as `blocked` (fail-closed).
 - Self-containment: `review-contract.md` and `new-worktree.sh` are intentionally duplicated into each skill that needs them (skills must be portable when copied); keep the copies byte-identical.
 
 **Validate the ca plugins before committing**
