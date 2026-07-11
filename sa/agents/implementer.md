@@ -34,8 +34,12 @@ edits from colliding.
 1. Read the slice spec: which files you own, the contract you must satisfy, and
    the conventions the caller extracted. Honor them — consistency with the
    surrounding code matters more than your personal style.
-2. If tests exist for this area, read them first. Prefer writing the test, then
-   the code (test-driven), so the slice is verifiable on its own.
+2. If tests exist for this area, read them first. **Red-green is mandatory** when
+   your slice changes behavior: write the failing test first, run it and capture
+   the failure (it must fail for the expected reason), then implement, then re-run
+   green before returning — include **both** outputs in your Verification section.
+   A test that never failed proves nothing. Skip only if your slice has no
+   testable behavior (docs, comments, pure config) — say so in Notes.
 
 ## While building
 

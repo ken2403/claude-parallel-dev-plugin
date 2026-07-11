@@ -76,15 +76,27 @@ worktree. So from here on:
 - Every git op uses `git -C "$WORKTREE_PATH" ...`.
 - Each `implementer` subagent you dispatch is given `$WORKTREE_PATH` and the same rule.
 
-## Phase 6 — Implement (test-driven, fast)
+## Phase 6 — Implement (red-green, fast)
 
 Plan the smallest change that fully satisfies the success criteria, then build:
-- **Single file / tightly coupled**: implement it yourself, test-first, editing absolute
-  paths under `$WORKTREE_PATH`.
+- **Single file / tightly coupled**: implement it yourself, editing absolute paths under
+  `$WORKTREE_PATH`.
 - **3+ independent files**: partition into **file-disjoint slices** and dispatch one
   **`implementer`** subagent per slice in parallel (one `Agent` message, multiple calls).
   **Pass each implementer the absolute `$WORKTREE_PATH`** and its exact file set; then
   integrate the seams yourself.
+
+**Red-green is mandatory for every behavior change** (yours and each implementer's):
+(1) write the failing test first, (2) run it and capture the failure — it must fail for
+the *expected* reason, (3) write the minimal implementation, (4) run it green and capture
+the pass. A test that never failed proves nothing. Skip only when there is no testable
+behavior (docs, comments, pure config) — and say so in the PR Notes.
+
+| Rationalization | Reality |
+|---|---|
+| "Too simple to test" | Simple changes break too — and the reviewer blocks untested behavior changes anyway. |
+| "I'll add the test after" | A test written after proves what the code *does*, not what it *should* do. |
+| "The suite will catch it" | The suite proves the tree is green, not that *your* change is covered. |
 
 The `code-review` standards skill auto-activates — follow it (quality, security,
 consistency). Update any docs the repo keeps in step with the code (within scope).
@@ -104,7 +116,15 @@ cd "$WORKTREE_PATH" && {
 
 Fix failures. If still red after a fix attempt, open the PR as a **draft** documenting it.
 
-## Phase 8 — Open the PR (end of this skill)
+## Phase 8 — Pre-PR cross-check (risk-scaled, cheap)
+
+The build gate proves the tree is green; this is an **independent** look before the PR —
+an error the author makes is often one the author cannot see, and catching it here is far
+cheaper than a review round-trip.
+
+**Commit first** — uncommitted and untracked work is invisible both to
+`git diff <base>...HEAD` and to the verifier, so an uncommitted change would sail through
+this gate unreviewed:
 
 ```bash
 git -C "$WORKTREE_PATH" add -A
@@ -116,6 +136,38 @@ git -C "$WORKTREE_PATH" commit -m "$(cat <<'EOF'
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
+BASE="$(bash "${CLAUDE_SKILL_DIR}/scripts/detect-base-branch.sh" "$WORKTREE_PATH")"
+git -C "$WORKTREE_PATH" diff --stat "origin/$BASE...HEAD"   # this diff is what gets graded
+```
+
+Grade that diff with this inline heuristic — no extra agent, seconds:
+
+- **RISKY** — touches a risky surface. The canonical list lives in the `code-review`
+  skill (authn/authz, secrets, money, external input, migration/deletion, permissions,
+  SQL/shell construction) — that list is the single source of truth.
+- **TRIVIAL** — docs/comments/config-only, or ≤~25 changed lines already covered by an
+  existing test.
+- **NORMAL** — everything else.
+
+Then dispatch `verifier` subagent(s), passing each the absolute `$WORKTREE_PATH`, the
+base branch, **and the plan's success criteria from Phase 1** (the claim references them):
+
+- **TRIVIAL** → skip; the build gate is the gate.
+- **NORMAL** → **one** verifier, claim: *"the diff satisfies the stated success criteria
+  for all relevant inputs, and no call site or consumer outside the diff was missed."*
+- **RISKY** → **two** verifiers in parallel, blind to each other, distinct lenses:
+  (1) correctness — construct a concrete counter-example; (2) security — trace external
+  input to its sinks, check authz.
+
+On **REFUTED**: fix, commit the fix, then re-verify only the refuted claim with one
+verifier. **Hard cap: one fix round.** If a claim stays REFUTED — or UNCERTAIN on a RISKY
+diff — open the PR as a **draft** with the finding in Notes. Never loop.
+
+## Phase 9 — Open the PR (end of this skill)
+
+The work is already committed (Phase 8). Push and open the PR:
+
+```bash
 git -C "$WORKTREE_PATH" push -u origin "$BRANCH"
 BASE="$(bash "${CLAUDE_SKILL_DIR}/scripts/detect-base-branch.sh" "$WORKTREE_PATH")"
 # add --draft if checks are red
@@ -130,7 +182,7 @@ gh pr create --base "$BASE" --head "$BRANCH" --title "<type>: <summary>" --body 
 - <command run> → <result>
 
 ## Notes
-<assumptions; if draft: the blocker and what the human should decide>
+<assumptions; risk: <TRIVIAL|NORMAL|RISKY> — pre-PR check: <skipped|verdicts>; if draft: the blocker and what the human should decide>
 EOF
 )"
 ```
@@ -142,5 +194,5 @@ Always create the PR (a draft on failure beats a silent half-run). **This is the
 ## Final report
 
 ```
-result: <feature> — PR <url> (<ready|draft>) implemented in <worktree>; build: PASS|FAIL. Next: /sa:review-pr <pr> to review.
+result: <feature> — PR <url> (<ready|draft>) implemented in <worktree>; build: PASS|FAIL; pre-PR check (risk <grade>): <skipped|UPHELD|draft: reason>. Next: /sa:review-pr <pr> to review.
 ```

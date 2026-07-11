@@ -83,8 +83,10 @@ drop either side's intent.
 
 ## Step 5 — Integration review (CRITICAL) + verify the build
 
-Conflict resolution is exactly where parallel edits silently break each other. Before
-committing, dispatch a `verifier` subagent (opus/high) against the claim *"the merge is
+Conflict resolution is exactly where parallel edits silently break each other, and a wrong
+resolution is silent corruption — so this check uses the opus-tier `deep-verifier`, not the
+cheap fan-out `verifier`. Before committing, dispatch a `deep-verifier` subagent against
+the claim *"the merge is
 resolved correctly — no hunk lost either side's intent, no conflict markers remain, the
 seams between independently-resolved files are coherent"*. Also confirm no markers survive
 and run the build:

@@ -19,13 +19,24 @@ with `Grep`/`Glob` before flagging something as wrong.
 ## Three dimensions
 
 - **Quality** — readability, maintainability, simplicity, type safety, error handling,
-  performance, tests, matching existing style. → [references/code-quality.md](references/code-quality.md)
+  performance, tests, matching existing style. A behavior change without a covering test
+  is a **High/blocking** finding unless the author states why it is untestable (in the
+  PR Notes — or in the report, when no PR exists yet).
+  → [references/code-quality.md](references/code-quality.md)
 - **Security** (non-negotiable; must never regress) — injection (SQL/command/path/template),
   authn/authz, secrets, crypto, unsafe deserialization, SSRF, sensitive data in logs,
   dependency risk. → [references/security.md](references/security.md)
 - **Consistency beyond the diff** — missed propagation on rename/schema/API/config
   changes, stale references, reinvented logic, docs/types/configs drift, cross-layer
   coherence. → [references/consistency.md](references/consistency.md)
+
+## Risky surfaces (canonical list)
+
+A change is **risky** when it touches: authn/authz/sessions/tokens; crypto/secrets;
+money/billing; external-input parsing (HTTP handlers, deserialization, file uploads);
+data migration/deletion; permissions; or SQL/shell string construction. sa's risk-scaled
+gates (the pre-PR cross-check in `simple-implement`, the escalation triggers in
+`review-pr`) key off this list — **edit it here only**; other skills reference it.
 
 ## How to apply
 

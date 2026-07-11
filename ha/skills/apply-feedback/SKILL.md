@@ -75,7 +75,9 @@ absolute path under `$WORKTREE_PATH`; every test/build runs as
 
 ## Step 4 — Apply the fixes (in `$WORKTREE_PATH`)
 
-- **1–2 files**: fix them yourself, editing absolute paths under `$WORKTREE_PATH`.
+- **1–2 files**: fix them yourself, editing absolute paths under `$WORKTREE_PATH`. A
+  fix that changes behavior follows strict TDD (`superpowers:test-driven-development`):
+  failing test first, then the fix — same discipline the parallel path gets.
 - **3+ independent files**: partition into file-disjoint slices and dispatch one
   **general-purpose** subagent per slice in parallel (one `Agent` message), each
   told to follow strict TDD (`superpowers:test-driven-development`) and the
