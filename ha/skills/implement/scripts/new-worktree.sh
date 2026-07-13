@@ -14,7 +14,9 @@
 #
 # Safety: refuses (non-zero) if the branch already exists (local or remote) or
 # the target worktree path is already taken. Worktrees live under
-# .claude/worktrees/ha/<slug> so cleanup can target only ha's own worktrees.
+# .claude/worktrees/ha/<slug> as a naming convention only — cleanup
+# (/ha:clean-worktrees, /sa:clean-worktrees, /ca:clean-worktrees) is repo-wide
+# and reclaims EVERY merged worktree regardless of location, not just ha's.
 #
 # Note: ha uses script-created PERSISTENT worktrees here (not the native
 # EnterWorktree), because the worktree must outlive the session until the PR
