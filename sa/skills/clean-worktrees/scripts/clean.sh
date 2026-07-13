@@ -5,8 +5,9 @@
 # Scans linked worktrees via `git worktree list` and removes EVERY worktree —
 # regardless of location — whose branch has been merged. This is intentionally
 # repo-wide: it reclaims ha/sa/ca worktrees and any other merged worktree, so a
-# single run cleans them all. The main checkout and the current worktree are
-# always preserved, and an unmerged branch is never deleted.
+# single run cleans them all. The main checkout is always preserved; the current
+# worktree is removed too if its branch is merged. An unmerged branch is never
+# deleted.
 #
 # Usage:
 #   scripts/clean.sh [branch | path | all-merged | --all]
@@ -16,7 +17,9 @@
 # Safety:
 #   - Considers every worktree in `git worktree list` (any path).
 #   - NEVER deletes a worktree whose branch has NOT been merged.
-#   - NEVER deletes the main checkout or the worktree this script runs in.
+#   - NEVER deletes the main checkout. The CURRENT worktree IS removed if its
+#     branch is merged (done from the main checkout, since git refuses to remove
+#     the worktree you stand in); skipped only if there is no separate main dir.
 #   - NEVER uses `git worktree remove --force` — a worktree with uncommitted
 #     changes is skipped and reported, not destroyed.
 #   - `git branch -d` (not -D) — refuses to delete an unmerged branch.
@@ -94,8 +97,10 @@ CLEANUP_ALL=false
 source "$SCRIPT_DIR/merge-check.sh"
 
 # ============================================================
-# Worktrees we must NEVER remove: the main checkout, and the
-# worktree this script is currently running in.
+# The main checkout is NEVER removed. The current worktree CAN be removed if it
+# is merged — but git refuses to remove the worktree you are standing in, so we
+# run all removals from the main checkout. When there is no separate main
+# checkout to relocate to, the current worktree is skipped (fail-safe).
 # ============================================================
 CURRENT_WT="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
 COMMON_GIT_DIR="$(git rev-parse --git-common-dir 2>/dev/null || echo "")"
@@ -104,6 +109,16 @@ case "$COMMON_GIT_DIR" in
   /*) MAIN_WT="$(cd "$(dirname "$COMMON_GIT_DIR")" 2>/dev/null && pwd || echo "")" ;;
   *)  MAIN_WT="$(cd "$GIT_ROOT/$(dirname "$COMMON_GIT_DIR")" 2>/dev/null && pwd || echo "")" ;;
 esac
+
+# Removals run from REMOVE_FROM. Using the main checkout lets us also remove the
+# current worktree; fall back to GIT_ROOT (and skip the current worktree) when
+# there is no separate main checkout.
+REMOVE_FROM="$GIT_ROOT"
+CAN_REMOVE_CURRENT=false
+if [ -n "$MAIN_WT" ] && [ "$MAIN_WT" != "$CURRENT_WT" ]; then
+  REMOVE_FROM="$MAIN_WT"
+  CAN_REMOVE_CURRENT=true
+fi
 
 echo ""
 echo "=== Scanning all worktrees ==="
@@ -118,13 +133,16 @@ while IFS=$'\t' read -r wt_path wt_branch; do
   [ -z "$wt_path" ] && continue
   name="$(basename "$wt_path")"
 
-  # Never touch the main checkout or the current worktree.
+  # Never touch the main checkout.
   if [ -n "$MAIN_WT" ] && [ "$wt_path" = "$MAIN_WT" ]; then
     continue
   fi
-  if [ "$wt_path" = "$CURRENT_WT" ]; then
+  # The current worktree is only skipped when we cannot relocate the removal to a
+  # separate main checkout; otherwise it is evaluated (and removed if merged)
+  # like any other worktree.
+  if [ "$wt_path" = "$CURRENT_WT" ] && [ "$CAN_REMOVE_CURRENT" = false ]; then
     echo ""
-    echo "--- $name --- skip: current worktree (cannot remove the one in use)"
+    echo "--- $name --- skip: current worktree (no separate main checkout to remove it from)"
     continue
   fi
 
@@ -186,6 +204,11 @@ fi
 
 echo ""
 echo "=== Cleaning Merged Worktrees ==="
+# Run every removal from REMOVE_FROM (the main checkout when available) so the
+# current worktree can be removed too. cd there so post-removal git calls and
+# `git worktree prune` keep working even if the cwd's worktree was just removed.
+cd "$REMOVE_FROM" 2>/dev/null || true
+CURRENT_WT_REMOVED=false
 for item in "${MERGED_JOBS[@]}"; do
   wt_path="${item%%$'\t'*}"
   branch="${item##*$'\t'}"
@@ -196,16 +219,17 @@ for item in "${MERGED_JOBS[@]}"; do
 
   # NEVER --force: a plain remove fails on uncommitted changes, which is the
   # signal to inspect — not to destroy.
-  if git worktree remove "$wt_path" 2>/dev/null; then
+  if git -C "$REMOVE_FROM" worktree remove "$wt_path" 2>/dev/null; then
     echo "  Worktree removed"
+    if [ "$wt_path" = "$CURRENT_WT" ]; then CURRENT_WT_REMOVED=true; fi
   else
     echo "  SKIP: uncommitted changes or locked — inspect and remove manually (no --force)"
     FAILED_JOBS+=("$name")
     continue
   fi
 
-  if git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-    if git branch -d "$branch" 2>/dev/null; then
+  if git -C "$REMOVE_FROM" show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
+    if git -C "$REMOVE_FROM" branch -d "$branch" 2>/dev/null; then
       echo "  Local branch '$branch' deleted"
     else
       echo "  Local branch '$branch' kept (not fully merged locally)"
@@ -217,7 +241,7 @@ for item in "${MERGED_JOBS[@]}"; do
   CLEANED_JOBS+=("$name")
 done
 
-git worktree prune 2>/dev/null || true
+git -C "$REMOVE_FROM" worktree prune 2>/dev/null || true
 
 echo ""
 echo "=== Cleanup Complete ==="
@@ -226,3 +250,9 @@ echo "Skipped (uncommitted/locked): ${#FAILED_JOBS[@]}"
 echo "Blocked (not merged): ${#UNMERGED_JOBS[@]}"
 echo "Blocked (unknown):    ${#UNKNOWN_JOBS[@]}"
 echo "Default branch ($BASE_BRANCH) was synced with origin before cleanup."
+
+if [ "$CURRENT_WT_REMOVED" = true ]; then
+  echo ""
+  echo "NOTE: the worktree you were in was merged and has been removed."
+  echo "      cd to the main checkout: $REMOVE_FROM"
+fi

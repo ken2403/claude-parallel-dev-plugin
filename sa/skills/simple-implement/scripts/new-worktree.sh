@@ -10,7 +10,9 @@
 #
 # Safety: refuses (non-zero) if the branch already exists (local or remote) or
 # the target worktree path is already taken. Worktrees live under
-# .claude/worktrees/sa/<slug> so cleanup can target only sa's own worktrees.
+# .claude/worktrees/sa/<slug> as a naming convention only — cleanup
+# (/sa:clean-worktrees, /ha:clean-worktrees, /ca:clean-worktrees) is repo-wide
+# and reclaims EVERY merged worktree regardless of location, not just sa's.
 # ==============================================================================
 set -euo pipefail
 
