@@ -1,6 +1,6 @@
 ---
 name: clean-worktrees
-description: Reclaims worktrees after features land — removes every merged worktree in the repo (sa/ha/ca and any other, regardless of location) and deletes their merged branches. Use once a feature PR is merged. Safe by default — never removes a worktree with uncommitted changes, never deletes an unmerged branch, and never touches the main checkout or current worktree.
+description: Reclaims worktrees after features land — removes every merged worktree in the repo (sa/ha/ca and any other, regardless of location) and deletes their merged branches. Use once a feature PR is merged. Safe by default — never removes a worktree with uncommitted changes, never deletes an unmerged branch, and never touches the main checkout (it removes the current worktree too, but only if its branch is merged).
 argument-hint: '[feature ids / branches to clean, or all-merged]'
 model: haiku
 disable-model-invocation: true
@@ -17,8 +17,8 @@ Worktrees accumulate and each consumes disk, so reclaim them once their work has
 This command is **repo-wide**: it cleans **every** merged worktree in `git worktree list`
 regardless of location (sa/ha/ca and any other), so a single run reclaims them all. The
 hard rule: **never destroy work that hasn't been merged.** A leftover worktree is cheap; a
-deleted unmerged branch is lost work. The main checkout and the current worktree are always
-preserved.
+deleted unmerged branch is lost work. The main checkout is always preserved; the current
+worktree is removed too if its branch is merged.
 
 ## Context (auto-injected)
 - Worktrees: !`git worktree list 2>/dev/null`
@@ -54,7 +54,8 @@ bash "$CLAUDE_SKILL_SA_DIR/scripts/clean.sh" all-merged
 `clean.sh` considers **every** worktree in `git worktree list` (any path), uses
 `git worktree remove` **without `--force`** (uncommitted
 changes ⇒ skip + report), and `git branch -d` (**never `-D`**). It never removes the main
-checkout or the current worktree, and it syncs the base branch with origin before deciding.
+checkout (it removes the current worktree too, only if merged), and it syncs the base branch
+with origin before deciding.
 
 ## Step 3 — Report
 
