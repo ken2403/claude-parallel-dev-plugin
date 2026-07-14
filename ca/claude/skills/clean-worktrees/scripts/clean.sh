@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Generated from common/src/scripts/clean.sh; edit common/src and run common/sync.sh.
 # ==============================================================================
 # Worktree cleanup script for the ca plugin.
 # Ported from sa/skills/clean-worktrees/scripts/clean.sh (sa->ca).

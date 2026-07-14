@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Generated from common/src/scripts/guard-protected.sh; edit common/src and run common/sync.sh.
 # ==============================================================================
 # PreToolUse(Edit|Write|NotebookEdit) guard: block edits to sensitive files.
 #
