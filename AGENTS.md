@@ -13,6 +13,25 @@ Keep the plugins independent; don't let edits to one leak into another. To add
 a plugin, create a new top-level dir with its own plugin manifest and add an
 entry (with its `source` path) to the relevant marketplace.
 
+## Common generated source
+
+`common/` is maintained source for duplicated mechanical files shipped inside
+`ha`, `sa`, and `ca/claude`: shared helper scripts, code-review reference docs,
+and the mechanical `clean-worktrees` / `merge-pr` skills. Generated copies stay
+committed in each plugin so every plugin remains self-contained and installable
+alone.
+
+Edit `common/src/`, `common/plugins/<slug>/vars`, or
+`common/plugins/<slug>/fragments/`, then run `bash common/sync.sh`. Do not edit
+generated copies directly unless you are intentionally changing the rendered
+artifact and then back-porting that change into `common/`. `common/manifest.tsv`
+lists generated destinations; `common/exclusions.tsv` lists intentional
+duplication that must remain plugin-specific, with a reason.
+
+`common/` is not a plugin and must never contain `.claude-plugin/`,
+`.codex-plugin/`, or cross-plugin runtime references. `${CLAUDE_PLUGIN_ROOT}` and
+`${CLAUDE_SKILL_DIR}` resolve inside an installed plugin only.
+
 > **Instruction-file convention:** `AGENTS.md` (this file) is the canonical,
 > cross-tool instruction source (open standard; read by Codex and 30+ tools).
 > `CLAUDE.md` is a symlink to it, so Claude Code reads the same content. Edit
@@ -60,9 +79,12 @@ entry (with its `source` path) to the relevant marketplace.
 ## Validate before committing
 
 - `claude plugin validate ./ha` (and `./sa`, `./ca/claude` if you touched them) — must pass.
+- `bash common/sync.sh --check` and `bash common/tests/run.sh` — generated files
+  must match `common/`.
 - Skill `name:` ↔ directory and agent `name:` ↔ filename all match.
 - `bash -n ha/skills/*/scripts/*.sh ha/hooks/*.sh sa/skills/*/scripts/*.sh sa/hooks/*.sh`.
-- Byte-identical duplicated helpers stay in lockstep (`md5` of every `detect-base-branch.sh` / `attach-or-create-worktree.sh` copy matches).
+- Generated helpers stay in lockstep by editing `common/` and rerunning
+  `common/sync.sh`; CI enforces this instead of manual `md5` checks.
 - Each `SKILL.md` body stays **under 500 lines** (push detail to `references/`).
 
 ## Git
