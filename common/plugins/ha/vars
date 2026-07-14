@@ -1,0 +1,18 @@
+PLUGIN=ha
+PLUGIN_UPPER=HA
+PLUGINS_SELF_FIRST=ha, sa, ca
+PLUGINS_SLASH_SELF_FIRST=ha/sa/ca
+CLEAN_WORKTREES_DESCRIPTION=Reclaim worktrees after features land — remove every merged worktree in the repo (ha/sa/ca and any other, regardless of location) and delete their merged branches. Use once a feature PR is merged. Safe by default — never removes a worktree with uncommitted changes, never deletes an unmerged branch, and never touches the main checkout (it removes the current worktree too, but only if its branch is merged). Invoke explicitly with /ha:clean-worktrees.
+MERGE_PR_DESCRIPTION=Merge a reviewed PR after confirming it is genuinely ready — open, not draft, no changes requested, green CI, up to date with base, no unresolved blocking feedback. Use once /ha:review-pr approves a feature's PR. Refuses to merge on red checks, changes-requested reviews, or conflicts. Invoke explicitly with /ha:merge-pr.
+MERGE_PR_TITLE=Merge an ha PR
+MERGE_PR_LOOP_NOUN=pipeline
+IMPLEMENT_COMMAND=ha:implement
+RESOLVE_CONFLICTS_NOTE=in that case update from base first: run `/ha:resolve-conflicts <pr>` (it merges\n  the base in the feature's isolated worktree and re-verifies), then re-run this skill.
+DETECT_BASE_COPY_BLOCK=# ha skills that need a base branch use a byte-identical copy of this script\n# (keep all copies in lockstep). Ported from sa/skills/.../detect-base-branch.sh.
+ATTACH_HEADER_TAIL=# Ported from sa/skills/apply-feedback/scripts/attach-or-create-worktree.sh (sa->ha).\n#
+ATTACH_MAIN_REFUSAL_SUBJECT=this skill
+MERGE_CHECK_HEADER_TAIL=# Ported from sa/skills/clean-worktrees/scripts/merge-check.sh (sa->ha header).\n#
+CLEAN_HEADER_TAIL=# Ported from sa/skills/clean-worktrees/scripts/clean.sh (sa->ha).\n#
+CLEAN_GUARDRAIL_BLOCK=#\n# Follows superpowers:finishing-a-development-branch's cleanup guardrails:\n# cd to the main root before removing, merge-verified-only, `git worktree prune`,\n# never `--force` / `-D`.\n#
+GUARD_CONTEXT_BLOCK=ha builds features in worktrees; this is a cheap\n# last line of defense against rewriting a .env or a key.
+GUARD_FOOTER_BLOCK=# ported from sa/hooks/guard-protected.sh (logic byte-identical; sa->ha strings)\n# ==============================================================================
