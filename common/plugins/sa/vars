@@ -7,6 +7,7 @@ MERGE_PR_DESCRIPTION=Merge a reviewed sa PR after confirming it is genuinely rea
 MERGE_PR_TITLE=Merge an sa PR
 MERGE_PR_LOOP_NOUN=pipeline
 IMPLEMENT_COMMAND=simple-implement
+CODE_REVIEW_IMPLEMENT_CONTEXT=`simple-implement` / `implementer`
 RESOLVE_CONFLICTS_NOTE=run `/sa:resolve-conflicts <pr>` first (it merges the base in the feature's\n  isolated worktree and re-verifies), then re-run this skill.
 DETECT_BASE_COPY_BLOCK=# sa skills that need a base branch use (a byte-identical copy of) this script.
 ATTACH_HEADER_TAIL=#

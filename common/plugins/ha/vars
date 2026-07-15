@@ -7,6 +7,7 @@ MERGE_PR_DESCRIPTION=Merge a reviewed PR after confirming it is genuinely ready 
 MERGE_PR_TITLE=Merge an ha PR
 MERGE_PR_LOOP_NOUN=pipeline
 IMPLEMENT_COMMAND=ha:implement
+CODE_REVIEW_IMPLEMENT_CONTEXT=`implement` / the work subagents
 RESOLVE_CONFLICTS_NOTE=in that case update from base first: run `/ha:resolve-conflicts <pr>` (it merges\n  the base in the feature's isolated worktree and re-verifies), then re-run this skill.
 DETECT_BASE_COPY_BLOCK=# ha skills that need a base branch use a byte-identical copy of this script\n# (keep all copies in lockstep). Ported from sa/skills/.../detect-base-branch.sh.
 ATTACH_HEADER_TAIL=# Ported from sa/skills/apply-feedback/scripts/attach-or-create-worktree.sh (sa->ha).\n#

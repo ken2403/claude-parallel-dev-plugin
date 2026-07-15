@@ -33,3 +33,5 @@ skill	src/skills/clean-worktrees/SKILL.md	ca/claude/skills/clean-worktrees/SKILL
 skill	src/skills/merge-pr/SKILL.md	ha/skills/merge-pr/SKILL.md
 skill	src/skills/merge-pr/SKILL.md	sa/skills/merge-pr/SKILL.md
 skill	src/skills/merge-pr/SKILL.md	ca/claude/skills/merge-pr/SKILL.md
+skill	src/skills/code-review/SKILL.md	ha/skills/code-review/SKILL.md
+skill	src/skills/code-review/SKILL.md	sa/skills/code-review/SKILL.md

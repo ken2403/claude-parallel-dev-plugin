@@ -121,5 +121,9 @@ assert_contains_normalized "$ROOT/ha/skills/merge-pr/SKILL.md" "Do NOT require A
 assert_contains_normalized "$ROOT/sa/skills/merge-pr/SKILL.md" "Do NOT require APPROVED"
 assert_contains_normalized "$ROOT/ha/skills/merge-pr/SKILL.md" "superpowers:finishing-a-development-branch"
 assert_contains_normalized "$ROOT/ca/claude/skills/clean-worktrees/SKILL.md" "including a draft still in the ca loop"
+assert_contains_normalized "$ROOT/ha/skills/code-review/SKILL.md" "money/billing; external-input parsing"
+assert_contains_normalized "$ROOT/sa/skills/code-review/SKILL.md" "money/billing; external-input parsing"
+assert_contains_normalized "$ROOT/ha/skills/code-review/SKILL.md" "behavior change without a covering test"
+assert_contains_normalized "$ROOT/sa/skills/code-review/SKILL.md" "behavior change without a covering test"
 
 echo "common/tests/run.sh: $pass_count tests passed"

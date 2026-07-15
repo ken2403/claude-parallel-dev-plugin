@@ -1,8 +1,6 @@
 ha/skills/implement/scripts/new-worktree.sh	ha worktree creation has reuse behavior specific to implementation planning.
 sa/skills/simple-implement/scripts/new-worktree.sh	sa worktree creation is a lighter simple-implement flow.
 ca/claude/skills/implement/scripts/new-worktree.sh	ca launches the Codex loop and carries ca-specific review wiring.
-ha/skills/code-review/SKILL.md	ha code review owns ha-specific adversarial verifier guidance.
-sa/skills/code-review/SKILL.md	sa code review owns the canonical risky-surface list and subagent escalation rules.
 ha/skills/resolve-conflicts/SKILL.md	ha conflict resolution uses verifier and systematic-debugging guidance.
 sa/skills/resolve-conflicts/SKILL.md	sa conflict resolution pins opus and uses deep-verifier escalation.
 ca/claude/skills/resolve-conflicts/SKILL.md	ca conflict resolution is agent-less and loop-aware.

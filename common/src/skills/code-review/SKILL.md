@@ -6,9 +6,9 @@ allowed-tools: Read, Grep, Glob, Bash
 
 # Code review standards
 
-The single source of engineering standards for `sa`. It applies in two modes:
+The single source of engineering standards for `@@PLUGIN@@`. It applies in two modes:
 
-- **While implementing** (in `simple-implement` / `implementer`): follow these as you
+- **While implementing** (in @@CODE_REVIEW_IMPLEMENT_CONTEXT@@): follow these as you
   write, so the change is clean, safe, and consistent the first time.
 - **While reviewing** (in `review-pr` / `verifier` / `apply-feedback`): check the diff
   against these and report findings as `severity — file:line — issue — suggestion`.
@@ -35,9 +35,7 @@ with `Grep`/`Glob` before flagging something as wrong.
 A change is **risky** when it touches: authn/authz/sessions/tokens; crypto/secrets;
 money/billing; external-input parsing (HTTP handlers, deserialization, file uploads);
 data migration/deletion; permissions; or SQL/shell string construction.
-sa's risk-scaled gates (the pre-PR cross-check in `simple-implement`, the escalation
-triggers in `review-pr`) key off this list — other sa skills reference it, never
-re-enumerate it.
+@@FRAGMENT:risk_gate_consumers@@
 
 ## How to apply
 

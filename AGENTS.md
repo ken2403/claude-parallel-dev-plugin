@@ -17,9 +17,11 @@ entry (with its `source` path) to the relevant marketplace.
 
 `common/` is maintained source for duplicated mechanical files shipped inside
 `ha`, `sa`, and `ca/claude`: shared helper scripts, code-review reference docs,
-and the mechanical `clean-worktrees` / `merge-pr` skills. Generated copies stay
-committed in each plugin so every plugin remains self-contained and installable
-alone.
+the `code-review` standards skill (which carries the **canonical risky-surface
+list** and the blocking rule "behavior change without a covering test", generated
+into `ha` and `sa`), and the mechanical `clean-worktrees` / `merge-pr` skills.
+Generated copies stay committed in each plugin so every plugin remains
+self-contained and installable alone.
 
 Edit `common/src/`, `common/plugins/<slug>/vars`, or
 `common/plugins/<slug>/fragments/`, then run `bash common/sync.sh`. Do not edit
@@ -58,7 +60,7 @@ duplication that must remain plugin-specific, with a reason.
   - review/verify: **Sonnet** (`review-pr`/`verifier` high) with **deterministic escalation** to `deep-verifier` (**opus**·high) — triggers: risky surface / UNCERTAIN on a would-be-blocking claim / conflicting verifier verdicts; it gets only the unresolved claim, never a re-review;
   - `resolve-conflicts`: **opus**·high (rare, judgment-dense, silent-corruption risk; its integration check dispatches `deep-verifier`);
   - `merge-pr` + `clean-worktrees`: **haiku**·effort low (mechanical guardrails — merge-pr's preflight is field checks on `gh pr view` JSON with `gh`/branch-protection refusing ineligible merges server-side);
-  - `code-review`: omits both (standards skill; owns the **canonical risky-surface list** and the blocking rule "behavior change without a covering test" — other sa skills reference that list, never re-enumerate it).
+  - `code-review`: omits both (standards skill; carries the **canonical risky-surface list** and the blocking rule "behavior change without a covering test" — defined once in `common/src/skills/code-review` and generated into sa and ha; other sa skills reference that list, never re-enumerate it).
 
   Models are pinned via the `sonnet`/`opus`/`haiku` aliases (not IDs) so they track the latest — `sa` is allowed to pin (unlike model-agnostic `ha`). Note a pin also **downgrades** a stronger session model by design (cost): the Opus look comes from escalation, not the session.
 - **Worktrees**: created explicitly by `simple-implement/scripts/new-worktree.sh` under `.claude/worktrees/sa/<slug>`. `apply-feedback` and `resolve-conflicts` run in the same isolation via `attach-or-create-worktree.sh`, which **reuses** the branch's existing sa worktree or **creates** one (and **refuses** if the branch is checked out in the main checkout) — they never `gh pr checkout`/merge into the user's working copy. Every write skill enforces the absolute-path rule (edit only under `$WORKTREE_PATH`, `git -C`). `simple-implement` builds **red-green** (failing test captured before the implementation), runs a **risk-scaled pre-PR cross-check** (inline TRIVIAL/NORMAL/RISKY heuristic → 0/1/2 `verifier`s, one fix round max, fail-safe to a draft PR), then **stops at PR**; the review cycle (`review-pr`/`apply-feedback`) and `resolve-conflicts` are on-demand. `code-review` is the single standards skill (quality/security/consistency): auto-activates in the main loop and is **preloaded** into the `implementer`/`verifier`/`deep-verifier` subagents via their `skills:` frontmatter (subagents don't auto-activate skills by description).
