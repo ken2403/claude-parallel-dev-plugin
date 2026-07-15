@@ -32,8 +32,8 @@ issue or plan) so you review against what it was *supposed* to do.
 
 ## Step 2 — Apply the standards (hybrid: delegate generic, keep context-critical in main)
 
-The `code-review` skill is your lens (it auto-activates — quality, security,
-consistency). Split the work:
+The `code-review` skill is your lens (it auto-activates — quality, test rigor,
+security, consistency). Split the work:
 
 - **Delegate to `verifier` subagents** (parallel; keeps heavy reading out of main):
   broad correctness scan, style/quality, mechanical security patterns (injection,

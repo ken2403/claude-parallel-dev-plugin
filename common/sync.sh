@@ -158,11 +158,12 @@ add_script_banner() {
 
 check_manifest_coverage() {
   [ "${COMMON_SYNC_SKIP_COVERAGE:-0}" = "1" ] && return 0
-  local generated_file="$COMMON_ROOT/.manifest.generated.tmp"
-  local manifest_file="$COMMON_ROOT/.manifest.paths.tmp"
+  COVERAGE_TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/common-sync-coverage.XXXXXX")"
+  local generated_file="$COVERAGE_TMPDIR/generated"
+  local manifest_file="$COVERAGE_TMPDIR/paths"
   local exclusions_file="$COMMON_ROOT/exclusions.tsv"
-  local excluded_file="$COMMON_ROOT/.manifest.excluded.tmp"
-  local candidates_file="$COMMON_ROOT/.manifest.candidates.tmp"
+  local excluded_file="$COVERAGE_TMPDIR/excluded"
+  local candidates_file="$COVERAGE_TMPDIR/candidates"
 
   : > "$manifest_file"
   printf '%s\n' "${MANIFEST_DESTS[@]}" | sort -u > "$manifest_file"
@@ -212,9 +213,10 @@ check_manifest_coverage() {
     sed 's/^/manifest destination is not a known duplicated path: /' "$generated_file" >&2
     die "remove incorrect manifest rows or update common/sync.sh duplicate detection"
   fi
-
-  rm -f "$generated_file" "$manifest_file" "$excluded_file" "$candidates_file"
 }
+
+COVERAGE_TMPDIR=""
+trap '[ -n "$COVERAGE_TMPDIR" ] && rm -rf "$COVERAGE_TMPDIR"' EXIT
 
 [ -f "$MANIFEST" ] || die "missing manifest '$MANIFEST'"
 

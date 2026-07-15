@@ -40,7 +40,7 @@ review against what it was *supposed* to do, not just what it does.
 
 ## Step 2 — Cross-check with three blind lenses (delegate generic, keep context-critical in main)
 
-The `code-review` skill is your lens (it auto-activates; quality, security, consistency).
+The `code-review` skill is your lens (it auto-activates; quality, test rigor, security, consistency).
 Independent checks multiply the miss rate down **only while they stay independent**, so
 dispatch exactly **three `verifier` subagents in parallel**, each given only the PR
 number, its claim, and its lens — never another verifier's output or your own suspicions:

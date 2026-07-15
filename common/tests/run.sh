@@ -72,6 +72,29 @@ run_expect_fail() {
   pass_count=$((pass_count + 1))
 }
 
+run_coverage_expect_fail() {
+  local name="$1" expected="$2"
+  shift 2
+  local dir="$TMP_ROOT/$name"
+  make_repo "$dir"
+  if [ "$#" -gt 0 ]; then "$@" "$dir/repo"; fi
+  set +e
+  output="$(COMMON_ROOT="$dir/repo/common" REPO_ROOT="$dir/repo" bash "$SYNC" --check 2>&1)"
+  status=$?
+  set -e
+  if [ "$status" -eq 0 ]; then
+    echo "FAIL $name: expected coverage failure" >&2
+    exit 1
+  fi
+  if [[ "$output" != *"$expected"* ]]; then
+    echo "FAIL $name: expected output containing '$expected'" >&2
+    echo "$output" >&2
+    exit 1
+  fi
+  echo "ok - $name"
+  pass_count=$((pass_count + 1))
+}
+
 run_expect_pass() {
   local name="$1"
   local dir="$TMP_ROOT/$name"
@@ -115,6 +138,17 @@ run_expect_fail unknown-var "unknown variable" \
   bash -c 'printf "@@MISSING@@\n" >> "$1/common/src/skills/demo/SKILL.md"' --
 run_expect_fail nested-fragment "nested fragment" \
   bash -c 'printf "@@FRAGMENT:other@@\n" > "$1/common/plugins/ha/fragments/demo/body.md"; printf "other\n" > "$1/common/plugins/ha/fragments/demo/other.md"' --
+
+# check_manifest_coverage branches, with coverage ON (the demo fixture's manifest
+# destination is deliberately not a known duplicated path, so the baseline run
+# exercises that branch with no mutation at all).
+run_coverage_expect_fail coverage-manifest-unknown-dest "manifest destination is not a known duplicated path"
+run_coverage_expect_fail coverage-unclassified-duplicate "unclassified duplicated destination" \
+  bash -c 'mkdir -p "$1/ha/hooks"; printf "#!/bin/sh\n" > "$1/ha/hooks/guard-protected.sh"; git -C "$1" add ha/hooks; git -C "$1" commit -qm add-candidate' --
+run_coverage_expect_fail coverage-stale-exclusion "stale or unnecessary exclusion" \
+  bash -c 'printf "ha/skills/demo/SKILL.md\tdemo is not shared\n" > "$1/common/exclusions.tsv"' --
+run_coverage_expect_fail coverage-untracked-exclusion "untracked or missing path" \
+  bash -c 'printf "ha/hooks/missing.sh\tno such file\n" > "$1/common/exclusions.tsv"' --
 
 assert_contains_normalized "$ROOT/ca/claude/skills/merge-pr/SKILL.md" "the draft state IS the review gate"
 assert_contains_normalized "$ROOT/ha/skills/merge-pr/SKILL.md" "Do NOT require APPROVED"

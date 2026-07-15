@@ -98,8 +98,8 @@ behavior (docs, comments, pure config) — and say so in the PR Notes.
 | "I'll add the test after" | A test written after proves what the code *does*, not what it *should* do. |
 | "The suite will catch it" | The suite proves the tree is green, not that *your* change is covered. |
 
-The `code-review` standards skill auto-activates — follow it (quality, security,
-consistency). Update any docs the repo keeps in step with the code (within scope).
+The `code-review` standards skill auto-activates — follow it (quality, test rigor,
+security, consistency). Update any docs the repo keeps in step with the code (within scope).
 
 ## Phase 7 — Verify the build (objective gate, evidence required)
 
