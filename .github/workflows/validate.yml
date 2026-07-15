@@ -15,4 +15,6 @@ jobs:
         with:
           python-version: '3.x'
       - name: Validate repository
+        env:
+          ALLOW_MISSING_CLAUDE_VALIDATE: '1'
         run: bash common/tests/validate-repo.sh

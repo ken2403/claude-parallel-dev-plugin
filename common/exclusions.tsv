@@ -9,6 +9,7 @@ ca/claude/skills/resolve-conflicts/SKILL.md	ca conflict resolution is agent-less
 ha/skills/review-pr/SKILL.md	ha review uses ha verifier/analyzer workflow.
 sa/skills/review-pr/SKILL.md	sa review uses multi-lens verifier fan-out and opus escalation.
 ca/claude/skills/review-pr/SKILL.md	ca review emits the ca_claude_review.v1 contract for Codex.
+ca/claude/skills/review-pr/references/review-contract.md	ca/claude keeps a portable copy of the review contract for the review skill.
 ca/codex/.codex-plugin/plugin.json	ca/codex is a separate Codex plugin manifest.
 ca/codex/skills/ca-implement-plan/SKILL.md	ca/codex is a different tool plugin with its own skill contract.
 ca/codex/skills/ca-implement-plan/agents/openai.yaml	ca/codex agent policy is Codex-specific.

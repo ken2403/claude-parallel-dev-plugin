@@ -59,7 +59,8 @@ upper_key() {
 
 load_vars() {
   local plugin="$1" vars_file="$COMMON_ROOT/plugins/$plugin/vars"
-  declare -gA VARS=()
+  VAR_KEYS=()
+  VAR_VALUES=()
   [ -f "$vars_file" ] || die "missing vars file '$vars_file'"
 
   local line key val lineno=0
@@ -71,22 +72,43 @@ load_vars() {
     key="${line%%=*}"
     val="${line#*=}"
     val="${val//\\n/$'\n'}"
-    VARS["$key"]="$val"
+    VAR_KEYS+=("$key")
+    VAR_VALUES+=("$val")
   done < "$vars_file"
 }
 
+lookup_var() {
+  local key="$1" i
+  for ((i = 0; i < ${#VAR_KEYS[@]}; i++)); do
+    if [ "${VAR_KEYS[$i]}" = "$key" ]; then
+      printf '%s' "${VAR_VALUES[$i]}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+list_contains() {
+  local needle="$1" item
+  shift
+  for item in "$@"; do
+    [ "$item" = "$needle" ] && return 0
+  done
+  return 1
+}
+
 substitute_vars() {
-  local content="$1" src="$2" skill="$3" token key skill_key
+  local content="$1" src="$2" skill="$3" token key skill_key value
   while [[ "$content" =~ @@([A-Z_][A-Z0-9_]*)@@ ]]; do
     token="${BASH_REMATCH[0]}"
     key="${BASH_REMATCH[1]}"
     if [ "$key" = "DESCRIPTION" ] && [ -n "$skill" ]; then
       skill_key="$(upper_key "$skill")_DESCRIPTION"
-      [ "${VARS[$skill_key]+set}" ] || die "unknown variable '@@$key@@' in '$src' (also tried '$skill_key')"
-      content="${content//$token/${VARS[$skill_key]}}"
+      value="$(lookup_var "$skill_key")" || die "unknown variable '@@$key@@' in '$src' (also tried '$skill_key')"
+      content="${content//$token/$value}"
     else
-      [ "${VARS[$key]+set}" ] || die "unknown variable '@@$key@@' in '$src'"
-      content="${content//$token/${VARS[$key]}}"
+      value="$(lookup_var "$key")" || die "unknown variable '@@$key@@' in '$src'"
+      content="${content//$token/$value}"
     fi
   done
   printf '%s' "$content"
@@ -113,7 +135,7 @@ render() {
     frag_content="$(cat "$frag")"
     [[ "$frag_content" != *"@@FRAGMENT:"* ]] || die "nested fragment marker in '$frag_rel'"
     key="$plugin/$skill/$name"
-    USED_FRAGMENTS["$key"]=1
+    USED_FRAGMENTS+=("$key")
     content="${content//$marker/$frag_content}"
   done
 
@@ -156,15 +178,28 @@ check_manifest_coverage() {
     : > "$excluded_file"
   fi
 
+  while IFS= read -r excluded_path; do
+    [ -z "$excluded_path" ] && continue
+    git -C "$REPO_ROOT" ls-files --error-unmatch "$excluded_path" >/dev/null 2>&1 ||
+      die "exclusions.tsv references untracked or missing path '$excluded_path'"
+  done < "$excluded_file"
+
   git -C "$REPO_ROOT" ls-files ha sa ca |
     awk '
       /\/scripts\/(detect-base-branch|attach-or-create-worktree|merge-check|clean|new-worktree)\.sh$/ { print; next }
       /\/hooks\/guard-protected\.sh$/ { print; next }
       /\/skills\/code-review\/references\/(code-quality|consistency|security)\.md$/ { print; next }
+      /\/skills\/[^\/]+\/references\/review-contract\.md$/ { print; next }
       /\/skills\/(clean-worktrees|merge-pr|resolve-conflicts|review-pr)\/SKILL\.md$/ { print; next }
       /\/skills\/code-review\/SKILL\.md$/ { print; next }
       /^ca\/codex\// { print; next }
     ' | sort -u > "$candidates_file"
+
+  comm -23 "$excluded_file" "$candidates_file" > "$generated_file"
+  if [ -s "$generated_file" ]; then
+    sed 's/^/stale or unnecessary exclusion: /' "$generated_file" >&2
+    die "remove stale exclusions or update common/sync.sh duplicate detection"
+  fi
 
   comm -23 "$candidates_file" <(cat "$manifest_file" "$excluded_file" | sort -u) > "$generated_file"
   if [ -s "$generated_file" ]; then
@@ -183,8 +218,10 @@ check_manifest_coverage() {
 
 [ -f "$MANIFEST" ] || die "missing manifest '$MANIFEST'"
 
-declare -A SEEN_DESTS=()
-declare -A USED_FRAGMENTS=()
+SEEN_DESTS=()
+USED_FRAGMENTS=()
+VAR_KEYS=()
+VAR_VALUES=()
 MANIFEST_DESTS=()
 LINE_NO=0
 
@@ -197,8 +234,8 @@ while IFS= read -r line || [ -n "$line" ]; do
   [ -z "${extra:-}" ] || die "manifest.tsv:$LINE_NO: expected exactly 3 tab-separated columns"
   [ -n "${class:-}" ] && [ -n "${src_rel:-}" ] && [ -n "${dest_rel:-}" ] || die "manifest.tsv:$LINE_NO: expected class, source, destination"
   mode_for_class "$class" >/dev/null
-  [ -z "${SEEN_DESTS[$dest_rel]+set}" ] || die "manifest.tsv:$LINE_NO: duplicate destination '$dest_rel'"
-  SEEN_DESTS["$dest_rel"]=1
+  ! list_contains "$dest_rel" "${SEEN_DESTS[@]+"${SEEN_DESTS[@]}"}" || die "manifest.tsv:$LINE_NO: duplicate destination '$dest_rel'"
+  SEEN_DESTS+=("$dest_rel")
   MANIFEST_DESTS+=("$dest_rel")
 
   render "$class" "$src_rel" "$dest_rel"
@@ -237,7 +274,7 @@ for frag in "$COMMON_ROOT"/plugins/*/fragments/*/*.md; do
   skill="${rest%%/*}"
   name="${rest#*/}"
   name="${name%.md}"
-  [ "${USED_FRAGMENTS[$plugin/$skill/$name]+set}" ] || die "unused fragment '$rel_frag'"
+  list_contains "$plugin/$skill/$name" "${USED_FRAGMENTS[@]+"${USED_FRAGMENTS[@]}"}" || die "unused fragment '$rel_frag'"
 done
 
 check_manifest_coverage

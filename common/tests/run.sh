@@ -14,6 +14,8 @@ make_repo() {
     "$dir/repo/common/plugins/ha/fragments/demo" \
     "$dir/repo/ha/skills/demo"
   git -C "$dir/repo" init -q
+  git -C "$dir/repo" config user.email "common-sync-tests@example.invalid"
+  git -C "$dir/repo" config user.name "Common Sync Tests"
   cat > "$dir/repo/common/plugins/ha/vars" <<'EOF'
 PLUGIN=ha
 PLUGIN_UPPER=HA
@@ -80,6 +82,22 @@ run_expect_pass() {
   pass_count=$((pass_count + 1))
 }
 
+assert_contains_normalized() {
+  local file="$1" needle="$2"
+  python3 - "$file" "$needle" <<'PY'
+import re, sys
+path, needle = sys.argv[1:]
+text = open(path, encoding="utf-8").read()
+norm_text = re.sub(r"\s+", " ", text)
+norm_needle = re.sub(r"\s+", " ", needle)
+if norm_needle not in norm_text:
+    print(f"FAIL safety string missing from {path}: {needle}", file=sys.stderr)
+    sys.exit(1)
+PY
+  echo "ok - safety string: $file"
+  pass_count=$((pass_count + 1))
+}
+
 run_expect_pass baseline
 run_expect_fail missing-fragment "missing fragment" \
   bash -c 'rm "$1/common/plugins/ha/fragments/demo/body.md"' --
@@ -97,5 +115,11 @@ run_expect_fail unknown-var "unknown variable" \
   bash -c 'printf "@@MISSING@@\n" >> "$1/common/src/skills/demo/SKILL.md"' --
 run_expect_fail nested-fragment "nested fragment" \
   bash -c 'printf "@@FRAGMENT:other@@\n" > "$1/common/plugins/ha/fragments/demo/body.md"; printf "other\n" > "$1/common/plugins/ha/fragments/demo/other.md"' --
+
+assert_contains_normalized "$ROOT/ca/claude/skills/merge-pr/SKILL.md" "the draft state IS the review gate"
+assert_contains_normalized "$ROOT/ha/skills/merge-pr/SKILL.md" "Do NOT require APPROVED"
+assert_contains_normalized "$ROOT/sa/skills/merge-pr/SKILL.md" "Do NOT require APPROVED"
+assert_contains_normalized "$ROOT/ha/skills/merge-pr/SKILL.md" "superpowers:finishing-a-development-branch"
+assert_contains_normalized "$ROOT/ca/claude/skills/clean-worktrees/SKILL.md" "including a draft still in the ca loop"
 
 echo "common/tests/run.sh: $pass_count tests passed"

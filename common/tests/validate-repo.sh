@@ -3,6 +3,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
+PYTHONPYCACHEPREFIX="$(mktemp -d "${TMPDIR:-/tmp}/validate-pycache.XXXXXX")"
+export PYTHONPYCACHEPREFIX
+trap 'rm -rf "$PYTHONPYCACHEPREFIX"' EXIT
 
 fail() {
   echo "validate-repo: $*" >&2
@@ -14,10 +17,22 @@ bash common/sync.sh --check
 bash common/tests/run.sh
 
 echo "== plugin validation =="
-command -v claude >/dev/null 2>&1 || fail "claude CLI is required for plugin validation"
-claude plugin validate ./ha
-claude plugin validate ./sa
-claude plugin validate ./ca/claude
+CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+if command -v "$CLAUDE_BIN" >/dev/null 2>&1; then
+  "$CLAUDE_BIN" plugin validate ./ha
+  "$CLAUDE_BIN" plugin validate ./sa
+  "$CLAUDE_BIN" plugin validate ./ca/claude
+else
+  if [ "${ALLOW_MISSING_CLAUDE_VALIDATE:-0}" = "1" ]; then
+    echo "::warning::Claude CLI not available; skipping 'claude plugin validate' in this environment."
+    echo "Plugin validation was not silently treated as run. Install Claude Code and run:"
+    echo "  claude plugin validate ./ha"
+    echo "  claude plugin validate ./sa"
+    echo "  claude plugin validate ./ca/claude"
+  else
+    fail "claude CLI is required for plugin validation; set ALLOW_MISSING_CLAUDE_VALIDATE=1 only in CI environments that intentionally degrade this check"
+  fi
+fi
 
 echo "== manifests =="
 python3 -m json.tool .claude-plugin/marketplace.json >/dev/null
