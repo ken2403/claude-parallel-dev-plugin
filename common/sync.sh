@@ -188,7 +188,7 @@ check_manifest_coverage() {
     awk '
       /\/scripts\/(detect-base-branch|attach-or-create-worktree|merge-check|clean|new-worktree)\.sh$/ { print; next }
       /\/hooks\/guard-protected\.sh$/ { print; next }
-      /\/skills\/code-review\/references\/(code-quality|consistency|security)\.md$/ { print; next }
+      /\/skills\/code-review\/references\/(code-quality|consistency|security|test-rigor)\.md$/ { print; next }
       /\/skills\/[^\/]+\/references\/review-contract\.md$/ { print; next }
       /\/skills\/(clean-worktrees|merge-pr|resolve-conflicts|review-pr)\/SKILL\.md$/ { print; next }
       /\/skills\/code-review\/SKILL\.md$/ { print; next }

@@ -16,13 +16,15 @@ The single source of engineering standards for `ha`. It applies in two modes:
 The existing codebase convention always takes precedence over a general rule — confirm
 with `Grep`/`Glob` before flagging something as wrong.
 
-## Three dimensions
+## Four dimensions
 
 - **Quality** — readability, maintainability, simplicity, type safety, error handling,
-  performance, tests, matching existing style. A behavior change without a covering test
-  is a **High/blocking** finding unless the author states why it is untestable (in the
-  PR Notes — or in the report, when no PR exists yet).
-  → [references/code-quality.md](references/code-quality.md)
+  performance, matching existing style. → [references/code-quality.md](references/code-quality.md)
+- **Test rigor** — behavior coverage of the change: every changed behavior has a test
+  that fails without it (boundaries, error paths, state transitions — not line coverage).
+  A behavior change without a covering test is a **High/blocking** finding unless the
+  author states why it is untestable (in the PR Notes — or in the report, when no PR
+  exists yet). → [references/test-rigor.md](references/test-rigor.md)
 - **Security** (non-negotiable; must never regress) — injection (SQL/command/path/template),
   authn/authz, secrets, crypto, unsafe deserialization, SSRF, sensitive data in logs,
   dependency risk. → [references/security.md](references/security.md)
@@ -42,7 +44,7 @@ list — other ha skills reference it, never re-enumerate it.
 ## How to apply
 
 1. Understand existing patterns first (`Glob`/`Grep`/`Read`) — style is contextual.
-2. Apply the three dimensions; for a review, split work: generic diff-only checks can go
+2. Apply the four dimensions; for a review, split work: generic diff-only checks can go
    to parallel `verifier` subagents, repo-specific/security-critical judgment stays in main.
 3. Verify findings against the codebase before reporting (a flagged pattern may be
    mitigated by middleware, a framework, or an established convention).

@@ -125,5 +125,7 @@ assert_contains_normalized "$ROOT/ha/skills/code-review/SKILL.md" "money/billing
 assert_contains_normalized "$ROOT/sa/skills/code-review/SKILL.md" "money/billing; external-input parsing"
 assert_contains_normalized "$ROOT/ha/skills/code-review/SKILL.md" "behavior change without a covering test"
 assert_contains_normalized "$ROOT/sa/skills/code-review/SKILL.md" "behavior change without a covering test"
+assert_contains_normalized "$ROOT/ha/skills/code-review/SKILL.md" "references/test-rigor.md"
+assert_contains_normalized "$ROOT/sa/skills/code-review/SKILL.md" "references/test-rigor.md"
 
 echo "common/tests/run.sh: $pass_count tests passed"
