@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Standards for writing and reviewing code — quality, security, and codebase consistency. Use whenever implementing, changing, or reviewing code, or when checking a PR or diff for bugs, vulnerabilities, missed propagation, or style drift.
+description: Standards for writing and reviewing code — quality, test rigor, security, and codebase consistency. Use whenever implementing, changing, or reviewing code, or when checking a PR or diff for bugs, missing test coverage, vulnerabilities, missed propagation, or style drift.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
@@ -39,7 +39,8 @@ money/billing; external-input parsing (HTTP handlers, deserialization, file uplo
 data migration/deletion; permissions; or SQL/shell string construction.
 ha's risk-scaled gates (the analyzer's risk grade driving `implement`'s pre-PR
 adversarial gate, and `adversarial-verification`'s activation triggers) key off this
-list — other ha skills reference it, never re-enumerate it.
+list — other ha skills defer to it and must never define a competing list
+(illustrative examples in a skill's trigger description are fine; this list decides).
 
 ## How to apply
 
