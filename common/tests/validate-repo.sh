@@ -54,6 +54,11 @@ while IFS= read -r py_file; do
   python3 -m py_compile "$py_file"
 done < <(find ha sa ca common -type f -name '*.py' | sort)
 
+echo "== ca contract copies =="
+cmp -s ca/claude/skills/review-pr/references/review-contract.md \
+  ca/codex/skills/ca-implement-plan/references/review-contract.md \
+  || fail "ca review-contract.md copies must be byte-identical"
+
 echo "== skill and agent identity =="
 while IFS= read -r skill; do
   dir="$(basename "$(dirname "$skill")")"
