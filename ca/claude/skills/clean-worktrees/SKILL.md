@@ -62,6 +62,12 @@ never removes the main checkout (it removes the current worktree too, only if
 merged), syncs the base branch with origin before deciding, and `git worktree
 prune`s at the end.
 
+Two more rules the script owns: a merged worktree still locked by a **dead**
+claude session (`claude session ... (pid N)` whose pid is gone) is unlocked and
+removed — any other lock is an absolute barrier and is only reported. And orphan
+directories under `.claude/worktrees/` that are no longer registered worktrees
+are removed when **empty**, reported (never deleted) when they still have content.
+
 ## Step 3 — Report
 
 ```

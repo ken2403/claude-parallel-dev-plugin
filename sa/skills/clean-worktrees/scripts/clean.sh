@@ -215,23 +215,39 @@ fi
 ORPHANS_REMOVED=()
 ORPHANS_KEPT=()
 sweep_orphans() {
-  local wt_base="$GIT_ROOT/.claude/worktrees" registered dir reg keep
+  # Anchored at the MAIN checkout (REMOVE_FROM): launched from a linked
+  # worktree, GIT_ROOT points inside that worktree, where .claude/worktrees
+  # does not exist and the sweep would silently no-op.
+  local wt_base="$REMOVE_FROM/.claude/worktrees" registered dir reg keep
   [ -d "$wt_base" ] || return 0
-  registered="$(git worktree list --porcelain 2>/dev/null | awk '/^worktree /{print substr($0,10)}')"
+  registered="$(git -C "$REMOVE_FROM" worktree list --porcelain 2>/dev/null | awk '/^worktree /{print substr($0,10)}')"
   while IFS= read -r dir; do
     [ -d "$dir" ] || continue
     keep=false
     while IFS= read -r reg; do
       [ -z "$reg" ] && continue
+      # Keep a candidate that IS a registered worktree or CONTAINS one.
       case "$reg" in "$dir"|"$dir"/*) keep=true; break ;; esac
+      # Keep a candidate INSIDE a registered worktree (a depth-1 registered
+      # worktree owns its own subdirs) — but only for worktrees that live
+      # INSIDE the sweep base: the main checkout contains the whole sweep
+      # base by construction, and matching it would keep every candidate.
+      case "$wt_base" in "$reg"|"$reg"/*) ;; *)
+        case "$dir" in "$reg"/*) keep=true; break ;; esac ;;
+      esac
     done <<< "$registered"
     [ "$keep" = true ] && continue
-    if [ -z "$(find "$dir" -mindepth 1 -print -quit 2>/dev/null)" ]; then
-      rmdir "$dir" 2>/dev/null && ORPHANS_REMOVED+=("$dir")
+    # One guarded step: probe emptiness, then rmdir (which itself refuses a
+    # non-empty dir, so a race can only make it fail — never delete content).
+    # Any failure (unreadable, unremovable, raced) lands in KEPT and is
+    # reported; it must never abort the script under `set -e`.
+    if [ -z "$(find "$dir" -mindepth 1 -print -quit 2>/dev/null)" ] && rmdir "$dir" 2>/dev/null; then
+      ORPHANS_REMOVED+=("$dir")
     else
       ORPHANS_KEPT+=("$dir")
     fi
-  done < <(find "$wt_base" -mindepth 2 -maxdepth 2 -type d 2>/dev/null; find "$wt_base" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+  done < <(find "$wt_base" -mindepth 2 -maxdepth 2 -type d 2>/dev/null || true; find "$wt_base" -mindepth 1 -maxdepth 1 -type d 2>/dev/null || true)
+  return 0
 }
 report_orphans() {
   if [ ${#ORPHANS_REMOVED[@]} -gt 0 ]; then
@@ -240,11 +256,12 @@ report_orphans() {
   fi
   if [ ${#ORPHANS_KEPT[@]} -gt 0 ]; then
     echo ""
-    echo "*** ORPHANED (on disk, not a registered worktree, contents present) ***"
+    echo "*** ORPHANED (on disk, not a registered worktree; non-empty, unreadable, or unremovable) ***"
     echo "    No git metadata — a merge CANNOT be verified, so these are never auto-deleted."
     echo "    Inspect each and remove manually if the work is confirmed landed:"
     for d in "${ORPHANS_KEPT[@]}"; do echo "  - $d"; done
   fi
+  return 0
 }
 
 if [ ${#MERGED_JOBS[@]} -eq 0 ]; then
@@ -283,19 +300,26 @@ for item in "${MERGED_JOBS[@]}"; do
   if [ -n "$lock_line" ]; then
     lock_reason="${lock_line#LOCKED:}"
     lock_reason="${lock_reason# }"
-    lock_pid="$(printf '%s' "$lock_reason" | sed -n 's/.*pid \([0-9][0-9]*\).*/\1/p')"
-    if [ -n "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null; then
-      echo "  SKIP: locked by a RUNNING process (pid $lock_pid: $lock_reason)"
-      FAILED_JOBS+=("$name")
-      continue
-    elif [ -n "$lock_pid" ]; then
-      echo "  Stale lock (holder pid $lock_pid is gone) — unlocking"
-      git -C "$REMOVE_FROM" worktree unlock "$wt_path" 2>/dev/null || true
-    else
-      echo "  SKIP: locked with no parseable pid (${lock_reason:-no reason}) — 'git worktree unlock' manually if intended"
+    # Only our own session-bookkeeping locks are ever auto-released: the reason
+    # must match the exact "claude session ... (pid N ...)" shape, ANCHORED at
+    # the start. Any other lock — a human's deliberate `git worktree lock`, an
+    # unrecognized tool, or free text that merely contains "pid" (e.g.
+    # "KEEP: rapid 200 files") — is an absolute barrier: skip, never unlock.
+    lock_pid="$(printf '%s' "$lock_reason" | sed -n 's/^claude session .*(pid \([0-9][0-9]*\)[^)]*).*/\1/p')"
+    if [ -z "$lock_pid" ]; then
+      echo "  SKIP: locked (${lock_reason:-no reason}) — not a claude-session lock; 'git worktree unlock' manually if intended"
       FAILED_JOBS+=("$name")
       continue
     fi
+    # Liveness via ps -p, which sees processes of ANY user. (`kill -0` reports
+    # EPERM on another user's LIVE pid, which would misread as "gone".)
+    if ps -p "$lock_pid" >/dev/null 2>&1; then
+      echo "  SKIP: locked by a RUNNING process (pid $lock_pid: $lock_reason)"
+      FAILED_JOBS+=("$name")
+      continue
+    fi
+    echo "  Stale claude-session lock (holder pid $lock_pid is gone) — unlocking"
+    git -C "$REMOVE_FROM" worktree unlock "$wt_path" 2>/dev/null || true
   fi
 
   # NEVER --force: a plain remove fails on uncommitted changes, which is the
