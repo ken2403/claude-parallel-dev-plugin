@@ -10,7 +10,10 @@ Claude  /ca:implement <plan>  ──creates ca/<id> worktree, prints kickoff─�
 Codex   $ca-implement-plan PLAN=<abs>   (inside the worktree)
    ├─ implement milestone 1 (TDD) ─ push + open a DRAFT PR
    ├─ per milestone: Claude /ca:review-pr mode=checkpoint ─▶ fix blocking before building on
-   ├─ final: claude-review.sh ─▶ Claude /ca:review-pr mode=final ─▶ ca_claude_review.v1 JSON
+   ├─ final: Claude-only by default, or CA_DUAL_REVIEW=1:
+   │     ├─ Claude /ca:review-pr blind final review
+   │     ├─ Codex offline second-opinion review (advisory)
+   │     └─ Claude /ca:synthesize-review adjudicates one ca_claude_review.v1 verdict
    ├─ address blocking findings, push, re-review the PR   (≤ 2 final rounds)
    └─ on approve: gh pr ready + post the Claude/Codex exchange summary
 /ca:merge-pr (gated) or human merges ─▶ /ca:clean-worktrees reclaims it
@@ -22,11 +25,12 @@ The implementing Codex session keeps continuous memory across rounds; state also
 (`plan.md`, `review-checkpoint-M.json`, `review-round-N.json`) and in the PR itself, so the loop
 is reproducible. Plans live in `docs/ca/plans/` (grouped into 2–4 milestones by `/ca:plan-loop`;
 small plans are a single milestone and skip checkpoints). Codex implements sandboxed
-(`-s workspace-write`); the push, draft-PR, and `/ca:review-pr` steps need network + an
-authenticated `gh`.
+(`-s workspace-write`); the push, draft-PR, `/ca:review-pr`, and `/ca:synthesize-review` steps
+need network + an authenticated `gh`.
 
-> **Network + `gh` note for the review step.** The review calls `claude -p` (needs the Anthropic
-> API) and fetches the PR via `gh pr diff` (needs an authenticated `gh`). Codex's default
+> **Network + `gh` note for the review step.** Claude review and synthesis call `claude -p`
+> (needs the Anthropic API) and fetch the PR via `gh pr diff` (needs an authenticated `gh`).
+> Codex's default
 > `-s workspace-write` sandbox **blocks network**, so the review must run where network is allowed
 > and `gh` is authenticated: launch Codex for ca with network permitted for that command
 > (approval/profile), or run `claude-review.sh` in a host terminal between rounds. `claude-review.sh`
@@ -38,8 +42,8 @@ authenticated `gh`.
 ```
 ca/
   claude/                 # Claude Code plugin (/ca:plan-loop, /ca:implement, /ca:review-pr,
-    .claude-plugin/plugin.json          #        /ca:merge-pr, /ca:resolve-conflicts, /ca:clean-worktrees)
-    skills/{plan-loop,implement,review-pr,merge-pr,resolve-conflicts,clean-worktrees}/
+    .claude-plugin/plugin.json          #        /ca:synthesize-review, /ca:merge-pr, ...)
+    skills/{plan-loop,implement,review-pr,synthesize-review,merge-pr,resolve-conflicts,clean-worktrees}/
   codex/                  # Codex plugin ($ca-implement-plan)
     .codex-plugin/plugin.json
     skills/ca-implement-plan/               # SKILL.md + agents/openai.yaml + scripts/ + references/
@@ -96,6 +100,26 @@ approve); missing/malformed output is treated as `blocked` (fail-closed). Checkp
 never promote the PR. The contract lives in each skill's `references/review-contract.md`,
 validated by `validate-review.py`.
 
+## Optional dual-model final review
+
+Set `CA_DUAL_REVIEW=1` to opt into dual-model **final** review rounds. Checkpoints remain
+Claude-only progress gates. In a dual final round:
+
+1. `codex-review.sh` fetches PR metadata/diff on the host, builds a bounded prompt, and runs
+   `codex exec --sandbox read-only --output-schema` with no network or `gh` access inside Codex.
+2. `claude-review.sh` runs the normal blind Claude final review. It does not see Codex's findings.
+3. If Codex reports findings, warnings, or partial coverage, `synthesize-review.sh` invokes
+   `/ca:synthesize-review`; Claude treats Codex output as untrusted claims and emits the one
+   gating `ca_claude_review.v1` verdict.
+4. If Codex exits clean with zero findings and full coverage, synthesis is skipped and the blind
+   Claude JSON is final. If Codex is unavailable or invalid, the round degrades visibly to
+   Claude-only and records the reason in `.ca/runs/<id>/review-round-N.meta.json`.
+
+This adds model diversity, not author independence: Codex wrote the code, and a fresh Codex
+review may share model-family blind spots with the implementer. Claude remains the sole verdict
+holder. Flip-to-default criterion: after at least 5 real dual PRs, the confirmed-finding rate is
+nonzero and the invalid/unavailable rate is below 20%.
+
 ## Both plugins are required
 
 The loop only works with **both** sides installed: the Codex skill implements, and it calls the
@@ -110,5 +134,9 @@ review call can load it with `--plugin-dir`.
 - `CLAUDE_BIN` — path to `claude` for the review call.
 - `CA_CLAUDE_PLUGIN_DIR` — path to the `ca/claude` plugin dir; lets `claude-review.sh` load
   `/ca:review-pr` via `--plugin-dir` when the Claude plugin isn't installed globally.
+- `CA_DUAL_REVIEW=1` — opt into Codex second-opinion + Claude synthesis for final rounds.
+- `CA_CODEX_REVIEW_TIMEOUT` — timeout for the Codex second-opinion leg, default 900 seconds.
+- `CA_CODEX_REVIEW_FULL_DIFF_BYTES` — full-diff prompt threshold, default 180000 bytes.
+- `CA_CODEX_REVIEW_FALLBACK_PROMPT_BYTES` — structured fallback budget, default 360000 bytes.
 - `CODEX_HOME` — where the Codex skill installs (default `~/.codex`).
 - `CA_BASE` — base branch for the worktree (default `main`).
