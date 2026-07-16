@@ -23,6 +23,12 @@
 #   - NEVER uses `git worktree remove --force` — a worktree with uncommitted
 #     changes is skipped and reported, not destroyed.
 #   - `git branch -d` (not -D) — refuses to delete an unmerged branch.
+#   - Locked worktrees: a MERGED worktree whose lock holder is a dead process
+#     (e.g. a finished Claude session's "pid N" lock) is unlocked and removed;
+#     a lock held by a RUNNING process, or with no parseable pid, is skipped.
+#   - Orphan directories under .claude/worktrees/ (present on disk but not in
+#     `git worktree list`): removed only when EMPTY. A non-empty orphan has no
+#     git metadata to verify a merge against, so it is reported, never deleted.
 # ==============================================================================
 set -e
 
@@ -196,9 +202,57 @@ if [ ${#UNKNOWN_JOBS[@]} -gt 0 ]; then
   for item in "${UNKNOWN_JOBS[@]}"; do echo "  - ${item%%:*}"; done
 fi
 
+# ============================================================
+# Orphan sweep: directories under .claude/worktrees/ that are on disk but NOT
+# registered in `git worktree list` (leftover group dirs like ca/, or remnants
+# whose metadata was pruned). An EMPTY orphan is safely removed. A NON-EMPTY
+# orphan has no git metadata to verify a merge against, so it is reported and
+# left untouched — never guess-delete unverifiable content.
+# Depth-2 first so an emptied group dir (ha/sa/ca) folds up in the same run.
+# Runs in BOTH paths: with and without merged worktrees to clean.
+# ============================================================
+ORPHANS_REMOVED=()
+ORPHANS_KEPT=()
+sweep_orphans() {
+  local wt_base="$GIT_ROOT/.claude/worktrees" registered dir reg keep
+  [ -d "$wt_base" ] || return 0
+  registered="$(git worktree list --porcelain 2>/dev/null | awk '/^worktree /{print substr($0,10)}')"
+  while IFS= read -r dir; do
+    [ -d "$dir" ] || continue
+    keep=false
+    while IFS= read -r reg; do
+      [ -z "$reg" ] && continue
+      case "$reg" in "$dir"|"$dir"/*) keep=true; break ;; esac
+    done <<< "$registered"
+    [ "$keep" = true ] && continue
+    if [ -z "$(find "$dir" -mindepth 1 -print -quit 2>/dev/null)" ]; then
+      rmdir "$dir" 2>/dev/null && ORPHANS_REMOVED+=("$dir")
+    else
+      ORPHANS_KEPT+=("$dir")
+    fi
+  done < <(find "$wt_base" -mindepth 2 -maxdepth 2 -type d 2>/dev/null; find "$wt_base" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+}
+report_orphans() {
+  if [ ${#ORPHANS_REMOVED[@]} -gt 0 ]; then
+    echo ""
+    echo "Removed ${#ORPHANS_REMOVED[@]} empty orphan dir(s) under .claude/worktrees/"
+  fi
+  if [ ${#ORPHANS_KEPT[@]} -gt 0 ]; then
+    echo ""
+    echo "*** ORPHANED (on disk, not a registered worktree, contents present) ***"
+    echo "    No git metadata — a merge CANNOT be verified, so these are never auto-deleted."
+    echo "    Inspect each and remove manually if the work is confirmed landed:"
+    for d in "${ORPHANS_KEPT[@]}"; do echo "  - $d"; done
+  fi
+}
+
 if [ ${#MERGED_JOBS[@]} -eq 0 ]; then
+  sweep_orphans
+  report_orphans
   echo ""
   echo "No merged worktrees to clean up."
+  echo "Orphan dirs removed (empty): ${#ORPHANS_REMOVED[@]}"
+  echo "Orphan dirs kept (non-empty, unverifiable): ${#ORPHANS_KEPT[@]}"
   exit 0
 fi
 
@@ -216,6 +270,32 @@ for item in "${MERGED_JOBS[@]}"; do
 
   echo ""
   echo "Cleaning: $name ($wt_path)"
+
+  # Locked worktrees: merge is already positively verified at this point, so a
+  # lock whose holder is DEAD (e.g. "claude session ... (pid N ...)" from a
+  # finished session) is stale — unlock it. A lock held by a RUNNING process,
+  # or one with no parseable pid, is respected: skip and report.
+  lock_line="$(git -C "$REMOVE_FROM" worktree list --porcelain 2>/dev/null | awk -v p="$wt_path" '
+    $0 == "worktree " p {found=1; next}
+    /^worktree /{found=0}
+    found && /^locked/ {print "LOCKED:" substr($0, 8); exit}')"
+  if [ -n "$lock_line" ]; then
+    lock_reason="${lock_line#LOCKED:}"
+    lock_reason="${lock_reason# }"
+    lock_pid="$(printf '%s' "$lock_reason" | sed -n 's/.*pid \([0-9][0-9]*\).*/\1/p')"
+    if [ -n "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null; then
+      echo "  SKIP: locked by a RUNNING process (pid $lock_pid: $lock_reason)"
+      FAILED_JOBS+=("$name")
+      continue
+    elif [ -n "$lock_pid" ]; then
+      echo "  Stale lock (holder pid $lock_pid is gone) — unlocking"
+      git -C "$REMOVE_FROM" worktree unlock "$wt_path" 2>/dev/null || true
+    else
+      echo "  SKIP: locked with no parseable pid (${lock_reason:-no reason}) — 'git worktree unlock' manually if intended"
+      FAILED_JOBS+=("$name")
+      continue
+    fi
+  fi
 
   # NEVER --force: a plain remove fails on uncommitted changes, which is the
   # signal to inspect — not to destroy.
@@ -243,12 +323,17 @@ done
 
 git -C "$REMOVE_FROM" worktree prune 2>/dev/null || true
 
+sweep_orphans
+report_orphans
+
 echo ""
 echo "=== Cleanup Complete ==="
 echo "Cleaned: ${#CLEANED_JOBS[@]}"
 echo "Skipped (uncommitted/locked): ${#FAILED_JOBS[@]}"
 echo "Blocked (not merged): ${#UNMERGED_JOBS[@]}"
 echo "Blocked (unknown):    ${#UNKNOWN_JOBS[@]}"
+echo "Orphan dirs removed (empty): ${#ORPHANS_REMOVED[@]}"
+echo "Orphan dirs kept (non-empty, unverifiable): ${#ORPHANS_KEPT[@]}"
 echo "Default branch ($BASE_BRANCH) was synced with origin before cleanup."
 
 if [ "$CURRENT_WT_REMOVED" = true ]; then
