@@ -1,0 +1,16 @@
+PLUGIN=ca
+PLUGIN_UPPER=CA
+PLUGINS_SELF_FIRST=ca, sa, ha
+PLUGINS_SLASH_SELF_FIRST=ca/sa/ha
+CLEAN_WORKTREES_DESCRIPTION=Reclaim worktrees after features land — remove every merged worktree in the repo (ca/sa/ha and any other, regardless of location) and delete their merged branches. Use once a ca PR is merged. Safe by default — never removes a worktree with uncommitted changes, never deletes an unmerged branch, and never touches the main checkout (it removes the current worktree too, but only if its branch is merged). Invoke explicitly with /ca:clean-worktrees.
+MERGE_PR_DESCRIPTION=Merge a ca PR after confirming it is genuinely ready — open, not draft (in ca a draft means the Codex-Claude review loop has not approved it), green CI, mergeable, no unresolved blocking feedback. Use once the ca loop marked the PR ready and you want it merged from the CLI. Refuses to merge drafts, red checks, or conflicts. Invoke explicitly with /ca:merge-pr.
+MERGE_PR_TITLE=Merge a ca PR
+MERGE_PR_LOOP_NOUN=loop
+IMPLEMENT_COMMAND=ca:implement
+RESOLVE_CONFLICTS_NOTE=run `/ca:resolve-conflicts <pr>` first, then re-run this skill.
+DETECT_BASE_COPY_BLOCK=# ca skills that need a base branch use a byte-identical copy of this script\n# (keep all copies in lockstep). Ported from sa/skills/.../detect-base-branch.sh.
+ATTACH_HEADER_TAIL=# Ported from sa/skills/apply-feedback/scripts/attach-or-create-worktree.sh (sa->ca).\n#
+ATTACH_MAIN_REFUSAL_SUBJECT=this skill
+MERGE_CHECK_HEADER_TAIL=# Ported from sa/skills/clean-worktrees/scripts/merge-check.sh (sa->ca header).\n#
+CLEAN_HEADER_TAIL=# Ported from sa/skills/clean-worktrees/scripts/clean.sh (sa->ca).\n#
+CLEAN_GUARDRAIL_BLOCK=#\n# Follows finishing-a-development-branch's cleanup guardrails:\n# cd to the main root before removing, merge-verified-only, `git worktree prune`,\n# never `--force` / `-D`.\n#

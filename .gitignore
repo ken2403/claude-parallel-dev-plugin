@@ -10,3 +10,6 @@ __pycache__/
 
 # ha SDD ledger / scratch workspace (per-feature, not committed)
 .ha/
+
+# ca run state (staged plan copy + checksum + review JSON, per-run, not committed)
+.ca/

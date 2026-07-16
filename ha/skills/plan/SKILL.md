@@ -66,8 +66,8 @@ defect, because the human approves on the assumption the plan matches intent.
 ## Phase 3.5 — Red-team the design (front-loaded rigor)
 
 Adversarially review the **design itself**, not just the eventual diff — this is
-where ha invests its thoroughness. Apply the `code-review` lens (quality, security,
-consistency) to the design, then dispatch `verifier` subagent(s) to **REFUTE** it,
+where ha invests its thoroughness. Apply the `code-review` lens (quality, test rigor,
+security, consistency) to the design, then dispatch `verifier` subagent(s) to **REFUTE** it,
 scaled to the `analyzer` risk grade:
 
 - **LOW** — one verifier: "what requirement, edge case, or failure mode is missing?"

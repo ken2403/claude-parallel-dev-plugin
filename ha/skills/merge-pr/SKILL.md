@@ -1,6 +1,7 @@
 ---
 name: merge-pr
 description: Merge a reviewed PR after confirming it is genuinely ready — open, not draft, no changes requested, green CI, up to date with base, no unresolved blocking feedback. Use once /ha:review-pr approves a feature's PR. Refuses to merge on red checks, changes-requested reviews, or conflicts. Invoke explicitly with /ha:merge-pr.
+license: MIT
 argument-hint: '[pr-number] [--squash | --merge | --rebase]'
 model: haiku
 disable-model-invocation: true
@@ -13,8 +14,9 @@ allowed-tools: Read, Bash, Grep, Glob
 ## Input
 $ARGUMENTS
 
-Merging is the one irreversible step in the pipeline, so it gets a real gate.
-Confirm readiness with evidence before merging — never merge on assumption.
+Merging is the one irreversible step in the pipeline, so it gets a
+real gate. Confirm readiness with evidence before merging — never merge on
+assumption.
 
 ## Step 1 — Preflight (all must pass)
 
@@ -61,6 +63,6 @@ gh pr view "$PR" --json state,mergedAt
 
 result: PR #<n> merged.
 
-Remind the user that once the PR is merged, its isolated worktree and local branch
-can be reclaimed with **`/ha:clean-worktrees`** (it removes only worktrees whose PR
-is verified merged).
+Remind the user that once the PR is merged, its isolated worktree and local
+branch can be reclaimed with **`/ha:clean-worktrees`** (it removes only
+worktrees whose PR is verified merged).

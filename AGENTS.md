@@ -13,6 +13,27 @@ Keep the plugins independent; don't let edits to one leak into another. To add
 a plugin, create a new top-level dir with its own plugin manifest and add an
 entry (with its `source` path) to the relevant marketplace.
 
+## Common generated source
+
+`common/` is maintained source for duplicated mechanical files shipped inside
+`ha`, `sa`, and `ca/claude`: shared helper scripts, code-review reference docs,
+the `code-review` standards skill (which carries the **canonical risky-surface
+list** and the blocking rule "behavior change without a covering test", generated
+into `ha` and `sa`), and the mechanical `clean-worktrees` / `merge-pr` skills.
+Generated copies stay committed in each plugin so every plugin remains
+self-contained and installable alone.
+
+Edit `common/src/`, `common/plugins/<slug>/vars`, or
+`common/plugins/<slug>/fragments/`, then run `bash common/sync.sh`. Do not edit
+generated copies directly unless you are intentionally changing the rendered
+artifact and then back-porting that change into `common/`. `common/manifest.tsv`
+lists generated destinations; `common/exclusions.tsv` lists intentional
+duplication that must remain plugin-specific, with a reason.
+
+`common/` is not a plugin and must never contain `.claude-plugin/`,
+`.codex-plugin/`, or cross-plugin runtime references. `${CLAUDE_PLUGIN_ROOT}` and
+`${CLAUDE_SKILL_DIR}` resolve inside an installed plugin only.
+
 > **Instruction-file convention:** `AGENTS.md` (this file) is the canonical,
 > cross-tool instruction source (open standard; read by Codex and 30+ tools).
 > `CLAUDE.md` is a symlink to it, so Claude Code reads the same content. Edit
@@ -39,10 +60,10 @@ entry (with its `source` path) to the relevant marketplace.
   - review/verify: **Sonnet** (`review-pr`/`verifier` high) with **deterministic escalation** to `deep-verifier` (**opus**·high) — triggers: risky surface / UNCERTAIN on a would-be-blocking claim / conflicting verifier verdicts; it gets only the unresolved claim, never a re-review;
   - `resolve-conflicts`: **opus**·high (rare, judgment-dense, silent-corruption risk; its integration check dispatches `deep-verifier`);
   - `merge-pr` + `clean-worktrees`: **haiku**·effort low (mechanical guardrails — merge-pr's preflight is field checks on `gh pr view` JSON with `gh`/branch-protection refusing ineligible merges server-side);
-  - `code-review`: omits both (standards skill; owns the **canonical risky-surface list** and the blocking rule "behavior change without a covering test" — other sa skills reference that list, never re-enumerate it).
+  - `code-review`: omits both (standards skill; carries the **canonical risky-surface list** and the blocking rule "behavior change without a covering test" — defined once in `common/src/skills/code-review` and generated into sa and ha; other sa skills reference that list, never re-enumerate it).
 
   Models are pinned via the `sonnet`/`opus`/`haiku` aliases (not IDs) so they track the latest — `sa` is allowed to pin (unlike model-agnostic `ha`). Note a pin also **downgrades** a stronger session model by design (cost): the Opus look comes from escalation, not the session.
-- **Worktrees**: created explicitly by `simple-implement/scripts/new-worktree.sh` under `.claude/worktrees/sa/<slug>`. `apply-feedback` and `resolve-conflicts` run in the same isolation via `attach-or-create-worktree.sh`, which **reuses** the branch's existing sa worktree or **creates** one (and **refuses** if the branch is checked out in the main checkout) — they never `gh pr checkout`/merge into the user's working copy. Every write skill enforces the absolute-path rule (edit only under `$WORKTREE_PATH`, `git -C`). `simple-implement` builds **red-green** (failing test captured before the implementation), runs a **risk-scaled pre-PR cross-check** (inline TRIVIAL/NORMAL/RISKY heuristic → 0/1/2 `verifier`s, one fix round max, fail-safe to a draft PR), then **stops at PR**; the review cycle (`review-pr`/`apply-feedback`) and `resolve-conflicts` are on-demand. `code-review` is the single standards skill (quality/security/consistency): auto-activates in the main loop and is **preloaded** into the `implementer`/`verifier`/`deep-verifier` subagents via their `skills:` frontmatter (subagents don't auto-activate skills by description).
+- **Worktrees**: created explicitly by `simple-implement/scripts/new-worktree.sh` under `.claude/worktrees/sa/<slug>`. `apply-feedback` and `resolve-conflicts` run in the same isolation via `attach-or-create-worktree.sh`, which **reuses** the branch's existing sa worktree or **creates** one (and **refuses** if the branch is checked out in the main checkout) — they never `gh pr checkout`/merge into the user's working copy. Every write skill enforces the absolute-path rule (edit only under `$WORKTREE_PATH`, `git -C`). `simple-implement` builds **red-green** (failing test captured before the implementation), runs a **risk-scaled pre-PR cross-check** (inline TRIVIAL/NORMAL/RISKY heuristic → 0/1/2 `verifier`s, one fix round max, fail-safe to a draft PR), then **stops at PR**; the review cycle (`review-pr`/`apply-feedback`) and `resolve-conflicts` are on-demand. `code-review` is the single standards skill (quality/test rigor/security/consistency): auto-activates in the main loop and is **preloaded** into the `implementer`/`verifier`/`deep-verifier` subagents via their `skills:` frontmatter (subagents don't auto-activate skills by description).
 
 ## Authoring rules (learned the hard way)
 
@@ -60,9 +81,12 @@ entry (with its `source` path) to the relevant marketplace.
 ## Validate before committing
 
 - `claude plugin validate ./ha` (and `./sa`, `./ca/claude` if you touched them) — must pass.
+- `bash common/sync.sh --check` and `bash common/tests/run.sh` — generated files
+  must match `common/`.
 - Skill `name:` ↔ directory and agent `name:` ↔ filename all match.
 - `bash -n ha/skills/*/scripts/*.sh ha/hooks/*.sh sa/skills/*/scripts/*.sh sa/hooks/*.sh`.
-- Byte-identical duplicated helpers stay in lockstep (`md5` of every `detect-base-branch.sh` / `attach-or-create-worktree.sh` copy matches).
+- Generated helpers stay in lockstep by editing `common/` and rerunning
+  `common/sync.sh`; CI enforces this instead of manual `md5` checks.
 - Each `SKILL.md` body stays **under 500 lines** (push detail to `references/`).
 
 ## Git

@@ -14,8 +14,9 @@ allowed-tools: Read, Bash, Grep, Glob
 ## Input
 $ARGUMENTS
 
-Merging is the one irreversible step in the loop, so it gets a real gate.
-Confirm readiness with evidence before merging — never merge on assumption.
+Merging is the one irreversible step in the loop, so it gets a
+real gate. Confirm readiness with evidence before merging — never merge on
+assumption.
 
 ## Step 1 — Preflight (all must pass)
 
@@ -60,6 +61,6 @@ gh pr view "$PR" --json state,mergedAt
 
 result: PR #<n> merged.
 
-Remind the user that once the PR is merged, its isolated worktree and local branch
-can be reclaimed with **`/ca:clean-worktrees`** (it removes only worktrees whose PR
-is verified merged).
+Remind the user that once the PR is merged, its isolated worktree and local
+branch can be reclaimed with **`/ca:clean-worktrees`** (it removes only
+worktrees whose PR is verified merged).

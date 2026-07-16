@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Generated from common/src/scripts/detect-base-branch.sh; edit common/src and run common/sync.sh.
 # ==============================================================================
 # Canonical base branch detection for the ca plugin.
 #

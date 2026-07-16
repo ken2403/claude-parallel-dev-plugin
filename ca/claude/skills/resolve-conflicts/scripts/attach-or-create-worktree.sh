@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Generated from common/src/scripts/attach-or-create-worktree.sh; edit common/src and run common/sync.sh.
 # ==============================================================================
 # Resolve an ISOLATED worktree for applying feedback to an EXISTING branch
 # (typically a PR's head branch) — never the main checkout.

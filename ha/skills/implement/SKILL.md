@@ -101,8 +101,8 @@ the same bytes are not reviewed twice by the same method. Operate on the full di
   loop, no panel.
 - **MEDIUM** → `adversarial-verification` on the central claims, **one** round; a
   second round only if round 1 applied fixes (a fix can introduce a new break).
-- **HIGH** (analyzer-flagged: auth, crypto, data migration, money, external input,
-  broad refactor) → the full `adversarial-verification` treatment — ≥3 `verifier`s
+- **HIGH** (analyzer-flagged: a risky surface per the `code-review` canonical list,
+  or a broad refactor) → the full `adversarial-verification` treatment — ≥3 `verifier`s
   with distinct lenses + the completeness critic — up to `MAX_ROUNDS` (default 2).
 
 **Evaluate findings before applying them** — a verifier verdict is data, not

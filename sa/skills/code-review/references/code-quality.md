@@ -77,8 +77,10 @@
   expensive repeated work; async/concurrency where beneficial.
 
 ### Testing Requirements
-- Unit tests for business logic; integration tests for APIs; edge cases covered; mocks
-  used (not overused); test names describe behavior; realistic data; positive + negative cases.
+- Unit tests for business logic; integration tests for APIs; mocks used (not overused);
+  test names describe behavior; realistic data. Coverage adequacy — what counts as a
+  covering test, which behavior classes need one, and when a change may ship without —
+  is judged by the **test-rigor dimension**: see [test-rigor.md](test-rigor.md).
 
 ### Documentation
 - Public APIs documented; complex algorithms explained; configuration options described;

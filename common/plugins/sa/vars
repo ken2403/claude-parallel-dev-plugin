@@ -1,0 +1,19 @@
+PLUGIN=sa
+PLUGIN_UPPER=SA
+PLUGINS_SELF_FIRST=sa, ha, ca
+PLUGINS_SLASH_SELF_FIRST=sa/ha/ca
+CLEAN_WORKTREES_DESCRIPTION=Reclaims worktrees after features land — removes every merged worktree in the repo (sa/ha/ca and any other, regardless of location) and deletes their merged branches. Use once a feature PR is merged. Safe by default — never removes a worktree with uncommitted changes, never deletes an unmerged branch, and never touches the main checkout (it removes the current worktree too, but only if its branch is merged).
+MERGE_PR_DESCRIPTION=Merge a reviewed sa PR after confirming it is genuinely ready — open, not draft, no changes requested, green CI, mergeable. Use once /sa:review-pr (or a human review) approves the PR and you want it merged from the CLI. Refuses to merge on red checks, changes-requested reviews, or conflicts. Invoke explicitly with /sa:merge-pr.
+MERGE_PR_TITLE=Merge an sa PR
+MERGE_PR_LOOP_NOUN=pipeline
+IMPLEMENT_COMMAND=simple-implement
+CODE_REVIEW_IMPLEMENT_CONTEXT=`simple-implement` / `implementer`
+RESOLVE_CONFLICTS_NOTE=run `/sa:resolve-conflicts <pr>` first (it merges the base in the feature's\n  isolated worktree and re-verifies), then re-run this skill.
+DETECT_BASE_COPY_BLOCK=# sa skills that need a base branch use (a byte-identical copy of) this script.
+ATTACH_HEADER_TAIL=#
+ATTACH_MAIN_REFUSAL_SUBJECT=apply-feedback
+MERGE_CHECK_HEADER_TAIL=#
+CLEAN_HEADER_TAIL=#
+CLEAN_GUARDRAIL_BLOCK=#
+GUARD_CONTEXT_BLOCK=sa runs simple features in worktrees; this is a\n# cheap last line of defense against rewriting a .env or a key.
+GUARD_FOOTER_BLOCK=# ==============================================================================

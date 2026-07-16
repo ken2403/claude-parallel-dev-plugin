@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Standards for writing and reviewing code — quality, security, and codebase consistency. Use whenever implementing, changing, or reviewing code, or when checking a PR or diff for bugs, vulnerabilities, missed propagation, or style drift.
+description: Standards for writing and reviewing code — quality, test rigor, security, and codebase consistency. Use whenever implementing, changing, or reviewing code, or when checking a PR or diff for bugs, missing test coverage, vulnerabilities, missed propagation, or style drift.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
@@ -16,13 +16,15 @@ The single source of engineering standards for `sa`. It applies in two modes:
 The existing codebase convention always takes precedence over a general rule — confirm
 with `Grep`/`Glob` before flagging something as wrong.
 
-## Three dimensions
+## Four dimensions
 
 - **Quality** — readability, maintainability, simplicity, type safety, error handling,
-  performance, tests, matching existing style. A behavior change without a covering test
-  is a **High/blocking** finding unless the author states why it is untestable (in the
-  PR Notes — or in the report, when no PR exists yet).
-  → [references/code-quality.md](references/code-quality.md)
+  performance, matching existing style. → [references/code-quality.md](references/code-quality.md)
+- **Test rigor** — behavior coverage of the change: every changed behavior has a test
+  that fails without it (boundaries, error paths, state transitions — not line coverage).
+  A behavior change without a covering test is a **High/blocking** finding unless the
+  author states why it is untestable (in the PR Notes — or in the report, when no PR
+  exists yet). → [references/test-rigor.md](references/test-rigor.md)
 - **Security** (non-negotiable; must never regress) — injection (SQL/command/path/template),
   authn/authz, secrets, crypto, unsafe deserialization, SSRF, sensitive data in logs,
   dependency risk. → [references/security.md](references/security.md)
@@ -34,14 +36,15 @@ with `Grep`/`Glob` before flagging something as wrong.
 
 A change is **risky** when it touches: authn/authz/sessions/tokens; crypto/secrets;
 money/billing; external-input parsing (HTTP handlers, deserialization, file uploads);
-data migration/deletion; permissions; or SQL/shell string construction. sa's risk-scaled
-gates (the pre-PR cross-check in `simple-implement`, the escalation triggers in
-`review-pr`) key off this list — **edit it here only**; other skills reference it.
+data migration/deletion; permissions; or SQL/shell string construction.
+sa's risk-scaled gates (the pre-PR cross-check in `simple-implement`, the escalation
+triggers in `review-pr`) key off this list — other sa skills reference it, never
+re-enumerate it.
 
 ## How to apply
 
 1. Understand existing patterns first (`Glob`/`Grep`/`Read`) — style is contextual.
-2. Apply the three dimensions; for a review, split work: generic diff-only checks can go
+2. Apply the four dimensions; for a review, split work: generic diff-only checks can go
    to parallel `verifier` subagents, repo-specific/security-critical judgment stays in main.
 3. Verify findings against the codebase before reporting (a flagged pattern may be
    mitigated by middleware, a framework, or an established convention).

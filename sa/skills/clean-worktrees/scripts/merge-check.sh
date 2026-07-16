@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Generated from common/src/scripts/merge-check.sh; edit common/src and run common/sync.sh.
 # ==============================================================================
 # Canonical merge verification for the sa plugin.
 #
