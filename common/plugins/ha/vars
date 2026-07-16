@@ -17,3 +17,4 @@ CLEAN_HEADER_TAIL=# Ported from sa/skills/clean-worktrees/scripts/clean.sh (sa->
 CLEAN_GUARDRAIL_BLOCK=#\n# Follows superpowers:finishing-a-development-branch's cleanup guardrails:\n# cd to the main root before removing, merge-verified-only, `git worktree prune`,\n# never `--force` / `-D`.\n#
 GUARD_CONTEXT_BLOCK=ha builds features in worktrees; this is a cheap\n# last line of defense against rewriting a .env or a key.
 GUARD_FOOTER_BLOCK=# ported from sa/hooks/guard-protected.sh (logic byte-identical; sa->ha strings)\n# ==============================================================================
+CODE_REVIEW_REVIEW_CONTEXT=`review-pr` / `verifier` / `apply-feedback`

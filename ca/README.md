@@ -43,7 +43,7 @@ need network + an authenticated `gh`.
 ca/
   claude/                 # Claude Code plugin (/ca:plan-loop, /ca:implement, /ca:review-pr,
     .claude-plugin/plugin.json          #        /ca:synthesize-review, /ca:merge-pr, ...)
-    skills/{plan-loop,implement,review-pr,synthesize-review,merge-pr,resolve-conflicts,clean-worktrees}/
+    skills/{plan-loop,implement,review-pr,synthesize-review,code-review,merge-pr,resolve-conflicts,clean-worktrees}/
   codex/                  # Codex plugin ($ca-implement-plan)
     .codex-plugin/plugin.json
     skills/ca-implement-plan/               # SKILL.md + agents/openai.yaml + scripts/ + references/

@@ -29,6 +29,10 @@ reference	src/references/code-review/security.md	ha/skills/code-review/reference
 reference	src/references/code-review/security.md	sa/skills/code-review/references/security.md
 reference	src/references/code-review/test-rigor.md	ha/skills/code-review/references/test-rigor.md
 reference	src/references/code-review/test-rigor.md	sa/skills/code-review/references/test-rigor.md
+reference	src/references/code-review/code-quality.md	ca/claude/skills/code-review/references/code-quality.md
+reference	src/references/code-review/consistency.md	ca/claude/skills/code-review/references/consistency.md
+reference	src/references/code-review/security.md	ca/claude/skills/code-review/references/security.md
+reference	src/references/code-review/test-rigor.md	ca/claude/skills/code-review/references/test-rigor.md
 skill	src/skills/clean-worktrees/SKILL.md	ha/skills/clean-worktrees/SKILL.md
 skill	src/skills/clean-worktrees/SKILL.md	sa/skills/clean-worktrees/SKILL.md
 skill	src/skills/clean-worktrees/SKILL.md	ca/claude/skills/clean-worktrees/SKILL.md
@@ -37,3 +41,4 @@ skill	src/skills/merge-pr/SKILL.md	sa/skills/merge-pr/SKILL.md
 skill	src/skills/merge-pr/SKILL.md	ca/claude/skills/merge-pr/SKILL.md
 skill	src/skills/code-review/SKILL.md	ha/skills/code-review/SKILL.md
 skill	src/skills/code-review/SKILL.md	sa/skills/code-review/SKILL.md
+skill	src/skills/code-review/SKILL.md	ca/claude/skills/code-review/SKILL.md

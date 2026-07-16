@@ -6,11 +6,11 @@ allowed-tools: Read, Grep, Glob, Bash
 
 # Code review standards
 
-The single source of engineering standards for `@@PLUGIN@@`. It applies in two modes:
+The single source of engineering standards for `ca`. It applies in two modes:
 
-- **While implementing** (in @@CODE_REVIEW_IMPLEMENT_CONTEXT@@): follow these as you
+- **While implementing** (in `plan-loop` — bake them into the plan Codex builds from): follow these as you
   write, so the change is clean, safe, and consistent the first time.
-- **While reviewing** (in @@CODE_REVIEW_REVIEW_CONTEXT@@): check the diff
+- **While reviewing** (in `review-pr` (checkpoint and final) / `synthesize-review`): check the diff
   against these and report findings as `severity — file:line — issue — suggestion`.
 
 The existing codebase convention always takes precedence over a general rule — confirm
@@ -37,12 +37,15 @@ with `Grep`/`Glob` before flagging something as wrong.
 A change is **risky** when it touches: authn/authz/sessions/tokens; crypto/secrets;
 money/billing; external-input parsing (HTTP handlers, deserialization, file uploads);
 data migration/deletion; permissions; or SQL/shell string construction.
-@@FRAGMENT:risk_gate_consumers@@
+ca's review gates (the checkpoint and final reviews in `review-pr`, the high-risk
+escape hatch and Codex-finding adjudication in `synthesize-review`) key off this
+list — other ca skills reference it, never re-enumerate it.
 
 ## How to apply
 
 1. Understand existing patterns first (`Glob`/`Grep`/`Read`) — style is contextual.
-@@FRAGMENT:apply_dimensions@@
+2. Apply the four dimensions inline — ca ships no subagents; the independent second
+   opinion is the Codex leg, whose findings `synthesize-review` adjudicates with evidence.
 3. Verify findings against the codebase before reporting (a flagged pattern may be
    mitigated by middleware, a framework, or an established convention).
 

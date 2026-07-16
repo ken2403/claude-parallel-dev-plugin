@@ -17,3 +17,4 @@ CLEAN_HEADER_TAIL=#
 CLEAN_GUARDRAIL_BLOCK=#
 GUARD_CONTEXT_BLOCK=sa runs simple features in worktrees; this is a\n# cheap last line of defense against rewriting a .env or a key.
 GUARD_FOOTER_BLOCK=# ==============================================================================
+CODE_REVIEW_REVIEW_CONTEXT=`review-pr` / `verifier` / `apply-feedback`
