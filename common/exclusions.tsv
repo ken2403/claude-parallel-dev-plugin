@@ -20,4 +20,5 @@ ca/codex/skills/ca-implement-plan/scripts/new-worktree.sh	ca/codex creates the i
 ca/codex/skills/ca-implement-plan/scripts/post-summary.sh	ca/codex posts the exchange summary after review.
 ca/codex/skills/ca-implement-plan/scripts/synthesize-review.sh	ca/codex script invokes Claude synthesis and is not shared by Claude plugins.
 ca/codex/skills/ca-implement-plan/tests/codex-review-test.sh	ca/codex test covers Codex-only review script behavior.
+ca/codex/skills/ca-implement-plan/tests/post-summary-test.sh	ca/codex test covers the exchange-summary glob filtering.
 ca/codex/skills/ca-implement-plan/tests/synthesize-review-test.sh	ca/codex test covers Claude synthesis wrapper behavior.

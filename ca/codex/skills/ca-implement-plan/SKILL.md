@@ -165,6 +165,13 @@ Step 3), run a checkpoint review so defects are caught before more code is built
      CODEX_RC=$?
      set -e
 
+     # If an earlier final round produced a Codex leg but this round did not,
+     # the contract requires a machine-readable prior_findings_rechecked:false.
+     PRIOR_RECHECK=""
+     for prior in "$RUN"/review-round-*.codex.json; do
+       [ -f "$prior" ] && [ "$prior" != "$CODEX" ] && PRIOR_RECHECK=',"prior_findings_rechecked":false'
+     done
+
      case "$CODEX_RC" in
        0)
          CODEX_COVERAGE="$(python3 - "$CODEX" <<'PY'
@@ -196,13 +203,13 @@ PY
          fi
          ;;
        1)
-         printf '{"dual_review":true,"codex":{"status":"invalid","reason":"schema_validation_failed"},"synthesis":{"status":"skipped_codex_invalid"}}\n' > "$META"
+         printf '{"dual_review":true,"codex":{"status":"invalid","reason":"schema_validation_failed"%s},"synthesis":{"status":"skipped_codex_invalid"}}\n' "$PRIOR_RECHECK" > "$META"
          bash "$SKILL_DIR/scripts/claude-review.sh" \
            --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
            --mode final --round "$RUND" --out "$FINAL"
          ;;
        3)
-         printf '{"dual_review":true,"codex":{"status":"unavailable","reason":"codex_unavailable_or_oversized"},"synthesis":{"status":"skipped_codex_unavailable"}}\n' > "$META"
+         printf '{"dual_review":true,"codex":{"status":"unavailable","reason":"codex_unavailable_or_oversized"%s},"synthesis":{"status":"skipped_codex_unavailable"}}\n' "$PRIOR_RECHECK" > "$META"
          bash "$SKILL_DIR/scripts/claude-review.sh" \
            --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
            --mode final --round "$RUND" --out "$FINAL"
@@ -213,7 +220,7 @@ PY
          exit 1
          ;;
        *)
-         printf '{"dual_review":true,"codex":{"status":"unavailable","reason":"unexpected_exit_%s"},"synthesis":{"status":"skipped_codex_unavailable"}}\n' "$CODEX_RC" > "$META"
+         printf '{"dual_review":true,"codex":{"status":"unavailable","reason":"unexpected_exit_%s"%s},"synthesis":{"status":"skipped_codex_unavailable"}}\n' "$CODEX_RC" "$PRIOR_RECHECK" > "$META"
          bash "$SKILL_DIR/scripts/claude-review.sh" \
            --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
            --mode final --round "$RUND" --out "$FINAL"

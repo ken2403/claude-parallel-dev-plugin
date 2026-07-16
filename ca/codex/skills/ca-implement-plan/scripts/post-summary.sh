@@ -8,6 +8,13 @@ MD="$RUN/exchange-summary.md"
   echo "## ca loop — Claude×Codex exchange summary"; echo
   for r in "$RUN"/review-checkpoint-*.json "$RUN"/review-round-*.json; do
     [ -f "$r" ] || continue
+    # Only the gating verdict files; the dual-review wiring writes sibling
+    # review-round-N.{meta,blind,codex}.json files that are NOT rounds.
+    case "$(basename "$r")" in
+      *.meta.json|*.blind.json|*.codex.json) continue;;
+      review-checkpoint-[0-9]*.json|review-round-[0-9]*.json) ;;
+      *) continue;;
+    esac
     n="$(basename "$r" | tr -dc '0-9')"
     case "$(basename "$r")" in review-checkpoint-*) label="Checkpoint";; *) label="Round";; esac
     python3 - "$r" "$n" "$label" <<'PY'

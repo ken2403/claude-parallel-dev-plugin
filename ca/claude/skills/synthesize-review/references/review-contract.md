@@ -94,8 +94,11 @@ blocking id must appear in the synthesis `findings[]` or in `resolved_blind_find
 - `unresolved_missing_evidence` — synthesis could not inspect the evidence needed to decide.
 
 If a prior final round used a Codex leg but the current round does not re-run it,
-`prior_findings_rechecked` must be `false` and the PR exchange summary must say the prior
-second-opinion findings were not rechecked.
+`prior_findings_rechecked: false` must be recorded machine-readably and the PR exchange
+summary must say the prior second-opinion findings were not rechecked. Where it lives
+depends on who produced the round's JSON: when synthesis runs, in the review JSON's
+`second_opinion` block; on a degraded (Claude-only) round no synthesis JSON exists, so the
+loop writes it into that round's `review-round-N.meta.json` sidecar's `codex` object.
 
 ## Codex second-opinion contract (ca_codex_review.v1)
 

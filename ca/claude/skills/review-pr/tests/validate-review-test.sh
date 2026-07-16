@@ -124,4 +124,47 @@ write_json "$blind_missing_id" '{
 }'
 expect_status 1 python3 "$VALIDATOR" "$synth" "$blind_missing_id"
 
+# Plain (non-synthesis) reviews may omit finding ids entirely...
+plain_no_ids="$TMP/plain-no-ids.json"
+write_json "$plain_no_ids" '{
+  "schema_version": "ca_claude_review.v1",
+  "round": 1,
+  "mode": "final",
+  "verdict": "request_changes",
+  "summary": "plain review without ids",
+  "findings": [
+    {"blocking": true, "severity": "major", "title": "No id, still valid"}
+  ],
+  "verification": []
+}'
+expect_status 0 python3 "$VALIDATOR" "$plain_no_ids"
+
+# ...but a present id must still match the pattern,
+plain_bad_id="$TMP/plain-bad-id.json"
+write_json "$plain_bad_id" '{
+  "schema_version": "ca_claude_review.v1",
+  "verdict": "approve",
+  "summary": "bad id format",
+  "findings": [
+    {"id": "BOGUS-1", "blocking": false, "title": "Malformed id"}
+  ],
+  "verification": []
+}'
+expect_status 1 python3 "$VALIDATOR" "$plain_bad_id"
+
+# ...and synthesis output still requires ids on every finding.
+synth_missing_finding_id="$TMP/synth-missing-finding-id.json"
+write_json "$synth_missing_finding_id" '{
+  "schema_version": "ca_claude_review.v1",
+  "producer": "synthesis",
+  "verdict": "approve",
+  "summary": "synthesis without finding ids",
+  "findings": [
+    {"blocking": false, "title": "Missing id on synthesis output"}
+  ],
+  "verification": [],
+  "second_opinion": {"provider": "codex", "status": "used", "coverage": "full", "ledger": []}
+}'
+expect_status 1 python3 "$VALIDATOR" "$synth_missing_finding_id"
+
 echo "validate-review-test.sh: ok"

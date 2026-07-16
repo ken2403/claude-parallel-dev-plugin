@@ -152,8 +152,15 @@ def main():
             fail(f"findings[{i}] must be an object")
         if not isinstance(f.get("blocking"), bool):
             fail(f"findings[{i}].blocking must be a boolean")
-        if not isinstance(f.get("id"), str) or not FINDING_ID_RE.match(f["id"]):
-            fail(f"findings[{i}].id must match CNNN or XNNN")
+        # ids are the bookkeeping for no-silent-drop, so they are mandatory only
+        # on synthesis output; plain reviews may omit them (validated if present).
+        if d.get("producer") == "synthesis":
+            if not isinstance(f.get("id"), str) or not FINDING_ID_RE.match(f["id"]):
+                fail(f"findings[{i}].id must match CNNN or XNNN")
+        elif "id" in f and (
+            not isinstance(f["id"], str) or not FINDING_ID_RE.match(f["id"])
+        ):
+            fail(f"findings[{i}].id must match CNNN or XNNN when present")
         if "severity" in f and f["severity"] not in SEVERITIES:
             fail(f"findings[{i}].severity must be one of {sorted(SEVERITIES)}")
         if not isinstance(f.get("title", ""), str):
