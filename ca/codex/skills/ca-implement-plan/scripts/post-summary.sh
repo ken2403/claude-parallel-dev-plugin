@@ -8,14 +8,40 @@ MD="$RUN/exchange-summary.md"
   echo "## ca loop — Claude×Codex exchange summary"; echo
   for r in "$RUN"/review-checkpoint-*.json "$RUN"/review-round-*.json; do
     [ -f "$r" ] || continue
+    # Only the gating verdict files; the dual-review wiring writes sibling
+    # review-round-N.{meta,blind,codex}.json files that are NOT rounds.
+    case "$(basename "$r")" in
+      *.meta.json|*.blind.json|*.codex.json) continue;;
+      review-checkpoint-[0-9]*.json|review-round-[0-9]*.json) ;;
+      *) continue;;
+    esac
     n="$(basename "$r" | tr -dc '0-9')"
     case "$(basename "$r")" in review-checkpoint-*) label="Checkpoint";; *) label="Round";; esac
     python3 - "$r" "$n" "$label" <<'PY'
-import json, sys
+import json, os, sys
 d = json.load(open(sys.argv[1])); n = sys.argv[2]; label = sys.argv[3]
 print(f"### {label} {n} — Claude verdict: **{d.get('verdict','?')}**")
 s = (d.get("summary") or "").strip()
 if s: print(f"> {s}")
+meta_path = sys.argv[1].replace(".json", ".meta.json")
+if os.path.exists(meta_path):
+    m = json.load(open(meta_path))
+    codex = m.get("codex", {})
+    synthesis = m.get("synthesis", {})
+    bits = []
+    if codex:
+        bits.append(f"Codex second opinion: `{codex.get('status','?')}`")
+        if codex.get("coverage"):
+            bits.append(f"coverage `{codex.get('coverage')}`")
+        if codex.get("reason"):
+            bits.append(f"reason `{codex.get('reason')}`")
+    if synthesis:
+        bits.append(f"synthesis `{synthesis.get('status','?')}`")
+    if bits:
+        print("- " + "; ".join(bits))
+second = d.get("second_opinion")
+if isinstance(second, dict):
+    print(f"- Second opinion in verdict: `{second.get('status','?')}` / coverage `{second.get('coverage','?')}`")
 for f in d.get("findings", []):
     flag = "🚫 blocking" if f.get("blocking") else "note"
     print(f"- [{flag}] **{f.get('title','')}** ({f.get('severity','')}) `{f.get('file','')}`")
