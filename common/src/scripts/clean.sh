@@ -304,6 +304,10 @@ for item in "${MERGED_JOBS[@]}"; do
     # the start. Any other lock — a human's deliberate `git worktree lock`, an
     # unrecognized tool, or free text that merely contains "pid" (e.g.
     # "KEEP: rapid 200 files") — is an absolute barrier: skip, never unlock.
+    # Greedy .* means the LAST "(pid N ...)" group wins — correct because the
+    # lock creator appends the real pid group at the END of the reason, after
+    # the (potentially bait-carrying) worktree name. Pinned by the bait-name
+    # scenario in common/tests/clean-worktrees-test.sh.
     lock_pid="$(printf '%s' "$lock_reason" | sed -n 's/^claude session .*(pid \([0-9][0-9]*\)[^)]*).*/\1/p')"
     if [ -z "$lock_pid" ]; then
       echo "  SKIP: locked (${lock_reason:-no reason}) — not a claude-session lock; 'git worktree unlock' manually if intended"

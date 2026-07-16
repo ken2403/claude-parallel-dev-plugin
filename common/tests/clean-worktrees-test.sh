@@ -20,9 +20,20 @@
 # Scenario B (fresh repo, zero merged worktrees):
 #  11. the EARLY-EXIT path also sweeps orphans ("No merged worktrees" + removal)
 #
+# Scenario C (fresh repo, launched FROM a linked worktree):
+#  12. the sweep is anchored at the MAIN checkout (REMOVE_FROM), so orphans
+#      under the main checkout's .claude/worktrees are swept even when clean.sh
+#      runs inside a linked worktree (GIT_ROOT != main); a merged sibling is
+#      still removed from that launch point too.
+#
 # gh is stubbed to fail fast so merge verification deterministically uses git
 # ancestry; global/system git config is neutralized (gpgsign/hooksPath immunity).
 set -euo pipefail
+
+# Scenarios 6 (pid 1 liveness) and 9 (unreadable dir) are VACUOUS under root:
+# kill -0 1 succeeds and chmod 000 is ignored (CAP_DAC_OVERRIDE). Fail loudly
+# instead of silently losing their discriminating power.
+[ "$(id -u)" -ne 0 ] || { echo "FAIL: must run as non-root (scenarios 6/9 are vacuous under root)" >&2; exit 1; }
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CLEAN="$ROOT/ha/skills/clean-worktrees/scripts/clean.sh"
@@ -66,6 +77,13 @@ make_wt merged-stale-lock wt/merged-stale-lock; merge_branch wt/merged-stale-loc
 bash -c ':' & DEAD_PID=$!; wait "$DEAD_PID" 2>/dev/null || true
 git -C "$REPO" worktree lock --reason "claude session test (pid $DEAD_PID start now)" \
   "$REPO/.claude/worktrees/ha/merged-stale-lock"
+# 3b stale claude-session lock whose worktree NAME carries "(pid <live>" bait:
+#    the pid group appended LAST by the lock creator must win (greedy last-match),
+#    so the lock still parses the real DEAD pid and is unlocked. Pins the
+#    "pid group is the final parenthesized group" property the parser relies on.
+make_wt merged-bait-name wt/merged-bait-name; merge_branch wt/merged-bait-name
+git -C "$REPO" worktree lock --reason "claude session bait (pid 1 x (pid $DEAD_PID start now)" \
+  "$REPO/.claude/worktrees/ha/merged-bait-name"
 # 4 live claude-session lock (this shell's pid)
 make_wt merged-live-lock wt/merged-live-lock; merge_branch wt/merged-live-lock
 git -C "$REPO" worktree lock --reason "claude session live (pid $$ start now)" \
@@ -83,6 +101,8 @@ mkdir -p "$REPO/.claude/worktrees/ca" "$REPO/.claude/worktrees/sa/empty-child"
 mkdir -p "$REPO/.claude/worktrees/leftover-with-content"
 echo data > "$REPO/.claude/worktrees/leftover-with-content/file.txt"
 # 9 unreadable non-empty orphan (find/rmdir must fail without aborting the run)
+#    LOAD-BEARING fixture: it is also what discriminates the `|| true` guards on
+#    the two finds — without it, deleting those guards would go undetected.
 mkdir -p "$REPO/.claude/worktrees/unreadable-orphan"
 echo hidden > "$REPO/.claude/worktrees/unreadable-orphan/secret.txt"
 chmod 000 "$REPO/.claude/worktrees/unreadable-orphan"
@@ -103,6 +123,9 @@ git -C "$REPO" show-ref --verify --quiet refs/heads/wt/open-branch || fail "unme
 # 3 stale claude-session lock cleared
 [ ! -d "$REPO/.claude/worktrees/ha/merged-stale-lock" ] || fail "stale-locked merged worktree not removed"
 echo "$OUT" | grep -q "Stale claude-session lock" || fail "stale lock path not reported"
+# 3b bait in the NAME loses to the tool-appended final pid group
+[ ! -d "$REPO/.claude/worktrees/ha/merged-bait-name" ] || fail "bait-named stale lock not unlocked (last-match property broken)"
+echo "$OUT" | grep -q "Stale claude-session lock (holder pid $DEAD_PID" || fail "bait-named lock did not parse the real pid"
 # 4 live claude-session lock respected
 [ -d "$REPO/.claude/worktrees/ha/merged-live-lock" ] || fail "live-locked worktree was removed"
 echo "$OUT" | grep -q "locked by a RUNNING process (pid $$" || fail "live lock skip not reported"
@@ -133,5 +156,27 @@ mkdir -p "$REPO2/.claude/worktrees/ha"          # empty orphan group dir
 OUT2="$(cd "$REPO2" && bash "$CLEAN" all-merged 2>&1)" || fail "early-exit run exited non-zero: $OUT2"
 echo "$OUT2" | grep -q "No merged worktrees to clean up" || fail "early-exit path not taken"
 [ ! -d "$REPO2/.claude/worktrees/ha" ] || fail "early-exit path did not sweep the empty orphan"
+
+# ============================ Scenario C =====================================
+# Launched FROM a linked worktree: GIT_ROOT is the linked worktree, but the
+# sweep must anchor at the MAIN checkout (REMOVE_FROM) — with a GIT_ROOT
+# anchor this run finds no .claude/worktrees and silently no-ops.
+mkdir -p "$TMP/c"; new_repo "$TMP/c"; REPO3="$TMP/c/repo"
+git -C "$REPO3" worktree add -q -b wt/launchpoint "$REPO3/.claude/worktrees/launchpoint" main
+( cd "$REPO3/.claude/worktrees/launchpoint" \
+  && echo lp > lp.txt && git add lp.txt \
+  && git -c user.email=t@example.invalid -c user.name=t commit -qm lp )   # unmerged: survives
+git -C "$REPO3" worktree add -q -b wt/c-merged "$REPO3/.claude/worktrees/c-merged" main
+( cd "$REPO3/.claude/worktrees/c-merged" \
+  && echo cm > cm.txt && git add cm.txt \
+  && git -c user.email=t@example.invalid -c user.name=t commit -qm cm )
+git -C "$REPO3" merge -q --no-ff wt/c-merged -m "merge wt/c-merged"
+git -C "$REPO3" push -q origin main
+mkdir -p "$REPO3/.claude/worktrees/orphan-under-main"                     # empty orphan
+OUT3="$(cd "$REPO3/.claude/worktrees/launchpoint" && bash "$CLEAN" all-merged 2>&1)" \
+  || fail "linked-worktree run exited non-zero: $OUT3"
+[ ! -d "$REPO3/.claude/worktrees/orphan-under-main" ] || fail "sweep missed the main checkout's orphan when launched from a linked worktree"
+[ ! -d "$REPO3/.claude/worktrees/c-merged" ] || fail "merged sibling not removed when launched from a linked worktree"
+[ -d "$REPO3/.claude/worktrees/launchpoint" ] || fail "unmerged launch worktree was removed"
 
 echo "clean-worktrees-test.sh: ok"
