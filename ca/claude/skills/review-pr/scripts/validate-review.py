@@ -18,6 +18,8 @@ SECOND_OPINION_STATUSES = {"used", "clean_no_synthesis", "unavailable", "invalid
 COVERAGES = {"full", "partial"}
 ADJUDICATIONS = {"confirmed", "refuted", "not_applicable", "unresolved_missing_evidence"}
 RESOLVED_SEVERITIES = {"minor", "none"}
+FINDING_ID_RE = re.compile(r"^[CX][0-9]{3}$")
+BLIND_FINDING_ID_RE = re.compile(r"^C[0-9]{3}$")
 
 
 def fail(msg):
@@ -98,10 +100,15 @@ def validate_resolved_blind_findings(value):
 
 
 def enforce_no_silent_drop(synth, blind):
+    for i, f in enumerate(blind.get("findings", [])):
+        if not isinstance(f, dict) or f.get("blocking") is not True:
+            continue
+        if not isinstance(f.get("id"), str) or not BLIND_FINDING_ID_RE.match(f["id"]):
+            fail(f"blind findings[{i}].id must match CNNN for blocking findings")
     blind_ids = {
         f.get("id")
         for f in blind.get("findings", [])
-        if isinstance(f, dict) and f.get("blocking") is True and isinstance(f.get("id"), str)
+        if isinstance(f, dict) and f.get("blocking") is True
     }
     if not blind_ids:
         return
@@ -145,6 +152,8 @@ def main():
             fail(f"findings[{i}] must be an object")
         if not isinstance(f.get("blocking"), bool):
             fail(f"findings[{i}].blocking must be a boolean")
+        if not isinstance(f.get("id"), str) or not FINDING_ID_RE.match(f["id"]):
+            fail(f"findings[{i}].id must match CNNN or XNNN")
         if "severity" in f and f["severity"] not in SEVERITIES:
             fail(f"findings[{i}].severity must be one of {sorted(SEVERITIES)}")
         if not isinstance(f.get("title", ""), str):

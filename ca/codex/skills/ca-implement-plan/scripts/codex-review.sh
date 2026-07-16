@@ -11,7 +11,7 @@ CODEX_BIN="${CODEX_BIN:-codex}"
 GH_BIN="${GH_BIN:-gh}"
 TIMEOUT_SECONDS="${CA_CODEX_REVIEW_TIMEOUT:-900}"
 FULL_DIFF_BYTES="${CA_CODEX_REVIEW_FULL_DIFF_BYTES:-180000}"
-FALLBACK_PROMPT_BYTES="${CA_CODEX_REVIEW_FALLBACK_PROMPT_BYTES:-180000}"
+FALLBACK_PROMPT_BYTES="${CA_CODEX_REVIEW_FALLBACK_PROMPT_BYTES:-360000}"
 
 PLAN="" PR="" WT="" ROUND="" OUT="" DRY_RUN=0
 while [ $# -gt 0 ]; do
@@ -141,10 +141,7 @@ diff_section = diff
 policy_note = f"Coverage: full; full PR diff included ({diff_bytes} bytes)."
 if diff_bytes > full_limit:
     coverage = "partial"
-    risky_sections = [
-        section for path, section in split_file_diffs(diff)
-        if risky.search(path) or risky.search(section[:4000])
-    ]
+    risky_sections = [section for path, section in split_file_diffs(diff) if risky.search(path)]
     risky_text = "".join(risky_sections).strip()
     diff_section = (
         "Full diff omitted by oversized-diff policy.\n"
@@ -180,6 +177,7 @@ PR metadata:
 ```
 
 {policy_note}
+Required `coverage` field in your JSON response: "{coverage}".
 
 Implementation plan:
 ```markdown
@@ -210,20 +208,21 @@ if [ "$DRY_RUN" -eq 1 ]; then
 fi
 
 rm -f "$RAW" "$ERR"
-if ! python3 - "$CODEX_BIN" "$SCHEMA" "$PROMPT" "$RAW" "$ERR" "$TIMEOUT_SECONDS" <<'PY'
+if ! python3 - "$CODEX_BIN" "$SCHEMA" "$PROMPT" "$RAW" "$ERR" "$TIMEOUT_SECONDS" "$WT" <<'PY'
 import subprocess
 import sys
 from pathlib import Path
 
-codex, schema, prompt_path, raw_path, err_path, timeout_s = sys.argv[1:]
+codex, schema, prompt_path, raw_path, err_path, timeout_s, wt = sys.argv[1:]
 prompt = Path(prompt_path).read_text(encoding="utf-8")
 try:
     proc = subprocess.run(
-        [codex, "exec", "--sandbox", "read-only", "--output-schema", schema, "-"],
+        [codex, "exec", "-C", wt, "--sandbox", "read-only", "--output-schema", schema, "-"],
         input=prompt,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        cwd=wt,
         timeout=int(timeout_s),
         check=False,
     )

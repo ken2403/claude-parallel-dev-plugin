@@ -110,4 +110,18 @@ write_json "$bad_ledger" '{
 }'
 expect_status 1 python3 "$VALIDATOR" "$bad_ledger" "$blind"
 
+blind_missing_id="$TMP/blind-missing-id.json"
+write_json "$blind_missing_id" '{
+  "schema_version": "ca_claude_review.v1",
+  "round": 1,
+  "mode": "final",
+  "verdict": "request_changes",
+  "summary": "Blind review",
+  "findings": [
+    {"blocking": true, "severity": "major", "title": "Blind blocker"}
+  ],
+  "verification": []
+}'
+expect_status 1 python3 "$VALIDATOR" "$synth" "$blind_missing_id"
+
 echo "validate-review-test.sh: ok"
