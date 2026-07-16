@@ -76,7 +76,7 @@ Judge along these axes; for each problem you assert, cite file:line evidence —
 - **Codebase consistency:** matches existing conventions; renames propagated everywhere; no stale references or duplicated logic; docs/types/config in sync.
 - **Tests & evidence:** tests exist and actually exercise the change — a behavior change with no covering test is `blocking: true` unless the plan or PR states why it is untestable; build/lint/typecheck pass (check the PR's CI/status or the diff's test output if present, or note it's unverified).
 
-Mark a finding `blocking: true` ONLY for must-fix issues (wrong behavior, security holes, missing required functionality, broken build, a behavior change without a covering test). Style/nits are non-blocking. Default to skepticism on risky areas (auth, data loss, money, external input): if you cannot confirm safety, treat it as blocking.
+Mark a finding `blocking: true` ONLY for must-fix issues (wrong behavior, security holes, missing required functionality, broken build, a behavior change without a covering test). Style/nits are non-blocking. Default to skepticism on risky surfaces — the canonical list lives in the `code-review` skill; don't re-enumerate it here: if you cannot confirm safety there, treat it as blocking.
 
 ## Step 3 — Emit the verdict JSON
 

@@ -14,3 +14,5 @@ ATTACH_MAIN_REFUSAL_SUBJECT=this skill
 MERGE_CHECK_HEADER_TAIL=# Ported from sa/skills/clean-worktrees/scripts/merge-check.sh (sa->ca header).\n#
 CLEAN_HEADER_TAIL=# Ported from sa/skills/clean-worktrees/scripts/clean.sh (sa->ca).\n#
 CLEAN_GUARDRAIL_BLOCK=#\n# Follows finishing-a-development-branch's cleanup guardrails:\n# cd to the main root before removing, merge-verified-only, `git worktree prune`,\n# never `--force` / `-D`.\n#
+CODE_REVIEW_IMPLEMENT_CONTEXT=`plan-loop` — bake them into the plan Codex builds from
+CODE_REVIEW_REVIEW_CONTEXT=`review-pr` (checkpoint and final) / `synthesize-review`

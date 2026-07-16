@@ -57,7 +57,8 @@ For every Codex finding, add one `second_opinion.ledger[]` entry:
 - `unresolved_missing_evidence` - you could not inspect the evidence needed to decide.
 
 Codex findings are advisory by default. A Codex claim becomes blocking only when you confirm it
-with evidence. Narrow exception: if a high-risk claim cannot be resolved without missing evidence,
+with evidence. Narrow exception: if a high-risk claim (one touching the canonical
+risky-surface list in the `code-review` skill) cannot be resolved without missing evidence,
 you may emit a blocking finding whose title or evidence includes `needs-human-or-evidence`, naming
 the exact missing evidence and the next non-interactive action.
 
