@@ -127,9 +127,12 @@ Step 3), run a checkpoint review so defects are caught before more code is built
    PR="$(gh pr view "$BR" --json number --jq .number)"
    echo "draft PR: #$PR"
    ```
-3. Call the Claude reviewer on the PR in **final** mode (only final rounds count against
-   `MAX_ROUNDS`). This bundled script runs `claude -p /ca:review-pr` and writes a validated
-   JSON verdict.
+3. Call the reviewer on the PR in **final** mode (only final rounds count against
+   `MAX_ROUNDS`). By default this is the existing Claude-only path. When
+   `CA_DUAL_REVIEW=1`, run the opt-in dual-model path: Codex reviews the PR from an offline
+   host-built prompt, Claude performs its normal blind final review separately, and a separate
+   Claude synthesis call adjudicates Codex's advisory findings into the single gating
+   `ca_claude_review.v1` verdict.
 
    **TWO PRECONDITIONS — important.** Both must hold or no review is produced:
    - **Skill resolvable:** `claude -p /ca:review-pr` only works if the ca *Claude* plugin is
@@ -144,15 +147,86 @@ Step 3), run a checkpoint review so defects are caught before more code is built
    Tell the human which arrangement you are relying on before running it.
 
    ```bash
-   bash "$SKILL_DIR/scripts/claude-review.sh" \
-     --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
-     --mode final --round "$RUND" --out "$RUN/review-round-$RUND.json"
+   META="$RUN/review-round-$RUND.meta.json"
+   FINAL="$RUN/review-round-$RUND.json"
+   BLIND="$RUN/review-round-$RUND.blind.json"
+   CODEX="$RUN/review-round-$RUND.codex.json"
+
+   if [ "${CA_DUAL_REVIEW:-0}" != "1" ]; then
+     printf '{"dual_review":false,"codex":{"status":"disabled"},"synthesis":{"status":"disabled"}}\n' > "$META"
+     bash "$SKILL_DIR/scripts/claude-review.sh" \
+       --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
+       --mode final --round "$RUND" --out "$FINAL"
+   else
+     set +e
+     bash "$SKILL_DIR/scripts/codex-review.sh" \
+       --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
+       --round "$RUND" --out "$CODEX"
+     CODEX_RC=$?
+     set -e
+
+     case "$CODEX_RC" in
+       0)
+         CODEX_COVERAGE="$(python3 - "$CODEX" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+print(d.get("coverage", "partial"))
+PY
+)"
+         CODEX_FINDINGS="$(python3 - "$CODEX" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+print(len(d.get("findings", [])))
+PY
+)"
+         if [ "$CODEX_COVERAGE" = "full" ] && [ "$CODEX_FINDINGS" = "0" ]; then
+           printf '{"dual_review":true,"codex":{"status":"clean_no_synthesis","coverage":"full"},"synthesis":{"status":"skipped_clean"}}\n' > "$META"
+           bash "$SKILL_DIR/scripts/claude-review.sh" \
+             --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
+             --mode final --round "$RUND" --out "$FINAL"
+         else
+           printf '{"dual_review":true,"codex":{"status":"used","coverage":"%s"},"synthesis":{"status":"pending"}}\n' "$CODEX_COVERAGE" > "$META"
+           bash "$SKILL_DIR/scripts/claude-review.sh" \
+             --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
+             --mode final --round "$RUND" --out "$BLIND"
+           bash "$SKILL_DIR/scripts/synthesize-review.sh" \
+             --blind "$BLIND" --second-opinion "$CODEX" --plan "$RUN/plan.md" \
+             --pr "$PR" --worktree "$ROOT" --round "$RUND" --out "$FINAL"
+           printf '{"dual_review":true,"codex":{"status":"used","coverage":"%s"},"synthesis":{"status":"used"}}\n' "$CODEX_COVERAGE" > "$META"
+         fi
+         ;;
+       1)
+         printf '{"dual_review":true,"codex":{"status":"invalid","reason":"schema_validation_failed"},"synthesis":{"status":"skipped_codex_invalid"}}\n' > "$META"
+         bash "$SKILL_DIR/scripts/claude-review.sh" \
+           --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
+           --mode final --round "$RUND" --out "$FINAL"
+         ;;
+       3)
+         printf '{"dual_review":true,"codex":{"status":"unavailable","reason":"codex_unavailable_or_oversized"},"synthesis":{"status":"skipped_codex_unavailable"}}\n' > "$META"
+         bash "$SKILL_DIR/scripts/claude-review.sh" \
+           --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
+           --mode final --round "$RUND" --out "$FINAL"
+         ;;
+       4)
+         printf '{"dual_review":true,"codex":{"status":"unavailable","reason":"input_fetch_failed"},"synthesis":{"status":"not_run"}}\n' > "$META"
+         echo "codex review input fetch failed; STOP and ask the human to retry/fix gh inputs" >&2
+         exit 1
+         ;;
+       *)
+         printf '{"dual_review":true,"codex":{"status":"unavailable","reason":"unexpected_exit_%s"},"synthesis":{"status":"skipped_codex_unavailable"}}\n' "$CODEX_RC" > "$META"
+         bash "$SKILL_DIR/scripts/claude-review.sh" \
+           --plan "$RUN/plan.md" --pr "$PR" --worktree "$ROOT" \
+           --mode final --round "$RUND" --out "$FINAL"
+         ;;
+     esac
+   fi
    ```
 
    The script fails loudly (non-zero) with an actionable reason if no valid review is produced — if
    it reports the API was unreachable, **STOP and ASK** the human to run the review step where
    network is allowed; do not treat an unreachable reviewer as a real "blocked" verdict.
-4. Read `review-round-$RUND.json`. Its shape is documented in `references/review-contract.md`
+4. Read `review-round-$RUND.json` and `review-round-$RUND.meta.json`. The review JSON shape is
+   documented in `references/review-contract.md`
    (`verdict`, plus `findings` where each has `blocking: true` or `false`). On a malformed file,
    treat it as blocked and **ASK** the human.
 

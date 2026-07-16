@@ -58,6 +58,9 @@ echo "== ca contract copies =="
 cmp -s ca/claude/skills/review-pr/references/review-contract.md \
   ca/codex/skills/ca-implement-plan/references/review-contract.md \
   || fail "ca review-contract.md copies must be byte-identical"
+cmp -s ca/claude/skills/review-pr/references/review-contract.md \
+  ca/claude/skills/synthesize-review/references/review-contract.md \
+  || fail "ca synthesis review-contract.md copy must be byte-identical"
 
 echo "== ca script tests =="
 while IFS= read -r test_file; do

@@ -8,6 +8,7 @@ ha/skills/review-pr/SKILL.md	ha review uses ha verifier/analyzer workflow.
 sa/skills/review-pr/SKILL.md	sa review uses multi-lens verifier fan-out and opus escalation.
 ca/claude/skills/review-pr/SKILL.md	ca review emits the ca_claude_review.v1 contract for Codex.
 ca/claude/skills/review-pr/references/review-contract.md	ca/claude keeps a portable copy of the review contract for the review skill.
+ca/claude/skills/synthesize-review/references/review-contract.md	ca/claude keeps a portable copy of the review contract for the synthesis skill.
 ca/codex/.codex-plugin/plugin.json	ca/codex is a separate Codex plugin manifest.
 ca/codex/skills/ca-implement-plan/SKILL.md	ca/codex is a different tool plugin with its own skill contract.
 ca/codex/skills/ca-implement-plan/agents/openai.yaml	ca/codex agent policy is Codex-specific.
@@ -17,4 +18,6 @@ ca/codex/skills/ca-implement-plan/scripts/codex-review-schema.json	ca/codex sche
 ca/codex/skills/ca-implement-plan/scripts/codex-review.sh	ca/codex script invokes Codex and is not shared by Claude plugins.
 ca/codex/skills/ca-implement-plan/scripts/new-worktree.sh	ca/codex creates the isolated Codex worktree and launcher.
 ca/codex/skills/ca-implement-plan/scripts/post-summary.sh	ca/codex posts the exchange summary after review.
+ca/codex/skills/ca-implement-plan/scripts/synthesize-review.sh	ca/codex script invokes Claude synthesis and is not shared by Claude plugins.
 ca/codex/skills/ca-implement-plan/tests/codex-review-test.sh	ca/codex test covers Codex-only review script behavior.
+ca/codex/skills/ca-implement-plan/tests/synthesize-review-test.sh	ca/codex test covers Claude synthesis wrapper behavior.

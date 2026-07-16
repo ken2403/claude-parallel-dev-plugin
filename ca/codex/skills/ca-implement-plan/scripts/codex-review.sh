@@ -59,6 +59,7 @@ NAMES="$TMPDIR_REVIEW/pr.names"
 STAT="$TMPDIR_REVIEW/pr.stat"
 PROMPT="$TMPDIR_REVIEW/prompt.md"
 RAW="$TMPDIR_REVIEW/codex.raw.json"
+COVERAGE_EXPECTED="$TMPDIR_REVIEW/coverage.expected"
 ERR="${OUT%.json}.codex.stderr"
 
 if ! "$GH_BIN" pr view "$PR" --json number,title,state,isDraft,baseRefName,headRefName,url > "$META"; then
@@ -96,13 +97,13 @@ print(f"{len(files)} files changed")
 PY
 
 set +e
-python3 - "$PLAN" "$META" "$DIFF" "$NAMES" "$STAT" "$ROUND" "$FULL_DIFF_BYTES" "$FALLBACK_PROMPT_BYTES" > "$PROMPT" <<'PY'
+python3 - "$PLAN" "$META" "$DIFF" "$NAMES" "$STAT" "$ROUND" "$FULL_DIFF_BYTES" "$FALLBACK_PROMPT_BYTES" "$COVERAGE_EXPECTED" > "$PROMPT" <<'PY'
 import json
 import re
 import sys
 from pathlib import Path
 
-plan_path, meta_path, diff_path, names_path, stat_path, round_s, full_s, fallback_s = sys.argv[1:]
+plan_path, meta_path, diff_path, names_path, stat_path, round_s, full_s, fallback_s, coverage_path = sys.argv[1:]
 plan = Path(plan_path).read_text(encoding="utf-8", errors="replace")
 meta = json.loads(Path(meta_path).read_text(encoding="utf-8"))
 diff = Path(diff_path).read_text(encoding="utf-8", errors="replace")
@@ -189,6 +190,7 @@ PR diff context:
 {diff_section}
 ```
 """
+Path(coverage_path).write_text(coverage, encoding="utf-8")
 print(prompt)
 PY
 prompt_status=$?
@@ -243,12 +245,13 @@ fi
   exit 3
 }
 
-if ! python3 - "$RAW" "$OUT" <<'PY'
+if ! python3 - "$RAW" "$OUT" "$COVERAGE_EXPECTED" <<'PY'
 import json
 import re
 import sys
 
-raw_path, out_path = sys.argv[1:]
+raw_path, out_path, coverage_path = sys.argv[1:]
+expected_coverage = open(coverage_path, encoding="utf-8").read().strip()
 ALLOWED_TOP = {"schema_version", "summary", "coverage", "findings"}
 ALLOWED_FINDING = {"id", "blocking", "severity", "file", "line", "title", "evidence", "recommended_fix"}
 SEVERITIES = {"blocker", "major", "minor"}
@@ -272,6 +275,8 @@ if not isinstance(data.get("summary"), str) or len(data["summary"]) > 2000:
     fail("summary must be a string up to 2000 chars")
 if data.get("coverage") not in {"full", "partial"}:
     fail("coverage must be full or partial")
+if data.get("coverage") != expected_coverage:
+    fail(f"coverage must be {expected_coverage} for this prompt")
 findings = data.get("findings")
 if not isinstance(findings, list) or len(findings) > 50:
     fail("findings must be a list of at most 50 items")
