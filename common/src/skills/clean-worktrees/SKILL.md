@@ -53,6 +53,12 @@ bash "$CLAUDE_SKILL_@@PLUGIN_UPPER@@_DIR/scripts/clean.sh" all-merged
 
 @@FRAGMENT:clean_script_behavior@@
 
+Two more rules the script owns: a merged worktree still locked by a **dead**
+claude session (`claude session ... (pid N)` whose pid is gone) is unlocked and
+removed — any other lock is an absolute barrier and is only reported. And orphan
+directories under `.claude/worktrees/` that are no longer registered worktrees
+are removed when **empty**, reported (never deleted) when they still have content.
+
 ## Step 3 — Report
 
 ```

@@ -67,6 +67,9 @@ while IFS= read -r test_file; do
   bash "$test_file"
 done < <(find ca -path '*/tests/*-test.sh' -type f | sort)
 
+echo "== clean-worktrees behavior =="
+bash common/tests/clean-worktrees-test.sh
+
 echo "== skill and agent identity =="
 while IFS= read -r skill; do
   dir="$(basename "$(dirname "$skill")")"
