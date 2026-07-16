@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# Behavior tests for dual-review.sh (the standalone dual-model orchestrator),
+# with claude / codex / gh all stubbed — no network, no real binaries.
+#
+#   1. Codex finds something        → synthesis runs; final producer=synthesis;
+#                                     meta codex=used, synthesis=used
+#   2. Codex clean, full coverage   → synthesis SKIPPED; final == blind copy;
+#                                     meta clean_no_synthesis
+#   3. Codex binary missing         → visible degrade; final == blind;
+#                                     meta unavailable
+#   4. Degrade in a LATER round after a Codex round → meta carries
+#                                     prior_findings_rechecked:false
+#   5. Blind Claude review fails    → dual-review exits 1, no final JSON
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd)"
+SCRIPT="$ROOT/ca/claude/skills/dual-review/scripts/dual-review.sh"
+TMP="${TMPDIR:-/tmp}/dual-review-test.$$"
+trap 'rm -rf "$TMP"' EXIT
+mkdir -p "$TMP/bin" "$TMP/out"
+
+fail() { echo "FAIL: $*" >&2; exit 1; }
+
+PLAN="$TMP/plan.md"; printf '# Plan\nOne task.\n' > "$PLAN"
+WT="$TMP/wt"; mkdir -p "$WT"
+
+# --- gh stub (host-side PR fetch inside codex-review.sh) ---------------------
+cat > "$TMP/bin/gh" <<'SH'
+#!/usr/bin/env bash
+case "$1 $2" in
+  "pr view") printf '{"number":7,"title":"t","state":"OPEN","isDraft":true,"baseRefName":"main","headRefName":"b","url":"u"}\n';;
+  "pr diff") if [ "${3:-}" = "--name-only" ] || [ "${4:-}" = "--name-only" ]; then printf 'a.txt\n'; else printf 'diff --git a/a.txt b/a.txt\n+x\n'; fi;;
+  *) exit 1;;
+esac
+SH
+chmod +x "$TMP/bin/gh"; export GH_BIN="$TMP/bin/gh"
+
+# --- claude stub: blind review vs synthesis, keyed off the prompt ------------
+cat > "$TMP/bin/claude" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+[ "${CLAUDE_MODE:-ok}" = "ok" ] || exit 1
+case "$*" in
+  *synthesize-review*)
+    cat > "${CA_OUT:?}" <<'JSON'
+{"schema_version":"ca_claude_review.v1","producer":"synthesis","round":1,"mode":"final","verdict":"request_changes","summary":"synth","findings":[{"id":"C001","blocking":true,"severity":"major","title":"blind blocker kept"}],"verification":[],"second_opinion":{"provider":"codex","status":"used","coverage":"full","ledger":[{"id":"X001","adjudication":"refuted","evidence":"checked the diff"}],"prior_findings_rechecked":true},"resolved_blind_findings":[]}
+JSON
+    ;;
+  *review-pr*)
+    cat > "${CA_OUT:?}" <<'JSON'
+{"schema_version":"ca_claude_review.v1","producer":"blind","round":1,"mode":"final","verdict":"request_changes","summary":"blind","findings":[{"id":"C001","blocking":true,"severity":"major","title":"blind blocker"}],"verification":[]}
+JSON
+    ;;
+  *) exit 1;;
+esac
+SH
+chmod +x "$TMP/bin/claude"; export CLAUDE_BIN="$TMP/bin/claude"
+
+# --- codex stub: reply on stdout, shape keyed off CODEX_MODE -----------------
+cat > "$TMP/bin/codex" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+cat > /dev/null   # consume the prompt on stdin
+case "${CODEX_MODE:-finding}" in
+  finding) printf '{"schema_version":"ca_codex_review.v1","summary":"codex","coverage":"full","findings":[{"id":"X001","blocking":true,"severity":"major","title":"codex claim","evidence":"e","recommended_fix":"f"}]}\n';;
+  clean)   printf '{"schema_version":"ca_codex_review.v1","summary":"codex","coverage":"full","findings":[]}\n';;
+esac
+SH
+chmod +x "$TMP/bin/codex"; export CODEX_BIN="$TMP/bin/codex"
+
+json_get() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d.get(sys.argv[2],""))' "$@"; }
+
+# 1. Codex finding → synthesis path
+D1="$TMP/out/case1"
+CODEX_MODE=finding bash "$SCRIPT" --pr 7 --plan "$PLAN" --worktree "$WT" --round 1 --out-dir "$D1" >/dev/null
+[ "$(json_get "$D1/review-round-1.json" producer)" = "synthesis" ] || fail "case1: final is not the synthesis output"
+grep -q '"synthesis":{"status":"used"}' "$D1/review-round-1.meta.json" || fail "case1: meta does not record synthesis"
+[ -f "$D1/review-round-1.blind.json" ] || fail "case1: blind JSON not kept for audit"
+
+# 2. Codex clean + full → synthesis skipped, final == blind
+D2="$TMP/out/case2"
+CODEX_MODE=clean bash "$SCRIPT" --pr 7 --plan "$PLAN" --worktree "$WT" --round 1 --out-dir "$D2" >/dev/null
+cmp -s "$D2/review-round-1.json" "$D2/review-round-1.blind.json" || fail "case2: final is not the blind copy"
+grep -q clean_no_synthesis "$D2/review-round-1.meta.json" || fail "case2: meta missing clean_no_synthesis"
+
+# 3. Codex missing → visible degrade to Claude-only
+D3="$TMP/out/case3"
+CODEX_BIN="$TMP/bin/no-such-codex" bash "$SCRIPT" --pr 7 --plan "$PLAN" --worktree "$WT" --round 1 --out-dir "$D3" >/dev/null
+cmp -s "$D3/review-round-1.json" "$D3/review-round-1.blind.json" || fail "case3: degrade did not fall back to blind"
+grep -q '"status":"unavailable"' "$D3/review-round-1.meta.json" || fail "case3: meta missing unavailable status"
+
+# 4. Later degraded round after a Codex round → prior_findings_rechecked:false
+CODEX_BIN="$TMP/bin/no-such-codex" bash "$SCRIPT" --pr 7 --plan "$PLAN" --worktree "$WT" --round 2 --out-dir "$D1" >/dev/null
+grep -q '"prior_findings_rechecked":false' "$D1/review-round-2.meta.json" || fail "case4: prior recheck flag missing"
+
+# 5. Blind leg failure → hard exit, no verdict fabricated
+D5="$TMP/out/case5"
+set +e
+CLAUDE_MODE=fail bash "$SCRIPT" --pr 7 --plan "$PLAN" --worktree "$WT" --round 1 --out-dir "$D5" >/dev/null 2>&1
+RC=$?
+set -e
+[ "$RC" -ne 0 ] || fail "case5: expected non-zero exit when the blind review fails"
+[ ! -f "$D5/review-round-1.json" ] || fail "case5: a final verdict was fabricated despite blind failure"
+
+echo "dual-review-test.sh: ok"

@@ -43,7 +43,7 @@ need network + an authenticated `gh`.
 ca/
   claude/                 # Claude Code plugin (/ca:plan-loop, /ca:implement, /ca:review-pr,
     .claude-plugin/plugin.json          #        /ca:synthesize-review, /ca:merge-pr, ...)
-    skills/{plan-loop,implement,review-pr,synthesize-review,code-review,merge-pr,resolve-conflicts,clean-worktrees}/
+    skills/{plan-loop,implement,review-pr,synthesize-review,dual-review,code-review,merge-pr,resolve-conflicts,clean-worktrees}/
   codex/                  # Codex plugin ($ca-implement-plan)
     .codex-plugin/plugin.json
     skills/ca-implement-plan/               # SKILL.md + agents/openai.yaml + scripts/ + references/
@@ -85,6 +85,10 @@ A Codex plugin manifest (`ca/codex/.codex-plugin/plugin.json`) and marketplace e
    then the final `/ca:review-pr` review (≤2 rounds), and on approve marks the PR **ready**.
 5. Merge the PR — `/ca:merge-pr [pr]` (gated: refuses drafts/red CI/conflicts) or on GitHub —
    then `/ca:clean-worktrees` reclaims the worktree and branch.
+
+Standalone dual review — the loop's Claude×Codex final review as a command, usable on any
+PR at any time (including re-reviews after the loop): `/ca:dual-review [pr] [plan-path]`.
+Codex leg optional (degrades visibly to Claude-only); artifacts in `.ca/reviews/pr-<n>/`.
 
 Standalone Claude skills: `/ca:merge-pr [pr]` (gated merge — refuses drafts, red CI, conflicts;
 in ca a draft means the review loop has not approved), `/ca:resolve-conflicts [pr|branch]`

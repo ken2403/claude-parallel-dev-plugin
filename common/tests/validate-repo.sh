@@ -61,6 +61,16 @@ cmp -s ca/claude/skills/review-pr/references/review-contract.md \
 cmp -s ca/claude/skills/review-pr/references/review-contract.md \
   ca/claude/skills/synthesize-review/references/review-contract.md \
   || fail "ca synthesis review-contract.md copy must be byte-identical"
+cmp -s ca/claude/skills/review-pr/references/review-contract.md \
+  ca/claude/skills/dual-review/references/review-contract.md \
+  || fail "ca dual-review review-contract.md copy must be byte-identical"
+
+echo "== ca dual-review script copies =="
+for f in codex-review.sh codex-review-schema.json claude-review.sh synthesize-review.sh; do
+  cmp -s "ca/codex/skills/ca-implement-plan/scripts/$f" \
+    "ca/claude/skills/dual-review/scripts/$f" \
+    || fail "dual-review copy of $f must be byte-identical to the ca/codex master"
+done
 
 echo "== ca script tests =="
 while IFS= read -r test_file; do
