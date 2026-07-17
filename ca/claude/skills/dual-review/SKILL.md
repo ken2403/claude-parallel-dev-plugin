@@ -1,0 +1,110 @@
+---
+name: dual-review
+description: Run the ca dual-model review (Codex second opinion + blind Claude review + Claude synthesis) standalone on any PR — no implement loop required. Use to get a Claude-and-Codex joint review of a pull request, to re-review a PR after the ca loop finished, or when the user says "dual review this PR", "review with both Claude and Codex", or invokes /ca:dual-review. Emits the same ca_claude_review.v1 verdict as the loop's final review.
+license: MIT
+argument-hint: '[pr-number] [plan-path] [--comment]'
+effort: medium
+disable-model-invocation: true
+allowed-tools: Read, Grep, Glob, Bash
+---
+
+# dual-review
+
+Run the ca loop's dual-model final review as a **standalone command**: an offline
+Codex second opinion and a blind Claude review run in parallel, then a separate
+Claude synthesis call adjudicates the Codex findings into one
+`ca_claude_review.v1` verdict. Works on any PR — mid-loop, after the loop, or on
+PRs the loop never touched. You are the ORCHESTRATOR: the judgment happens in the
+subprocesses; you set up inputs, run the script, and report the result.
+
+## Preconditions (check first, fail loudly)
+
+- `claude` on PATH (or `CLAUDE_BIN`) and the ca plugin resolvable by `claude -p`
+  (installed, or export `CA_CLAUDE_PLUGIN_DIR=<repo>/ca/claude`).
+- Network + authenticated `gh` (`gh auth status`).
+- `codex` (or `CODEX_BIN`) is OPTIONAL: absent/failing degrades visibly to a
+  Claude-only review with the reason in the meta sidecar — never a hard failure.
+
+## Step 1 — Resolve inputs
+
+```bash
+PR="<first argument, or auto-detect>"
+[ -n "$PR" ] || PR="$(gh pr view --json number --jq .number 2>/dev/null)"
+[ -n "$PR" ] || { echo "no PR number given and none found for the current branch" >&2; exit 1; }
+ROOT="$(git rev-parse --show-toplevel)"
+```
+
+**Plan/intent file** — the reviewers judge the PR against it:
+
+- If the user gave a plan path (e.g. `docs/ca/plans/<id>.md`), use it. For a
+  re-review after a loop, the loop's staged copy also works:
+  `.ca/runs/<plan-id>/plan.md`.
+- If no plan is given, derive an intent file from the PR itself — the review
+  then judges the PR against its stated intent:
+
+  ```bash
+  INTENT="$ROOT/.ca/reviews/pr-$PR/intent.md"
+  mkdir -p "$(dirname "$INTENT")"
+  gh pr view "$PR" --json title,body --jq '"# PR intent: \(.title)\n\n\(.body)"' > "$INTENT"
+  ```
+
+**Output dir and round** — keep every artifact (gitignored under `.ca/`):
+
+```bash
+OUTDIR="$ROOT/.ca/reviews/pr-$PR"
+ROUND=1; while [ -f "$OUTDIR/review-round-$ROUND.json" ]; do ROUND=$((ROUND+1)); done
+```
+
+## Step 2 — Run the orchestrator
+
+```bash
+CLAUDE_SKILL_CA_DIR="${CLAUDE_SKILL_DIR}"
+bash "$CLAUDE_SKILL_CA_DIR/scripts/dual-review.sh" \
+  --pr "$PR" --plan "$INTENT_OR_PLAN" --worktree "$ROOT" \
+  --round "$ROUND" --out-dir "$OUTDIR"
+```
+
+It runs both legs in parallel (the blind review cannot read the Codex output —
+it is being produced concurrently by a process it never opens), synthesizes when
+Codex found anything, skips synthesis on a clean full-coverage Codex pass, and
+degrades to Claude-only with a machine-readable reason when the Codex leg fails.
+If it exits non-zero, report the failure verbatim — do not improvise a verdict.
+
+## Step 3 — Report
+
+Read `review-round-N.json` and the meta sidecar; report to the human:
+
+- **Verdict** (approve / request_changes / blocked) and the summary paragraph.
+- Findings as a table: id, blocking, severity, title, file:line.
+- When synthesis ran: the `second_opinion.ledger` adjudications
+  (confirmed/refuted/not_applicable/unresolved) and any
+  `resolved_blind_findings` (blind blockers that synthesis downgraded, with
+  evidence).
+- The leg statuses from the meta sidecar (e.g. Codex `used` coverage `full`,
+  or `unavailable: codex_unavailable_or_oversized` — say plainly when the
+  second opinion did NOT happen).
+
+If `--comment` was passed, also post the summary to the PR:
+
+```bash
+gh pr review "$PR" --comment --body "<summary>"
+```
+
+## Notes
+
+- This is the standalone twin of the implement loop's `CA_DUAL_REVIEW=1` final
+  review — same scripts, same contract, same fail-closed semantics. One
+  deliberate difference: a Codex-leg input-fetch failure (exit 4) degrades here
+  instead of stopping, because the blind leg fetched the same PR in parallel —
+  an asymmetric failure is transient.
+- Verdicts from this command do NOT promote a draft PR; only the loop's
+  final-mode approve does (the loop owns `gh pr ready`).
+- The `code-review` standards skill (canonical risky-surface list, four
+  dimensions) auto-activates in the `claude -p` review sessions — the criteria
+  are the same as sa/ha; only the execution differs.
+
+## References
+
+- `references/review-contract.md` — `ca_claude_review.v1` / `ca_codex_review.v1`
+  shapes and gate semantics (byte-identical copy; the canonical set lives with
+  each skill that consumes it).

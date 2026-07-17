@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ca_codex_review.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "summary", "coverage", "findings"],
+  "properties": {
+    "schema_version": {
+      "const": "ca_codex_review.v1"
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "coverage": {
+      "enum": ["full", "partial"]
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "blocking", "severity", "title", "evidence", "recommended_fix"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^X[0-9]{3}$"
+          },
+          "blocking": {
+            "type": "boolean"
+          },
+          "severity": {
+            "enum": ["blocker", "major", "minor"]
+          },
+          "file": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "recommended_fix": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      }
+    }
+  }
+}
